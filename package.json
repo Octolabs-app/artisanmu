@@ -1,0 +1,14 @@
+{
+  "name": "artsianmu",
+  "version": "1.0.0",
+  "description": "Artisan directory for Mauritius — static SPA with Netlify serverless functions",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/A1l4n/ArtsianMU.git"
+  },
+  "author": "A1l4n",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.100.0"
+  }
+}

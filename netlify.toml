@@ -1,0 +1,53 @@
+[build]
+  publish = "."
+  command = "npm install"
+  functions = "netlify/functions"
+
+# API routes — force = true ensures these win over the /* catch-all
+[[redirects]]
+  from = "/api/config"
+  to = "/.netlify/functions/config"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/login"
+  to = "/.netlify/functions/admin-login"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/logout"
+  to = "/.netlify/functions/admin-logout"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/artisans"
+  to = "/.netlify/functions/admin-artisans"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/artisans/:id/verify"
+  to = "/.netlify/functions/admin-verify"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/artisans/:id"
+  to = "/.netlify/functions/admin-delete"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/artisans/login"
+  to = "/.netlify/functions/artisan-login"
+  status = 200
+  force = true
+
+# SPA catch-all — must be last
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

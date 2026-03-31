@@ -1,0 +1,12 @@
+# Static asset caching
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# CORS for serverless functions is handled per-function in token-utils.js
+# using the SITE_URL environment variable, NOT a wildcard here.
+# The _headers file intentionally does NOT set Access-Control-Allow-Origin
+# so that the function-level origin restriction takes effect.
+/.netlify/functions/*
+  X-Content-Type-Options: nosniff
