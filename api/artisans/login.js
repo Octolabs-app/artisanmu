@@ -7,7 +7,10 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    const { tel, nic } = req.body || {};
+    let body = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+    body = body || {};
+    const { tel, nic } = body;
     if (!tel || !nic) return res.status(400).json({ success: false, error: 'Phone and NIC required' });
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);

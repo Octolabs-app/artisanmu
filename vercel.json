@@ -1,23 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    { "src": "/api/config",                        "dest": "/api/config.js" },
-    { "src": "/api/admin/login",                   "dest": "/api/admin/login.js" },
-    { "src": "/api/admin/logout",                  "dest": "/api/admin/logout.js" },
-    { "src": "/api/admin/artisans",                "dest": "/api/admin/artisans/index.js" },
-    { "src": "/api/admin/artisans/([^/]+)/verify", "dest": "/api/admin/artisans/[id].js?id=$1&action=verify" },
-    { "src": "/api/admin/artisans/([^/]+)",        "dest": "/api/admin/artisans/[id].js?id=$1" },
-    { "src": "/api/artisans/login",                "dest": "/api/artisans/login.js" },
-    { "src": "/(.*)",                              "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/api/config",                        "destination": "/api/config.js" },
+    { "source": "/api/admin/login",                   "destination": "/api/admin/login.js" },
+    { "source": "/api/admin/logout",                  "destination": "/api/admin/logout.js" },
+    { "source": "/api/admin/artisans",                "destination": "/api/admin/artisans/index.js" },
+    { "source": "/api/admin/artisans/:id/verify",     "destination": "/api/admin/artisans/[id].js?id=:id&action=verify" },
+    { "source": "/api/admin/artisans/:id",            "destination": "/api/admin/artisans/[id].js?id=:id" },
+    { "source": "/api/artisans/login",                "destination": "/api/artisans/login.js" },
+    { "source": "/((?!api/).*)",                      "destination": "/index.html" }
   ]
 }
