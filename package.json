@@ -1,7 +1,7 @@
 {
-  "name": "artsianmu",
+  "name": "artisanmu",
   "version": "1.0.0",
-  "description": "Artisan directory for Mauritius — static SPA with Netlify serverless functions",
+  "description": "Artisan directory for Mauritius — SPA with Netlify + Vercel serverless functions",
   "repository": {
     "type": "git",
     "url": "https://github.com/A1l4n/ArtsianMU.git"

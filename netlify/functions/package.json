@@ -1,7 +1,6 @@
 {
   "name": "artisanmu-functions",
   "version": "1.0.0",
-  "description": "Netlify serverless functions for ArtisanMu",
   "dependencies": {
     "@supabase/supabase-js": "^2.100.0"
   }

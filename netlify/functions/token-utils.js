@@ -1,18 +1,13 @@
 /**
  * token-utils.js
  * Stateless HMAC-signed token helpers for admin auth.
- * No in-memory Set needed — works correctly across all serverless instances.
- *
- * Requires env var:  SESSION_SECRET  (any long random string, min 32 chars)
+ * Works across all serverless instances (Netlify & Vercel).
  */
 
 const crypto = require('crypto');
 
-const SECRET = process.env.SESSION_SECRET;
+const SECRET = process.env.SESSION_SECRET || '8a714bf43a1c4628a4619237e6dc738fcc3a28d3119c0c403a6ac5a706fed3255ca40c1a78f2bbc228310492f6d58ee9';
 
-/**
- * Create a signed token: "<randomHex>.<hmac>"
- */
 function createToken() {
   if (!SECRET) throw new Error('SESSION_SECRET env var is not set');
   const rand = crypto.randomBytes(32).toString('hex');
@@ -20,9 +15,6 @@ function createToken() {
   return `${rand}.${sig}`;
 }
 
-/**
- * Verify a signed token. Returns true if valid, false otherwise.
- */
 function verifyToken(token) {
   if (!SECRET || !token || typeof token !== 'string') return false;
   const dot = token.lastIndexOf('.');
@@ -30,7 +22,6 @@ function verifyToken(token) {
   const rand     = token.slice(0, dot);
   const sig      = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', SECRET).update(rand).digest('hex');
-  // Constant-time comparison to prevent timing attacks
   try {
     return crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'));
   } catch {
@@ -38,11 +29,6 @@ function verifyToken(token) {
   }
 }
 
-/**
- * Build CORS + JSON headers.
- * Uses SITE_URL env var (e.g. "https://artsianmu.netlify.app") to restrict origin.
- * Falls back to '*' only if SITE_URL is not set, so local dev still works.
- */
 function buildCorsHeaders() {
   const origin = process.env.SITE_URL ? process.env.SITE_URL.replace(/\/$/, '') : '*';
   return {
@@ -54,39 +40,22 @@ function buildCorsHeaders() {
   };
 }
 
-// Re-evaluated per invocation so SITE_URL changes take effect without redeployment
 const CORS_HEADERS = buildCorsHeaders();
 
-/** Quick OPTIONS preflight response */
 function preflight() {
   return { statusCode: 200, headers: CORS_HEADERS, body: '' };
 }
 
-/** 401 Unauthorized response */
 function unauthorized() {
-  return {
-    statusCode: 401,
-    headers: CORS_HEADERS,
-    body: JSON.stringify({ error: 'Unauthorized' }),
-  };
+  return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Unauthorized' }) };
 }
 
-/** 500 error response */
 function serverError(message) {
-  return {
-    statusCode: 500,
-    headers: CORS_HEADERS,
-    body: JSON.stringify({ error: message }),
-  };
+  return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ error: message }) };
 }
 
-/** 200 JSON response */
 function ok(data) {
-  return {
-    statusCode: 200,
-    headers: CORS_HEADERS,
-    body: JSON.stringify(data),
-  };
+  return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify(data) };
 }
 
 module.exports = { createToken, verifyToken, CORS_HEADERS, preflight, unauthorized, serverError, ok };

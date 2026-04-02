@@ -1,59 +1,22 @@
-/**
- * config.js
- * Returns public app config to the frontend.
- * All values come from Netlify environment variables — nothing is hardcoded.
- *
- * Required env vars:
- *   SUPABASE_URL
- *   SUPABASE_ANON_KEY
- *   EMAILJS_SERVICE
- *   EMAILJS_TEMPLATE
- *   EMAILJS_PUBLIC_KEY
- *   ADMIN_PHONE         (optional, defaults to '23058289431')
- *
- * Fix applied:
- *   - Now explicitly rejects all methods other than GET with 405
- */
-
 const { CORS_HEADERS, preflight } = require('./token-utils');
+
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.SUPABASE_API_URL || 'https://sypwtcndehuroudbnzdw.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5cHd0Y25kZWh1cm91ZGJuemR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0Mzk4ODIsImV4cCI6MjA5MDAxNTg4Mn0.UEnCPdflKWXPeSJ1TgzeZom5DcGSh9CV7ZnGnO4Illk';
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
-
-  // Only GET is valid for a config endpoint
   if (event.httpMethod !== 'GET') {
-    return {
-      statusCode: 405,
-      headers: { ...CORS_HEADERS, Allow: 'GET, OPTIONS' },
-      body: JSON.stringify({ error: 'Method Not Allowed' }),
-    };
+    return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
-
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('[config] Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables');
-    return {
-      statusCode: 500,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({
-        error:
-          'Server misconfiguration: Supabase environment variables are not set. ' +
-          'Add SUPABASE_URL and SUPABASE_ANON_KEY in Netlify → Environment variables, then redeploy.',
-      }),
-    };
-  }
-
   return {
     statusCode: 200,
     headers: CORS_HEADERS,
     body: JSON.stringify({
-      supabaseUrl,
-      supabaseKey,
-      emailjsService:   process.env.EMAILJS_SERVICE    || '',
-      emailjsTemplate:  process.env.EMAILJS_TEMPLATE   || '',
-      emailjsPublicKey: process.env.EMAILJS_PUBLIC_KEY || '',
+      supabaseUrl: SUPABASE_URL,
+      supabaseKey: SUPABASE_KEY,
+      emailjsService:   process.env.EMAILJS_SERVICE    || process.env.EMAILJS_SERVICE_ID || '',
+      emailjsTemplate:  process.env.EMAILJS_TEMPLATE   || process.env.EMAILJS_TEMPLATE_ID || 'template_k8nldjn',
+      emailjsPublicKey: process.env.EMAILJS_PUBLIC_KEY || '6Pw2b7AuVmU5pA3br',
       adminPhone:       process.env.ADMIN_PHONE         || '23058289431',
     }),
   };

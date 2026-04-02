@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/api/config",                        "dest": "/api/config.js" },
+    { "src": "/api/admin/login",                   "dest": "/api/admin/login.js" },
+    { "src": "/api/admin/logout",                  "dest": "/api/admin/logout.js" },
+    { "src": "/api/admin/artisans",                "dest": "/api/admin/artisans/index.js" },
+    { "src": "/api/admin/artisans/([^/]+)/verify", "dest": "/api/admin/artisans/[id].js?id=$1&action=verify" },
+    { "src": "/api/admin/artisans/([^/]+)",        "dest": "/api/admin/artisans/[id].js?id=$1" },
+    { "src": "/api/artisans/login",                "dest": "/api/artisans/login.js" },
+    { "src": "/(.*)",                              "dest": "/index.html" }
+  ]
+}
