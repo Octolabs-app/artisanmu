@@ -1,4 +1,4 @@
-const { createToken, setCors, ADMIN_HASH } = require('./_utils');
+const { createToken, setCors, ADMIN_HASH } = require('../_utils');
 
 module.exports = async (req, res) => {
   setCors(res);
@@ -6,16 +6,13 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    // Vercel may pass body as string or object depending on content-type
     let body = req.body;
-    if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch { body = {}; }
-    }
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
     body = body || {};
 
     const { passwordHash } = body;
-    console.log('[admin-login] received hash:', passwordHash);
-    console.log('[admin-login] expected hash:', ADMIN_HASH);
+    console.log('[admin-login] received:', passwordHash);
+    console.log('[admin-login] expected:', ADMIN_HASH);
 
     if (!passwordHash || passwordHash !== ADMIN_HASH) {
       return res.status(401).json({ success: false, error: 'Invalid password' });

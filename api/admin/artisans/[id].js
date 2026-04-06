@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const { verifyToken, setCors, SUPABASE_URL, SUPABASE_KEY } = require('../../../_utils');
+const { verifyToken, setCors, SUPABASE_URL, SUPABASE_KEY } = require('../../_utils');
 
 function getFilename(url) {
   try { return new URL(url).pathname.split('/').pop(); } catch { return null; }
@@ -11,15 +11,12 @@ module.exports = async (req, res) => {
   const token = req.headers['x-admin-token'];
   if (!verifyToken(token)) return res.status(401).json({ error: 'Unauthorized' });
 
-  // id and optional action come from vercel.json route capture
   const id = req.query.id;
-  const action = req.query.action; // 'verify' when matched /artisans/:id/verify
-
+  const action = req.query.action;
   if (!id) return res.status(400).json({ error: 'Missing artisan ID' });
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // PUT /api/admin/artisans/:id/verify
   if (req.method === 'PUT' && action === 'verify') {
     try {
       const { error } = await supabase.from('artisans').update({ is_verified: true }).eq('id', id);
@@ -30,7 +27,6 @@ module.exports = async (req, res) => {
     }
   }
 
-  // DELETE /api/admin/artisans/:id
   if (req.method === 'DELETE') {
     try {
       const { data: artisan } = await supabase.from('artisans').select('avatar, photos').eq('id', id).single();

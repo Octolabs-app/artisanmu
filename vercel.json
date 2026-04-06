@@ -1,13 +1,6 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/config",                        "destination": "/api/config.js" },
-    { "source": "/api/admin/login",                   "destination": "/api/admin/login.js" },
-    { "source": "/api/admin/logout",                  "destination": "/api/admin/logout.js" },
-    { "source": "/api/admin/artisans",                "destination": "/api/admin/artisans/index.js" },
-    { "source": "/api/admin/artisans/:id/verify",     "destination": "/api/admin/artisans/[id].js?id=:id&action=verify" },
-    { "source": "/api/admin/artisans/:id",            "destination": "/api/admin/artisans/[id].js?id=:id" },
-    { "source": "/api/artisans/login",                "destination": "/api/artisans/login.js" },
-    { "source": "/((?!api/).*)",                      "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

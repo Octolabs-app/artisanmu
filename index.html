@@ -397,7 +397,8 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
   <div class="fg"><label class="fl">Métier principal</label>
     <select id="i-metier" class="sel"><option>Plombier</option><option>Électricien</option><option>Maçon</option><option>Menuisier</option><option>Garagiste</option><option>Climatisation</option><option>Peintre</option><option>Jardinier</option><option>Carreleur</option><option>Serrurier</option><option>Soudeur</option><option>Vitrier</option><option>Nettoyage</option><option>Autres</option></select>
   </div>
-  <div class="fg"><label class="fl">Ville principale</label><input id="i-ville" class="inp" placeholder="Ex: Vacoas"></div>
+  <div class="fg"><label class="fl">District</label><select id="i-district" class="sel"><option value="">-- Choisir un district --</option><option>Port-Louis</option><option>Plaines Wilhems</option><option>Grand Port</option><option>Savanne</option><option>Black River</option><option>Rivière du Rempart</option><option>Flacq</option><option>Moka</option><option>Pamplemousses</option><option>Rodrigues</option></select></div>
+  <div class="fg"><label class="fl">Ville / Village</label><input id="i-ville" class="inp" placeholder="Ex: Vacoas, Curepipe, Mahébourg…"></div>
   <div class="fg"><label class="fl">Bio (Optionnel)</label><textarea id="i-bio" class="inp" placeholder="Décrivez votre expérience…"></textarea></div>
   <div class="fg">
     <label class="fl">Mots-clés d'expertise</label>
@@ -778,6 +779,7 @@ function renderArtisans(){
   const fSearch=document.getElementById('f-search').value.trim().toLowerCase();
   let filtered=DB_ARTISANS;
   if(currentMetierFilter)filtered=filtered.filter(a=>a.metier===currentMetierFilter);
+  if(currentRegionFilter)filtered=filtered.filter(a=>a.district&&a.district===currentRegionFilter);
   if(fVille)filtered=filtered.filter(a=>a.ville&&a.ville.toLowerCase().includes(fVille));
   if(fSearch)filtered=filtered.filter(a=>['nom','metier','expertise','ville','bio'].some(k=>a[k]&&a[k].toLowerCase().includes(fSearch)));
   if(nearMeActive&&userCoords)filtered=filtered.map(a=>{let dist=Infinity;if(a.gps){try{const[lat,lon]=a.gps.split(',').map(Number);dist=haversineKm(userCoords.lat,userCoords.lon,lat,lon);}catch{}}return{...a,_dist:dist};}).sort((a,b)=>a._dist-b._dist);
@@ -826,7 +828,7 @@ function openProfil(id){
   currentProfilId=id;
   document.getElementById('p-nom').textContent=a.nom;
   document.getElementById('p-metier').textContent=a.metier;
-  document.getElementById('p-ville-text').textContent=a.ville;
+  document.getElementById('p-ville-text').textContent=a.ville+(a.district?', '+a.district:'');
   document.getElementById('rating-form').style.display='none';
   const grads={'Plombier':'135deg,#0A4F6E,#0A1914','Électricien':'135deg,#4A1A6E,#0A1914','Maçon':'135deg,#5C3D11,#0A1914','Menuisier':'135deg,#3B2A0D,#0A1914','Garagiste':'135deg,#1A1A2E,#0A1914','Peintre':'135deg,#2E1A3A,#0A1914','Jardinier':'135deg,#0A3A1A,#0A1914','default':'135deg,#1A6E4F,#0A1914'};
   const gradient=grads[a.metier]||grads.default;
@@ -891,17 +893,18 @@ async function submitRating(){
 async function submitInscription(){
   const nom=document.getElementById('i-nom').value.trim(),tel=document.getElementById('i-tel').value.trim(),nic=document.getElementById('i-nic').value.trim();
   const metier=document.getElementById('i-metier').value,ville=document.getElementById('i-ville').value.trim();
+  const district=document.getElementById('i-district').value.trim();
   const lien=document.getElementById('i-lien').value.trim(),gps=document.getElementById('i-gps').value.trim();
   const expertise=document.getElementById('i-expertise').value.trim(),bio=document.getElementById('i-bio').value.trim();
   const avatarEl=document.getElementById('i-avatar').files[0],photosEls=document.getElementById('i-photos').files;
-  if(!nom||!tel||!nic||!ville){showToast('⚠️ Champs obligatoires manquants.');return;}
+  if(!nom||!tel||!nic||!ville||!district){showToast('⚠️ Champs obligatoires manquants (district + ville).');return;}
   const btn=document.getElementById('i-btn');btn.disabled=true;btn.textContent='Upload en cours…';
   try{
     let avatarUrl=null,uploadedPhotos=[];
     if(avatarEl){const path='avatar_'+Date.now()+'_'+avatarEl.name.replace(/[^a-zA-Z0-9.\-]/g,'');const{error}=await _supabase.storage.from('portfolios').upload(path,avatarEl);if(!error){const{data}=_supabase.storage.from('portfolios').getPublicUrl(path);avatarUrl=data&&data.publicUrl;}}
     for(let i=0;i<Math.min(photosEls.length,6);i++){const file=photosEls[i];const path='img_'+Date.now()+'_'+i+'_'+file.name.replace(/[^a-zA-Z0-9.\-]/g,'');const{error}=await _supabase.storage.from('portfolios').upload(path,file);if(!error){const{data}=_supabase.storage.from('portfolios').getPublicUrl(path);if(data&&data.publicUrl)uploadedPhotos.push(data.publicUrl);}}
     btn.textContent='Enregistrement…';
-    const{data,error}=await _supabase.from('artisans').insert([{nom,tel,nic,metier,ville,lien,gps,expertise,bio,avatar:avatarUrl,photos:JSON.stringify(uploadedPhotos.map((url,i)=>({url,showcase:i===0}))),is_verified:false,note_total:0,nombre_avis:0,initiales:nom.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}]).select().single();
+    const{data,error}=await _supabase.from('artisans').insert([{nom,tel,nic,metier,ville,district,lien,gps,expertise,bio,avatar:avatarUrl,photos:JSON.stringify(uploadedPhotos.map((url,i)=>({url,showcase:i===0}))),is_verified:false,note_total:0,nombre_avis:0,initiales:nom.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}]).select().single();
     if(error)throw error;
     tempArtisan=data;document.getElementById('display-tel').textContent=tel;
     if(EMAILJS_SERVICE&&EMAILJS_TEMPLATE)emailjs.send(EMAILJS_SERVICE,EMAILJS_TEMPLATE,{from_name:nom,nic,tel,metier}).catch(()=>{});
@@ -1168,7 +1171,6 @@ function setRegionFilter(region){
     el.classList.remove('active');
     if((!region&&el.id==='region-all')||(region&&el.onclick&&el.onclick.toString().includes("'"+region+"'"))){el.classList.add('active');}
   });
-  document.getElementById('f-ville').value=region;
   renderArtisans();
 }
 

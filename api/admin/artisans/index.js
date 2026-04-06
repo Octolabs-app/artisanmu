@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     const { data, error } = await supabase
       .from('artisans')
-      .select('id, nom, metier, ville, tel, nic, is_verified, created_at, nombre_avis, note_total, avatar')
+      .select('id, nom, metier, ville, district, tel, nic, is_verified, created_at, nombre_avis, note_total, avatar')
       .order('created_at', { ascending: false });
     if (error) throw error;
     res.status(200).json(data || []);
