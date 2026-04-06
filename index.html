@@ -473,6 +473,22 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
       <div id="dash-avatar-preview" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--dark));border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:white;overflow:hidden;flex-shrink:0;"></div>
       <div style="flex:1;"><label class="fl">Changer la photo</label><input type="file" id="e-avatar" class="inp" accept="image/*" style="padding:10px;" onchange="previewAvatar(this)"></div>
     </div>
+    <div class="fg"><label class="fl">District</label>
+      <select id="e-district" class="sel">
+        <option value="">-- Choisir un district --</option>
+        <option>Port-Louis</option>
+        <option>Plaines Wilhems</option>
+        <option>Grand Port</option>
+        <option>Savanne</option>
+        <option>Black River</option>
+        <option>Rivière du Rempart</option>
+        <option>Flacq</option>
+        <option>Moka</option>
+        <option>Pamplemousses</option>
+        <option>Rodrigues</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Ville / Village</label><input id="e-ville-edit" class="inp" placeholder="Ex: Vacoas, Curepipe, Mahébourg…"></div>
     <div class="fg"><label class="fl">Lien Web / Réseaux</label><input id="e-lien" class="inp" placeholder="https://instagram.com/…"></div>
   </div>
   <div class="dash-section">
@@ -718,7 +734,7 @@ async function fetchAllArtisans(){
   const cached=localStorage.getItem('amu_cache_artisans');
   if(cached){try{DB_ARTISANS=JSON.parse(cached);artisansLoaded=true;updateHeroStats();renderArtisans();hideLoader();}catch{}}
   try{
-    const{data,error}=await _supabase.from('artisans').select('id,nom,metier,expertise,ville,tel,initiales,photos,avatar,note_total,nombre_avis,gps,lien,bio,created_at').eq('is_verified',true).order('created_at',{ascending:false});
+    const{data,error}=await _supabase.from('artisans').select('id,nom,metier,expertise,ville,district,tel,initiales,photos,avatar,note_total,nombre_avis,gps,lien,bio,created_at').eq('is_verified',true).order('created_at',{ascending:false});
     if(error)throw error;
     DB_ARTISANS=data||[];artisansLoaded=true;
     localStorage.setItem('amu_cache_artisans',JSON.stringify(DB_ARTISANS));
@@ -943,10 +959,12 @@ async function loadDashboard(){
     const parts=data.nom.split(' ');const first=parts[0],rest=parts.slice(1).join(' ');
     const dn=document.getElementById('dash-name');if(dn)dn.innerHTML=first+(rest?' <em>'+rest+'</em>':'');
     const dl=document.getElementById('dash-letter');if(dl)dl.textContent=data.nom[0].toUpperCase();
-    const db=document.getElementById('dash-metier-badge');if(db)db.textContent=data.metier+' · '+data.ville;
+    const db=document.getElementById('dash-metier-badge');if(db)db.textContent=data.metier+' · '+data.ville+(data.district?' ('+data.district+')':'');
     const nAvis=data.nombre_avis||0,nTotal=data.note_total||0;
     document.getElementById('dash-stat-avis').textContent=nAvis;
     document.getElementById('dash-stat-note').textContent=nAvis>0?(nTotal/nAvis).toFixed(1):'—';
+    document.getElementById('e-district').value=data.district||'';
+    document.getElementById('e-ville-edit').value=data.ville||'';
     document.getElementById('e-expertise').value=data.expertise||'';
     document.getElementById('e-lien').value=data.lien||'';
     document.getElementById('e-gps').value=data.gps||'';
@@ -972,7 +990,7 @@ async function updateArtisan(){
     const newPhotosFiles=document.getElementById('e-photos').files;
     for(let i=0;i<newPhotosFiles.length;i++){if(portfolioItems.length>=6){showToast('⚠️ Max 6 photos.');break;}const file=newPhotosFiles[i];const path='img_'+Date.now()+'_'+i+'_'+file.name.replace(/[^a-zA-Z0-9.\-]/g,'');const{error}=await _supabase.storage.from('portfolios').upload(path,file);if(!error){const{data}=_supabase.storage.from('portfolios').getPublicUrl(path);if(data&&data.publicUrl)portfolioItems.push({url:data.publicUrl,showcase:portfolioItems.length===0});}}
     if(portfolioItems.length>0&&!portfolioItems.some(i=>i.showcase))portfolioItems[0].showcase=true;
-    const{error}=await _supabase.from('artisans').update({expertise:document.getElementById('e-expertise').value.trim(),lien:document.getElementById('e-lien').value.trim(),gps:document.getElementById('e-gps').value.trim(),bio:document.getElementById('e-bio').value.trim().substring(0,500),avatar:finalAvatar,photos:JSON.stringify(portfolioItems)}).eq('id',loggedInArtisanId);
+    const{error}=await _supabase.from('artisans').update({district:document.getElementById('e-district').value.trim(),ville:document.getElementById('e-ville-edit').value.trim()||undefined,expertise:document.getElementById('e-expertise').value.trim(),lien:document.getElementById('e-lien').value.trim(),gps:document.getElementById('e-gps').value.trim(),bio:document.getElementById('e-bio').value.trim().substring(0,500),avatar:finalAvatar,photos:JSON.stringify(portfolioItems)}).eq('id',loggedInArtisanId);
     if(error)throw error;
     if(toDelete.length>0){await _supabase.storage.from('portfolios').remove(toDelete.map(u=>u.split('/').pop()));toDelete=[];}
     showToast('✅ Profil mis à jour !');await fetchAllArtisans();renderPortfolioManager();document.getElementById('e-avatar').value='';document.getElementById('e-photos').value='';
