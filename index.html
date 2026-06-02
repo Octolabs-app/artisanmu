@@ -288,6 +288,79 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
 @media(max-width:400px){#artisans-list{grid-template-columns:1fr}}
 @media(min-width:1100px){#artisans-list{grid-template-columns:repeat(3,1fr)}}
 </style>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#C6A87C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+/* ── Availability dot ── */
+.avail-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px;flex-shrink:0;}
+.avail-dot.on{background:#22c55e;box-shadow:0 0 5px #22c55e88;}
+.avail-dot.off{background:#9ca3af;}
+/* ── Fav heart button ── */
+.btn-fav{position:absolute;bottom:10px;right:10px;z-index:10;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.85);border:none;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:transform 0.2s,background 0.2s;backdrop-filter:blur(4px);}
+.btn-fav:hover{transform:scale(1.18);}
+.btn-fav.saved{background:#fef2f2;color:#ef4444;}
+/* ── Contact preference radios ── */
+.pref-options{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
+.pref-option{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);background:white;cursor:pointer;transition:border-color 0.2s,background 0.2s;}
+.pref-option:hover{border-color:var(--gold);}
+.pref-option.selected{border-color:var(--green);background:#f0fdf4;}
+.pref-option input[type=radio]{accent-color:var(--green);width:16px;height:16px;flex-shrink:0;}
+.pref-label{font-weight:600;font-size:14px;color:var(--ink);}
+.pref-desc{font-size:12px;color:var(--ink3);margin-top:1px;}
+/* ── Availability toggle ── */
+.avail-toggle-wrap{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:#d1d5db;border-radius:24px;cursor:pointer;transition:background 0.3s;}
+.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:white;border-radius:50%;transition:transform 0.3s;}
+.toggle-switch input:checked+.toggle-slider{background:var(--green);}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px);}
+.avail-toggle-label{font-size:14px;font-weight:600;color:rgba(255,255,255,0.9);}
+/* ── Job feed ── */
+.job-card{background:white;border-radius:16px;border:1.5px solid var(--border);padding:18px;margin-bottom:14px;transition:box-shadow 0.2s;}
+.job-card:hover{box-shadow:var(--shadow-md);}
+.job-budget-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.3px;}
+.job-budget-low{background:#dcfce7;color:#166534;}
+.job-budget-mid{background:#fef9c3;color:#713f12;}
+.job-budget-high{background:#fee2e2;color:#991b1b;}
+.btn-claim{padding:10px 20px;background:var(--green);color:white;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:all 0.2s;}
+.btn-claim:hover{background:var(--green2);}
+.btn-claim:disabled{opacity:0.5;cursor:not-allowed;}
+.claim-timer{font-size:13px;font-weight:700;color:#D97706;letter-spacing:1px;}
+/* ── Invoice ── */
+.inv-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);}
+.inv-row:last-child{border-bottom:none;}
+.inv-status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.inv-draft{background:var(--paper2);color:var(--ink3);}
+.inv-sent{background:#dbeafe;color:#1e40af;}
+.inv-paid{background:#dcfce7;color:#166534;}
+.inv-overdue{background:#fee2e2;color:#991b1b;}
+.inv-item-row{display:grid;grid-template-columns:1fr 70px 80px 90px 90px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.inv-item-row:last-child{border-bottom:none;}
+.inv-item-row input,.inv-item-row select{width:100%;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:13px;background:white;color:var(--ink);}
+/* ── Print / public invoice ── */
+@media print{
+  body>*:not(#page-invoice){display:none!important;}
+  #page-invoice{display:block!important;}
+  .no-print{display:none!important;}
+  .inv-print-card{box-shadow:none!important;border:none!important;}
+}
+.inv-print-card{max-width:720px;margin:0 auto;background:white;border-radius:24px;border:1px solid var(--border);padding:48px;box-shadow:var(--shadow-md);}
+.inv-print-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;flex-wrap:wrap;gap:20px;}
+.inv-print-logo{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;letter-spacing:4px;color:var(--dark);}
+.inv-print-logo span{color:var(--gold);}
+.inv-total-row{display:flex;justify-content:flex-end;gap:24px;margin-top:8px;font-size:15px;}
+.inv-grand-total{font-size:22px;font-weight:700;color:var(--dark);}
+/* ── Booking modal ── */
+#booking-modal::backdrop{background:rgba(10,20,16,0.6);backdrop-filter:blur(4px);}
+#booking-modal{border:none;border-radius:24px;padding:0;max-width:480px;width:90%;box-shadow:var(--shadow-xl);}
+/* ── Job request page ── */
+.job-req-hero{background:linear-gradient(135deg,var(--dark),#1a3025);padding:80px 24px 60px;text-align:center;color:white;}
+.job-req-hero h2{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,5vw,52px);font-weight:300;color:white;margin-bottom:12px;}
+.job-req-form-wrap{max-width:620px;margin:0 auto;padding:40px 24px 80px;}
+</style>
 </head>
 <body>
 <div id="page-loader"><div class="loader-wordmark">ArtisanMu</div><div class="loader-line"></div><div class="loader-sub">L'île Maurice au travail</div></div>
@@ -330,6 +403,7 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
       <p class="hero-sub" id="hero-p">Identité contrôlée, avis transparents, artisans de confiance pour tous vos travaux.</p>
       <div class="hero-cta">
         <button class="btn-hero-main" onclick="document.getElementById('artisans-list').scrollIntoView({behavior:'smooth'})" id="btn-find">Trouver un artisan</button>
+        <button class="btn-hero-ghost" onclick="showPage('job-request')" style="background:rgba(198,168,124,0.15);border-color:var(--gold);color:var(--gold);">🔧 Poster un travail</button>
         <button class="btn-hero-ghost" onclick="showPage('inscription')" id="btn-join">Rejoindre</button>
       </div>
       <div class="hero-stat-inline">
@@ -453,6 +527,13 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
       <div class="dash-hero-eyebrow">Tableau de bord</div>
       <div class="dash-hero-name" id="dash-name">Votre <em>Profil</em></div>
       <div class="dash-hero-meta" id="dash-metier-badge">—</div>
+      <div class="avail-toggle-wrap">
+        <label class="toggle-switch">
+          <input type="checkbox" id="avail-toggle" onchange="toggleAvailability(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="avail-toggle-label" id="avail-toggle-label">Indisponible</span>
+      </div>
     </div>
   </div>
   <div class="dash-stats-row">
@@ -523,8 +604,67 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
       <p class="input-hint" style="margin-top:6px;">Maximum 6 photos.</p>
     </div>
   </div>
+  <!-- CONTACT PREFERENCE -->
+  <div class="dash-section">
+    <div class="dash-section-title"><span>📞</span> Mode de contact</div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:4px;">Comment préférez-vous être contacté par les clients ?</p>
+    <div class="pref-options">
+      <label class="pref-option" id="pref-whatsapp" onclick="selectContactPref('whatsapp')">
+        <input type="radio" name="contact_pref" value="whatsapp" checked>
+        <div><div class="pref-label">💬 WhatsApp</div><div class="pref-desc">Les clients vous envoient un message WhatsApp directement.</div></div>
+      </label>
+      <label class="pref-option" id="pref-call" onclick="selectContactPref('call')">
+        <input type="radio" name="contact_pref" value="call">
+        <div><div class="pref-label">📞 Appel téléphonique</div><div class="pref-desc">Les clients voient un bouton "Appeler" avec votre numéro.</div></div>
+      </label>
+      <label class="pref-option" id="pref-form" onclick="selectContactPref('form')">
+        <input type="radio" name="contact_pref" value="form">
+        <div><div class="pref-label">📋 Formulaire de demande</div><div class="pref-desc">Les clients remplissent un formulaire, vous recevez les détails sur WhatsApp.</div></div>
+      </label>
+    </div>
+    <p style="font-size:12px;color:var(--green);margin-top:10px;display:none;" id="pref-saved-msg">✅ Préférence enregistrée !</p>
+  </div>
+
+  <!-- TARIFS -->
+  <div class="dash-section">
+    <div class="dash-section-title"><span>💰</span> Tarifs & Frais</div>
+    <div class="fg"><label class="fl">Frais de déplacement / appel (Rs)</label>
+      <input id="e-callout-fee" class="inp" type="number" min="0" placeholder="Ex: 500" style="max-width:200px;">
+    </div>
+    <div class="fg" style="margin-top:12px;"><label class="fl">Tarifs unitaires (optionnel)</label>
+      <textarea id="e-unit-rates-raw" class="inp" placeholder='Ex: {"pose_carrelage_m2":250,"crepissage_m2":150,"tuyauterie_ml":120}' style="min-height:80px;font-size:12px;font-family:monospace;"></textarea>
+      <p class="input-hint">Format JSON · laissez vide si non applicable</p>
+    </div>
+  </div>
+
+  <!-- JOB FEED -->
+  <div class="dash-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="dash-section-title" style="margin-bottom:0;"><span>🔔</span> Demandes de travaux</div>
+      <button class="btn-secondary" onclick="loadJobFeed()" style="padding:8px 14px;font-size:12px;">↻ Actualiser</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:16px;">Demandes de clients dans votre district &amp; métier. Acceptez pour recevoir leurs coordonnées.</p>
+    <div id="job-feed-list"><p style="color:var(--ink3);font-size:13px;">Chargement…</p></div>
+  </div>
+
+  <!-- INVOICES -->
+  <div class="dash-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="dash-section-title" style="margin-bottom:0;"><span>🧾</span> Mes Factures</div>
+      <button class="btn-primary" onclick="openInvoiceBuilder(null)" style="padding:10px 18px;font-size:13px;">+ Nouvelle facture</button>
+    </div>
+    <div id="invoice-summary" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <button class="pill active" id="inv-filter-all" onclick="filterInvoices('all')">Toutes</button>
+      <button class="pill" id="inv-filter-draft" onclick="filterInvoices('draft')">Brouillons</button>
+      <button class="pill" id="inv-filter-sent" onclick="filterInvoices('sent')">Envoyées</button>
+      <button class="pill" id="inv-filter-paid" onclick="filterInvoices('paid')">Payées</button>
+    </div>
+    <div id="invoice-list"><p style="color:var(--ink3);font-size:13px;">Chargement…</p></div>
+  </div>
+
   <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
-    <button class="btn-primary" onclick="updateArtisan()" id="btn-update" style="flex:2;padding:17px;font-size:15px;min-width:240px;">💾 Enregistrer</button>
+    <button class="btn-primary" onclick="updateArtisan()" id="btn-update" style="flex:2;padding:17px;font-size:15px;min-width:240px;">💾 Enregistrer le profil</button>
     <button class="btn-secondary" onclick="logoutArtisan()" style="flex:1;min-width:140px;border-color:#FECACA;color:#DC2626;background:#FEF2F2;font-weight:700;">Déconnexion</button>
   </div>
   <div class="dash-section" style="border-color:#FECACA;background:#FEF2F2;">
@@ -648,6 +788,128 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
   <button class="btn-primary" onclick="document.getElementById('legal-modal').close()" style="margin-top:24px;width:100%;">Fermer</button>
 </dialog>
 
+<!-- PAGE JOB REQUEST -->
+<div id="page-job-request" class="page">
+  <div class="job-req-hero">
+    <button class="btn-ghost no-print" onclick="showPage('accueil')" style="color:rgba(255,255,255,0.6);margin-bottom:20px;font-size:13px;display:inline-flex;align-items:center;gap:6px;">← Retour</button>
+    <h2>Postez votre travail</h2>
+    <p style="color:rgba(255,255,255,0.6);font-size:16px;max-width:480px;margin:0 auto;">Décrivez votre problème en 30 secondes. Les artisans disponibles de votre région vous contacteront.</p>
+  </div>
+  <div class="job-req-form-wrap">
+    <div class="form-card">
+      <div class="fg"><label class="fl">Métier requis</label>
+        <select id="jr-category" class="sel">
+          <option value="">-- Choisir --</option>
+          <option>Plombier</option><option>Électricien</option><option>Maçon</option>
+          <option>Menuisier</option><option>Peintre</option><option>Carreleur</option>
+          <option>Garagiste</option><option>Jardinier</option><option>Soudeur</option><option>Autre</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Décrivez le problème</label>
+        <textarea id="jr-description" class="inp" placeholder="Ex: Robinet qui fuit sous l'évier de cuisine…" style="min-height:100px;" maxlength="500"></textarea>
+        <p class="input-hint"><span id="jr-desc-count">0</span>/500 caractères</p>
+      </div>
+      <div class="fg"><label class="fl">Photo du problème (optionnel)</label>
+        <input type="file" id="jr-photo" class="inp" accept="image/*" style="padding:10px;">
+      </div>
+      <div class="fg"><label class="fl">Budget estimé</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);cursor:pointer;" id="jr-b-low">
+            <input type="radio" name="jr_budget" value="low" style="accent-color:var(--green);"> <span>🟢 Petite réparation (moins de Rs 1 000)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);cursor:pointer;" id="jr-b-mid">
+            <input type="radio" name="jr_budget" value="mid" checked> <span>🟡 Travail moyen (Rs 1 000 – 3 000)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);cursor:pointer;" id="jr-b-high">
+            <input type="radio" name="jr_budget" value="high"> <span>🔴 Grand chantier (Rs 3 000+)</span>
+          </label>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Votre district</label>
+        <select id="jr-district" class="sel">
+          <option value="">-- Choisir --</option>
+          <option>Port-Louis</option><option>Plaines Wilhems</option><option>Grand Port</option>
+          <option>Savanne</option><option>Black River</option><option>Rivière du Rempart</option>
+          <option>Flacq</option><option>Moka</option><option>Pamplemousses</option><option>Rodrigues</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Ville / Village (optionnel)</label>
+        <input id="jr-town" class="inp" placeholder="Ex: Quatre Bornes, Vacoas…">
+      </div>
+      <div class="fg"><label class="fl">Votre prénom</label>
+        <input id="jr-name" class="inp" placeholder="Ex: Marie">
+      </div>
+      <div class="fg"><label class="fl">Votre WhatsApp (+230)</label>
+        <input id="jr-whatsapp" class="inp" type="tel" placeholder="Ex: 59912345">
+      </div>
+      <button class="btn-primary" onclick="submitJobRequest()" id="btn-submit-job" style="width:100%;padding:17px;font-size:15px;margin-top:8px;">🔧 Poster la demande</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE INVOICE (public view) -->
+<div id="page-invoice" class="page" style="padding:80px 16px 60px;background:var(--paper);">
+  <div style="max-width:720px;margin:0 auto;">
+    <button class="btn-ghost no-print" onclick="history.back()" style="margin-bottom:24px;font-size:13px;display:inline-flex;align-items:center;gap:6px;">← Retour</button>
+    <div id="invoice-view-content"></div>
+  </div>
+</div>
+
+<!-- BOOKING MODAL (form preference) -->
+<dialog id="booking-modal">
+  <div style="padding:28px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;">Demande de devis</h3>
+      <button onclick="document.getElementById('booking-modal').close()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink3);">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:20px;" id="booking-artisan-name"></p>
+    <div class="fg"><label class="fl">Votre prénom</label><input id="bm-name" class="inp" placeholder="Marie"></div>
+    <div class="fg"><label class="fl">Votre WhatsApp</label><input id="bm-phone" class="inp" type="tel" placeholder="59912345"></div>
+    <div class="fg"><label class="fl">Description du travail</label><textarea id="bm-desc" class="inp" placeholder="Décrivez brièvement…" style="min-height:80px;"></textarea></div>
+    <div class="fg"><label class="fl">Date souhaitée (optionnel)</label><input id="bm-date" class="inp" type="date"></div>
+    <button class="btn-primary" onclick="submitBookingForm()" style="width:100%;padding:15px;margin-top:8px;">💬 Envoyer sur WhatsApp</button>
+  </div>
+</dialog>
+
+<!-- INVOICE BUILDER MODAL -->
+<dialog id="invoice-builder-modal" style="max-width:700px;width:95%;border:none;border-radius:24px;padding:0;box-shadow:0 40px 100px rgba(10,20,16,0.22);">
+  <div style="padding:32px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;" id="inv-builder-title">Nouvelle facture</h3>
+      <button onclick="document.getElementById('invoice-builder-modal').close()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink3);">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="fg" style="grid-column:1/-1;"><label class="fl">Nom du client</label><input id="inv-client-name" class="inp" placeholder="Marie Robert"></div>
+      <div class="fg"><label class="fl">WhatsApp client</label><input id="inv-client-wa" class="inp" type="tel" placeholder="59912345"></div>
+      <div class="fg"><label class="fl">Date d'échéance</label><input id="inv-due-date" class="inp" type="date"></div>
+      <div class="fg" style="grid-column:1/-1;"><label class="fl">Adresse client (optionnel)</label><input id="inv-client-addr" class="inp" placeholder="123 Rue Labourdonnais, Curepipe"></div>
+    </div>
+    <div style="margin:20px 0 12px;display:flex;justify-content:space-between;align-items:center;">
+      <label class="fl" style="margin:0;">Lignes de facturation</label>
+      <button class="btn-secondary" onclick="addInvoiceLine()" style="padding:6px 14px;font-size:12px;">+ Ajouter</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--ink3);display:grid;grid-template-columns:1fr 60px 72px 84px 80px 32px;gap:6px;padding:0 0 6px;letter-spacing:0.5px;text-transform:uppercase;">
+      <span>Description</span><span>Qté</span><span>Unité</span><span>Prix (Rs)</span><span>Total</span><span></span>
+    </div>
+    <div id="inv-lines-container"></div>
+    <div style="margin-top:16px;padding:16px;background:var(--paper);border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:14px;"><span style="color:var(--ink3);">Sous-total</span><span id="inv-subtotal-display" style="font-weight:600;">Rs 0</span></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="inv-vat-toggle" onchange="toggleVat(this.checked)" style="accent-color:var(--green);"> TVA 15%</label>
+        <span id="inv-vat-display" style="margin-left:auto;font-size:14px;font-weight:600;color:var(--ink3);">Rs 0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding-top:10px;border-top:2px solid var(--border);"><span>TOTAL</span><span id="inv-total-display" style="color:var(--dark);">Rs 0</span></div>
+    </div>
+    <div class="fg" style="margin-top:16px;"><label class="fl">Instructions de paiement</label><textarea id="inv-payment-notes" class="inp" placeholder="Ex: Paiement par MCB Juice au +230 5901 2345" style="min-height:60px;"></textarea></div>
+    <div class="fg"><label class="fl">Notes (optionnel)</label><textarea id="inv-notes" class="inp" placeholder="Garantie, conditions…" style="min-height:60px;"></textarea></div>
+    <input type="hidden" id="inv-editing-id">
+    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+      <button class="btn-secondary" onclick="saveInvoice('draft')" style="flex:1;min-width:140px;">💾 Sauvegarder brouillon</button>
+      <button class="btn-primary" onclick="saveInvoice('sent')" style="flex:1;min-width:140px;">📤 Envoyer au client</button>
+    </div>
+  </div>
+</dialog>
+
 <script>
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let _supabase=null,EMAILJS_SERVICE='',EMAILJS_TEMPLATE='',EMAILJS_PUBLIC_KEY='',MON_NUMERO_ADMIN='23058289431';
@@ -734,7 +996,7 @@ async function fetchAllArtisans(){
   const cached=localStorage.getItem('amu_cache_artisans');
   if(cached){try{DB_ARTISANS=JSON.parse(cached);artisansLoaded=true;updateHeroStats();renderArtisans();hideLoader();}catch{}}
   try{
-    const{data,error}=await _supabase.from('artisans').select('id,nom,metier,expertise,ville,district,tel,initiales,photos,avatar,note_total,nombre_avis,gps,lien,bio,created_at').eq('is_verified',true).order('created_at',{ascending:false});
+    const{data,error}=await _supabase.from('artisans').select('id,nom,metier,expertise,ville,district,tel,initiales,photos,avatar,note_total,nombre_avis,gps,lien,bio,created_at,contact_preference,is_available_today,callout_fee,unit_rates').eq('is_verified',true).order('created_at',{ascending:false});
     if(error)throw error;
     DB_ARTISANS=data||[];artisansLoaded=true;
     localStorage.setItem('amu_cache_artisans',JSON.stringify(DB_ARTISANS));
@@ -813,13 +1075,14 @@ function renderArtisans(){
       '<div class="card-cover" style="'+coverStyle+'">'+
         (showcaseUrl?'<div class="card-cover-overlay"></div>':'')+
         '<div class="card-cover-meta">'+rp+'<div class="card-metier-pill">'+a.metier+'</div></div>'+
+        '<button class="btn-fav '+(isFav(a.id)?'saved':'')+'" onclick="event.stopPropagation();toggleFav('+a.id+')" aria-label="Favoris">'+(isFav(a.id)?'❤️':'🤍')+'</button>'+
       '</div>'+
       '<div class="card-body">'+
-        '<div class="card-ident"><div class="card-avatar">'+av+'</div><div class="card-city">📍 '+a.ville+'</div></div>'+
+        '<div class="card-ident"><div class="card-avatar">'+av+'</div><div class="card-city" style="display:flex;align-items:center;gap:4px;">'+(a.is_available_today?'<span class="avail-dot on" title="Disponible aujourd\'hui"></span>':'')+'📍 '+a.ville+'</div></div>'+
         '<div class="card-name">'+a.nom+'</div>'+
         (tags?'<div class="card-tags">'+tags+'</div>':'')+
         '<div class="card-actions">'+
-          '<button class="btn-card-wa" onclick="event.stopPropagation();window.open(\'https://wa.me/230'+a.tel+'\')">💬 WhatsApp</button>'+
+          cardContactBtn(a)+
           '<button class="btn-card-view" onclick="event.stopPropagation();openProfil('+a.id+')">Profil →</button>'+
         '</div>'+
       '</div>'+
@@ -880,9 +1143,20 @@ function openProfil(id){
   if(photos.length===0){galCard.style.display='none';}
   else{galCard.style.display='block';galEl.innerHTML=photos.map(p=>'<div class="profil-gallery-item" onclick="openLightbox(\''+p.url+'\')" style="position:relative;">'+(p.showcase?'<div class="profil-gallery-item-label">Vitrine</div>':'')+'<img src="'+p.url+'" loading="lazy"></div>').join('');}
   initMapProfile(a.gps);
-  const contactFn=()=>window.open('https://wa.me/230'+a.tel);
-  document.getElementById('p-btn-contact').onclick=contactFn;
-  document.getElementById('p-btn-contact2').onclick=contactFn;
+  const pref=a.contact_preference||'whatsapp';
+  const btn1=document.getElementById('p-btn-contact'),btn2=document.getElementById('p-btn-contact2');
+  if(pref==='call'){
+    const callFn=()=>window.open('tel:+230'+a.tel);
+    btn1.textContent='📞 Appeler';btn1.onclick=callFn;
+    if(btn2){btn2.textContent='📞 Appeler';btn2.onclick=callFn;}
+  }else if(pref==='form'){
+    btn1.textContent='📋 Demander un devis';btn1.onclick=()=>openBookingForm(a.id);
+    if(btn2){btn2.textContent='📋 Demander un devis';btn2.onclick=()=>openBookingForm(a.id);}
+  }else{
+    const waFn=()=>window.open('https://wa.me/230'+a.tel);
+    btn1.textContent='💬 Contacter sur WhatsApp';btn1.onclick=waFn;
+    if(btn2){btn2.textContent='💬 WhatsApp';btn2.onclick=waFn;}
+  }
   const shareBtn=document.getElementById('p-btn-share');
   if(shareBtn)shareBtn.onclick=()=>{const url=location.origin+location.pathname+'?artisan='+id;navigator.clipboard&&navigator.clipboard.writeText(url).then(()=>showToast('🔗 Lien copié !'));};
   showPage('profil');
@@ -975,7 +1249,15 @@ async function loadDashboard(){
     else avP.textContent=data.initiales||data.nom.substring(0,2).toUpperCase();
     portfolioItems=[];toDelete=[];
     if(data.photos){try{let p=typeof data.photos==='string'?JSON.parse(data.photos):data.photos;if(Array.isArray(p))p.forEach((item,i)=>{if(typeof item==='string')portfolioItems.push({url:item,showcase:i===0});else if(item&&item.url)portfolioItems.push({url:item.url,showcase:!!item.showcase});});}catch{}}
-    renderPortfolioManager();showPage('edit');setTimeout(()=>initMapEdit(data.gps),300);updateProfilePct();
+    renderPortfolioManager();
+    // new fields
+    const avTog=document.getElementById('avail-toggle'),avLbl=document.getElementById('avail-toggle-label');
+    if(avTog){avTog.checked=!!data.is_available_today;if(avLbl)avLbl.textContent=data.is_available_today?'Disponible aujourd\'hui':'Indisponible';}
+    selectContactPref(data.contact_preference||'whatsapp',false);
+    const cfEl=document.getElementById('e-callout-fee');if(cfEl)cfEl.value=data.callout_fee||0;
+    const urEl=document.getElementById('e-unit-rates-raw');if(urEl)urEl.value=data.unit_rates?JSON.stringify(data.unit_rates):'';
+    showPage('edit');setTimeout(()=>initMapEdit(data.gps),300);updateProfilePct();
+    loadJobFeed();loadInvoiceList();
   }catch(err){console.error(err);logoutArtisan();}
 }
 
@@ -990,7 +1272,9 @@ async function updateArtisan(){
     const newPhotosFiles=document.getElementById('e-photos').files;
     for(let i=0;i<newPhotosFiles.length;i++){if(portfolioItems.length>=6){showToast('⚠️ Max 6 photos.');break;}const file=newPhotosFiles[i];const path='img_'+Date.now()+'_'+i+'_'+file.name.replace(/[^a-zA-Z0-9.\-]/g,'');const{error}=await _supabase.storage.from('portfolios').upload(path,file);if(!error){const{data}=_supabase.storage.from('portfolios').getPublicUrl(path);if(data&&data.publicUrl)portfolioItems.push({url:data.publicUrl,showcase:portfolioItems.length===0});}}
     if(portfolioItems.length>0&&!portfolioItems.some(i=>i.showcase))portfolioItems[0].showcase=true;
-    const{error}=await _supabase.from('artisans').update({district:document.getElementById('e-district').value.trim(),ville:document.getElementById('e-ville-edit').value.trim()||undefined,expertise:document.getElementById('e-expertise').value.trim(),lien:document.getElementById('e-lien').value.trim(),gps:document.getElementById('e-gps').value.trim(),bio:document.getElementById('e-bio').value.trim().substring(0,500),avatar:finalAvatar,photos:JSON.stringify(portfolioItems)}).eq('id',loggedInArtisanId);
+    const cfRaw=parseInt(document.getElementById('e-callout-fee')?.value||0)||0;
+    let urParsed=null;try{const s=(document.getElementById('e-unit-rates-raw')?.value||'').trim();if(s)urParsed=JSON.parse(s);}catch{}
+    const{error}=await _supabase.from('artisans').update({district:document.getElementById('e-district').value.trim(),ville:document.getElementById('e-ville-edit').value.trim()||undefined,expertise:document.getElementById('e-expertise').value.trim(),lien:document.getElementById('e-lien').value.trim(),gps:document.getElementById('e-gps').value.trim(),bio:document.getElementById('e-bio').value.trim().substring(0,500),avatar:finalAvatar,photos:JSON.stringify(portfolioItems),callout_fee:cfRaw,unit_rates:urParsed}).eq('id',loggedInArtisanId);
     if(error)throw error;
     if(toDelete.length>0){await _supabase.storage.from('portfolios').remove(toDelete.map(u=>u.split('/').pop()));toDelete=[];}
     showToast('✅ Profil mis à jour !');await fetchAllArtisans();renderPortfolioManager();document.getElementById('e-avatar').value='';document.getElementById('e-photos').value='';
@@ -1209,8 +1493,382 @@ function goToSlide(idx){
 function startSlideshow(){if(slideshowTimer)clearInterval(slideshowTimer);slideshowTimer=setInterval(()=>goToSlide((currentSlide+1)%HERO_SLIDES.length),5000);}
 setTimeout(()=>{goToSlide(0);startSlideshow();},200);
 
+// ─── FAVOURITES ───────────────────────────────────────────────────────────────
+function getFavs(){try{return JSON.parse(localStorage.getItem('amu_favs')||'[]');}catch{return[];}}
+function isFav(id){return getFavs().includes(id);}
+function toggleFav(id){
+  const favs=getFavs();const idx=favs.indexOf(id);
+  if(idx===-1)favs.push(id);else favs.splice(idx,1);
+  localStorage.setItem('amu_favs',JSON.stringify(favs));
+  renderArtisans();showToast(idx===-1?'❤️ Ajouté aux favoris':'💔 Retiré des favoris');
+}
+
+// ─── CONTACT PREFERENCE ───────────────────────────────────────────────────────
+function cardContactBtn(a){
+  const p=a.contact_preference||'whatsapp';
+  if(p==='call')return '<button class="btn-card-wa" style="background:linear-gradient(135deg,#1e40af,#1d4ed8);" onclick="event.stopPropagation();window.open(\'tel:+230'+a.tel+'\')">📞 Appeler</button>';
+  if(p==='form')return '<button class="btn-card-wa" onclick="event.stopPropagation();openBookingForm('+a.id+')">📋 Devis</button>';
+  return '<button class="btn-card-wa" onclick="event.stopPropagation();window.open(\'https://wa.me/230'+a.tel+'\')">💬 WhatsApp</button>';
+}
+
+function selectContactPref(pref,save=true){
+  ['whatsapp','call','form'].forEach(p=>{
+    const el=document.getElementById('pref-'+p);if(!el)return;
+    el.classList.toggle('selected',p===pref);
+    const radio=el.querySelector('input[type=radio]');if(radio)radio.checked=(p===pref);
+  });
+  if(!save||!loggedInArtisanId)return;
+  _supabase.from('artisans').update({contact_preference:pref}).eq('id',loggedInArtisanId).then(({error})=>{
+    if(!error){
+      const msg=document.getElementById('pref-saved-msg');if(msg){msg.style.display='block';setTimeout(()=>msg.style.display='none',3000);}
+      const a=DB_ARTISANS.find(x=>x.id===loggedInArtisanId);if(a)a.contact_preference=pref;
+    }else showToast('❌ Erreur sauvegarde préférence');
+  });
+}
+
+// ─── AVAILABILITY TOGGLE ──────────────────────────────────────────────────────
+async function toggleAvailability(checked){
+  if(!loggedInArtisanId)return;
+  const lbl=document.getElementById('avail-toggle-label');
+  if(lbl)lbl.textContent=checked?'Disponible aujourd\'hui':'Indisponible';
+  try{
+    const{error}=await _supabase.from('artisans').update({is_available_today:checked}).eq('id',loggedInArtisanId);
+    if(error)throw error;
+    const a=DB_ARTISANS.find(x=>x.id===loggedInArtisanId);if(a)a.is_available_today=checked;
+    showToast(checked?'🟢 Vous êtes marqué disponible !':'⚫ Statut: Indisponible');
+  }catch{showToast('❌ Erreur mise à jour statut.');}
+}
+
+// ─── BOOKING FORM MODAL ───────────────────────────────────────────────────────
+let _bookingArtisanId=null;
+function openBookingForm(artisanId){
+  _bookingArtisanId=artisanId;
+  const a=DB_ARTISANS.find(x=>x.id===artisanId);
+  const nm=document.getElementById('booking-artisan-name');
+  if(nm)nm.textContent=a?'Pour : '+a.nom+' · '+a.metier:'';
+  ['bm-name','bm-phone','bm-desc','bm-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('booking-modal').showModal();
+}
+function submitBookingForm(){
+  const a=DB_ARTISANS.find(x=>x.id===_bookingArtisanId);if(!a)return;
+  const name=document.getElementById('bm-name').value.trim();
+  const phone=document.getElementById('bm-phone').value.trim();
+  const desc=document.getElementById('bm-desc').value.trim();
+  const date=document.getElementById('bm-date').value;
+  if(!name||!desc)return showToast('⚠️ Nom et description obligatoires.');
+  const msg=encodeURIComponent('Bonjour '+a.nom+' ! 👋\n\nJe vous contacte via ArtisanMU.\n\n'+'👤 Nom: '+name+(phone?'\n📱 Tél: '+phone:'')+'\n\n📋 Travail: '+desc+(date?'\n📅 Date souhaitée: '+date:'')+'\n\nMerci de me recontacter.');
+  window.open('https://wa.me/230'+a.tel+'?text='+msg,'_blank');
+  document.getElementById('booking-modal').close();
+  showToast('✅ WhatsApp ouvert !');
+}
+
+// ─── JOB REQUEST FORM ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  const ta=document.getElementById('jr-description');
+  if(ta)ta.addEventListener('input',()=>{const c=document.getElementById('jr-desc-count');if(c)c.textContent=ta.value.length;});
+});
+async function submitJobRequest(){
+  const category=document.getElementById('jr-category').value;
+  const description=document.getElementById('jr-description').value.trim();
+  const district=document.getElementById('jr-district').value;
+  const town=document.getElementById('jr-town').value.trim();
+  const client_name=document.getElementById('jr-name').value.trim();
+  const client_whatsapp=document.getElementById('jr-whatsapp').value.trim();
+  const budget_tier=document.querySelector('input[name="jr_budget"]:checked')?.value||'mid';
+  if(!category||!description||!district||!client_name||!client_whatsapp)return showToast('⚠️ Remplissez tous les champs obligatoires.');
+  const btn=document.getElementById('btn-submit-job');btn.textContent='Envoi…';btn.disabled=true;
+  try{
+    let image_url=null;
+    const photoFile=document.getElementById('jr-photo').files[0];
+    if(photoFile){
+      const path='job_'+Date.now()+'_'+photoFile.name.replace(/[^a-zA-Z0-9.\-]/g,'');
+      const{error:upErr}=await _supabase.storage.from('job-photos').upload(path,photoFile);
+      if(!upErr){const{data:pd}=_supabase.storage.from('job-photos').getPublicUrl(path);image_url=pd?.publicUrl||null;}
+    }
+    const res=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category,description,image_url,budget_tier,district,town,client_name,client_whatsapp})});
+    if(!res.ok)throw new Error((await res.json()).error||'Erreur');
+    showToast('✅ Demande postée ! Les artisans vous contacteront sous peu.');
+    ['jr-category','jr-district'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    ['jr-description','jr-town','jr-name','jr-whatsapp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    setTimeout(()=>showPage('accueil'),1500);
+  }catch(err){showToast('❌ Erreur: '+err.message);}
+  finally{btn.textContent='🔧 Poster la demande';btn.disabled=false;}
+}
+
+// ─── JOB FEED (artisan dashboard) ────────────────────────────────────────────
+let _jobFeedChannel=null,_claimedJobId=null,_claimTimer=null;
+async function loadJobFeed(){
+  if(!loggedInArtisanId)return;
+  const el=document.getElementById('job-feed-list');if(!el)return;
+  const{data:me}=await _supabase.from('artisans').select('metier,district').eq('id',loggedInArtisanId).single();
+  if(!me)return;
+  el.innerHTML='<p style="color:var(--ink3);font-size:13px;">Chargement…</p>';
+  try{
+    const{data:jobs}=await _supabase.from('job_requests').select('*').eq('status','pending').eq('district',me.district).eq('category',me.metier).gt('expires_at',new Date().toISOString()).order('created_at',{ascending:false});
+    renderJobFeed(jobs||[]);
+    if(_jobFeedChannel)_supabase.removeChannel(_jobFeedChannel);
+    _jobFeedChannel=_supabase.channel('job_feed_'+loggedInArtisanId)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'job_requests',filter:'district=eq.'+me.district},(payload)=>{
+        if(payload.new.category===me.metier&&payload.new.status==='pending'){playNotifChime();showToast('🔔 Nouvelle demande dans votre secteur !');loadJobFeed();}
+      }).subscribe();
+  }catch(err){el.innerHTML='<p style="color:#DC2626;font-size:13px;">Erreur chargement.</p>';console.error(err);}
+}
+function playNotifChime(){try{const ctx=new(window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.setValueAtTime(0.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.6);o.start();o.stop(ctx.currentTime+0.6);}catch{}}
+function renderJobFeed(jobs){
+  const el=document.getElementById('job-feed-list');if(!el)return;
+  if(!jobs.length){el.innerHTML='<p style="color:var(--ink3);font-size:13px;padding:12px 0;">Aucune demande en attente dans votre secteur. Activez votre disponibilité ☝️</p>';return;}
+  const budgetLabel={low:'🟢 Petite réparation',mid:'🟡 Travail moyen',high:'🔴 Grand chantier'};
+  el.innerHTML=jobs.map(j=>{
+    const ago=Math.round((Date.now()-new Date(j.created_at))/60000);
+    const agoTxt=ago<1?'À l\'instant':ago<60?ago+' min':Math.round(ago/60)+'h';
+    return '<div class="job-card" id="jc-'+j.id+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">'+
+        '<span class="job-budget-pill job-budget-'+j.budget_tier+'">'+budgetLabel[j.budget_tier]+'</span>'+
+        '<span style="font-size:11px;color:var(--ink3);">'+agoTxt+'</span>'+
+      '</div>'+
+      '<p style="font-size:14px;font-weight:600;margin-bottom:4px;">'+j.category+' · '+j.district+(j.town?' — '+j.town:'')+'</p>'+
+      '<p style="font-size:13px;color:var(--ink2);margin-bottom:12px;line-height:1.5;">'+j.description+'</p>'+
+      (j.image_url?'<img src="'+j.image_url+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;margin-bottom:12px;" loading="lazy">':'')+
+      '<div id="jc-action-'+j.id+'">'+
+        '<button class="btn-claim" onclick="claimJob(\''+j.id+'\')">✅ Accepter la demande</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+async function claimJob(jobId){
+  const btn=document.querySelector('#jc-action-'+jobId+' .btn-claim');if(btn){btn.disabled=true;btn.textContent='Réservation…';}
+  try{
+    const res=await fetch('/api/jobs/'+jobId+'?action=claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({artisan_id:loggedInArtisanId})});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'Déjà pris');
+    const actionEl=document.getElementById('jc-action-'+jobId);if(!actionEl)return;
+    const waLink='https://wa.me/230'+data.client_whatsapp+'?text='+encodeURIComponent('Bonjour '+data.client_name+' ! 👋\nJ\'ai vu votre demande sur ArtisanMU et je suis disponible pour vous aider.\nPouvez-vous me donner plus de détails ?');
+    let timeLeft=15*60;
+    actionEl.innerHTML='<p style="font-size:13px;color:var(--ink3);margin-bottom:8px;">⏳ Contactez le client dans : <span class="claim-timer" id="ctimer-'+jobId+'">15:00</span></p>'+
+      '<a href="'+waLink+'" target="_blank" class="btn-primary" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:12px 20px;border-radius:12px;font-weight:700;font-size:14px;">💬 Ouvrir WhatsApp</a>';
+    _claimTimer=setInterval(()=>{
+      timeLeft--;const m=Math.floor(timeLeft/60),s=timeLeft%60;
+      const el=document.getElementById('ctimer-'+jobId);if(el)el.textContent=m+':'+(s<10?'0':'')+s;
+      if(timeLeft<=0){clearInterval(_claimTimer);fetch('/api/jobs/'+jobId+'?action=release',{method:'POST'}).then(()=>loadJobFeed());}
+    },1000);
+    showToast('✅ Demande réservée ! Contactez le client maintenant.');
+    if(_claimedJobId)createInvoiceFromJob(jobId,data);
+  }catch(err){showToast('❌ '+err.message);if(btn){btn.disabled=false;btn.textContent='✅ Accepter la demande';}}
+}
+
+// ─── INVOICES ─────────────────────────────────────────────────────────────────
+let _allInvoices=[],_invFilter='all',_invLines=[];
+let _invJobPrefill=null;
+
+function openInvoiceBuilder(jobData){
+  _invJobPrefill=jobData;_invLines=[];
+  const modal=document.getElementById('invoice-builder-modal');
+  const editingId=document.getElementById('inv-editing-id');if(editingId)editingId.value='';
+  ['inv-client-name','inv-client-wa','inv-due-date','inv-client-addr','inv-payment-notes','inv-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const vatToggle=document.getElementById('inv-vat-toggle');if(vatToggle)vatToggle.checked=false;
+  if(jobData){
+    const cn=document.getElementById('inv-client-name');if(cn)cn.value=jobData.client_name||'';
+    const cw=document.getElementById('inv-client-wa');if(cw)cw.value=jobData.client_whatsapp||'';
+    _invLines=[{description:jobData.category+' — '+jobData.description.substring(0,60),quantity:1,unit:'',unit_price:0}];
+  }
+  renderInvLines();calcInvoiceTotals();
+  document.getElementById('inv-builder-title').textContent=jobData?'Facture pour ce travail':'Nouvelle facture';
+  modal.showModal();
+}
+
+function addInvoiceLine(desc='',qty=1,unit='',price=0){
+  _invLines.push({description:desc,quantity:qty,unit:unit,unit_price:price});
+  renderInvLines();calcInvoiceTotals();
+}
+function removeInvoiceLine(idx){_invLines.splice(idx,1);renderInvLines();calcInvoiceTotals();}
+function renderInvLines(){
+  const c=document.getElementById('inv-lines-container');if(!c)return;
+  if(!_invLines.length){c.innerHTML='<p style="color:var(--ink3);font-size:13px;padding:8px 0;">Aucune ligne. Cliquez "+ Ajouter".</p>';return;}
+  c.innerHTML=_invLines.map((l,i)=>'<div style="display:grid;grid-template-columns:1fr 60px 72px 84px 80px 32px;gap:6px;margin-bottom:8px;align-items:center;">'+
+    '<input class="inp" style="padding:8px;" value="'+escHtml(l.description||'')+'" oninput="_invLines['+i+'].description=this.value" placeholder="Description">'+
+    '<input class="inp" style="padding:8px;" type="number" min="0.1" step="0.1" value="'+(l.quantity||1)+'" oninput="_invLines['+i+'].quantity=parseFloat(this.value)||1;calcInvoiceTotals()">'+
+    '<input class="inp" style="padding:8px;" value="'+(l.unit||'')+'" oninput="_invLines['+i+'].unit=this.value" placeholder="m²">'+
+    '<input class="inp" style="padding:8px;" type="number" min="0" value="'+(l.unit_price||0)+'" oninput="_invLines['+i+'].unit_price=parseInt(this.value)||0;calcInvoiceTotals()">'+
+    '<span style="font-size:13px;font-weight:600;text-align:right;">Rs '+(Math.round((l.quantity||1)*(l.unit_price||0))).toLocaleString()+'</span>'+
+    '<button onclick="removeInvoiceLine('+i+')" style="background:#fef2f2;border:none;border-radius:8px;color:#dc2626;cursor:pointer;font-size:14px;padding:4px;">✕</button>'+
+  '</div>').join('');
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function calcInvoiceTotals(){
+  const sub=_invLines.reduce((s,l)=>s+Math.round((l.quantity||1)*(l.unit_price||0)),0);
+  const useVat=document.getElementById('inv-vat-toggle')?.checked;
+  const vat=useVat?Math.round(sub*0.15):0;
+  const total=sub+vat;
+  const fmt=n=>'Rs '+n.toLocaleString();
+  const sd=document.getElementById('inv-subtotal-display');if(sd)sd.textContent=fmt(sub);
+  const vd=document.getElementById('inv-vat-display');if(vd)vd.textContent=fmt(vat);
+  const td=document.getElementById('inv-total-display');if(td)td.textContent=fmt(total);
+}
+function toggleVat(checked){calcInvoiceTotals();}
+
+async function saveInvoice(status){
+  if(!loggedInArtisanId)return showToast('⚠️ Non connecté.');
+  const client_name=document.getElementById('inv-client-name').value.trim();
+  if(!client_name)return showToast('⚠️ Nom du client requis.');
+  if(_invLines.length===0)return showToast('⚠️ Ajoutez au moins une ligne.');
+  const payload={
+    artisan_id:loggedInArtisanId,
+    job_request_id:_invJobPrefill?.id||null,
+    client_name,
+    client_whatsapp:document.getElementById('inv-client-wa').value.trim()||null,
+    client_address:document.getElementById('inv-client-addr').value.trim()||null,
+    due_date:document.getElementById('inv-due-date').value||null,
+    vat_rate:document.getElementById('inv-vat-toggle')?.checked?15:0,
+    payment_notes:document.getElementById('inv-payment-notes').value.trim()||null,
+    notes:document.getElementById('inv-notes').value.trim()||null,
+    items:_invLines.map(l=>({description:l.description,quantity:l.quantity||1,unit:l.unit||null,unit_price:l.unit_price||0})),
+  };
+  const editingId=document.getElementById('inv-editing-id').value;
+  try{
+    let res;
+    if(editingId){
+      res=await fetch('/api/invoices/'+editingId,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,status})});
+    }else{
+      res=await fetch('/api/invoices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,status})});
+    }
+    if(!res.ok)throw new Error((await res.json()).error||'Erreur');
+    document.getElementById('invoice-builder-modal').close();
+    showToast(status==='sent'?'📤 Facture envoyée !':'💾 Brouillon sauvegardé !');
+    loadInvoiceList();
+    _invJobPrefill=null;
+  }catch(err){showToast('❌ '+err.message);}
+}
+
+async function loadInvoiceList(){
+  if(!loggedInArtisanId)return;
+  const el=document.getElementById('invoice-list');if(!el)return;
+  try{
+    const res=await fetch('/api/invoices?artisan_id='+loggedInArtisanId);
+    _allInvoices=res.ok?await res.json():[];
+    renderInvoiceList();
+    renderInvoiceSummary();
+  }catch{el.innerHTML='<p style="color:#DC2626;font-size:13px;">Erreur chargement factures.</p>';}
+}
+function renderInvoiceSummary(){
+  const el=document.getElementById('invoice-summary');if(!el)return;
+  const now=new Date();const m=now.getMonth(),y=now.getFullYear();
+  const thisMonth=_allInvoices.filter(i=>{const d=new Date(i.created_at);return d.getMonth()===m&&d.getFullYear()===y;});
+  const paid=thisMonth.filter(i=>i.status==='paid').reduce((s,i)=>s+(i.total_cents||0),0);
+  const pending=thisMonth.filter(i=>i.status==='sent').reduce((s,i)=>s+(i.total_cents||0),0);
+  el.innerHTML='<div style="background:var(--paper);border-radius:12px;padding:14px 18px;font-size:13px;"><span style="color:var(--green);font-weight:700;">Rs '+paid.toLocaleString()+' reçus</span> <span style="color:var(--ink3);">· Rs '+pending.toLocaleString()+' en attente · ce mois</span></div>';
+}
+function filterInvoices(f){
+  _invFilter=f;
+  ['all','draft','sent','paid'].forEach(s=>{const el=document.getElementById('inv-filter-'+s);if(el)el.classList.toggle('active',s===f);});
+  renderInvoiceList();
+}
+function renderInvoiceList(){
+  const el=document.getElementById('invoice-list');if(!el)return;
+  const now=new Date();
+  let list=_allInvoices.map(i=>({...i,_isOverdue:i.status==='sent'&&i.due_date&&new Date(i.due_date)<now}));
+  if(_invFilter!=='all')list=list.filter(i=>_invFilter==='paid'?i.status==='paid':i.status===_invFilter||(_invFilter==='sent'&&i._isOverdue));
+  if(!list.length){el.innerHTML='<p style="color:var(--ink3);font-size:13px;padding:12px 0;">Aucune facture trouvée.</p>';return;}
+  el.innerHTML=list.map(i=>{
+    const statusLabel=i._isOverdue?'En retard':i.status==='draft'?'Brouillon':i.status==='sent'?'Envoyée':i.status==='paid'?'Payée':'—';
+    const statusClass=i._isOverdue?'inv-overdue':i.status==='draft'?'inv-draft':i.status==='sent'?'inv-sent':'inv-paid';
+    const date=new Date(i.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+    const total='Rs '+(i.total_cents||0).toLocaleString();
+    return '<div class="inv-row">'+
+      '<div>'+
+        '<div style="font-weight:700;font-size:14px;">'+escHtml(i.invoice_number)+'</div>'+
+        '<div style="font-size:12px;color:var(--ink3);">'+escHtml(i.client_name)+' · '+date+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;">'+
+        '<div style="font-weight:700;font-size:14px;">'+total+'</div>'+
+        '<span class="inv-status '+statusClass+'">'+statusLabel+'</span>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;margin-left:12px;">'+
+        '<button onclick="openInvoicePage(\''+i.id+'\')" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:white;font-size:12px;cursor:pointer;">👁</button>'+
+        (i.status!=='paid'?'<button onclick="markInvoicePaid(\''+i.id+'\')" style="padding:6px 10px;border:1px solid #bbf7d0;border-radius:8px;background:#f0fdf4;font-size:12px;cursor:pointer;">✅</button>':'')+
+        (i.status==='draft'?'<button onclick="deleteInvoice(\''+i.id+'\')" style="padding:6px 10px;border:1px solid #fecaca;border-radius:8px;background:#fef2f2;font-size:12px;cursor:pointer;">🗑</button>':'')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+async function markInvoicePaid(id){
+  try{
+    const res=await fetch('/api/invoices/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({artisan_id:loggedInArtisanId,status:'paid'})});
+    if(!res.ok)throw new Error();
+    showToast('✅ Facture marquée comme payée !');loadInvoiceList();
+  }catch{showToast('❌ Erreur mise à jour.');}
+}
+async function deleteInvoice(id){
+  if(!confirm('Supprimer ce brouillon ?'))return;
+  try{
+    const res=await fetch('/api/invoices/'+id+'?artisan_id='+loggedInArtisanId,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({artisan_id:loggedInArtisanId})});
+    if(!res.ok)throw new Error();
+    showToast('🗑 Brouillon supprimé.');loadInvoiceList();
+  }catch{showToast('❌ Erreur suppression.');}
+}
+
+async function openInvoicePage(id){
+  const el=document.getElementById('invoice-view-content');
+  if(el)el.innerHTML='<p style="text-align:center;padding:60px;color:var(--ink3);">Chargement…</p>';
+  showPage('invoice');
+  try{
+    const url='/api/invoices/'+id+(loggedInArtisanId?'?artisan_id='+loggedInArtisanId:'');
+    const res=await fetch(url);
+    if(!res.ok)throw new Error('Facture introuvable');
+    const inv=await res.json();
+    if(el)el.innerHTML=renderInvoiceHTML(inv);
+  }catch(err){if(el)el.innerHTML='<p style="color:#DC2626;text-align:center;padding:60px;">'+err.message+'</p>';}
+}
+function renderInvoiceHTML(inv){
+  const artisan=inv.artisan||{};
+  const fmt=c=>'Rs '+(c||0).toLocaleString();
+  const statusClass={'draft':'inv-draft','sent':'inv-sent','paid':'inv-paid','overdue':'inv-overdue'}[inv.status]||'inv-draft';
+  const statusLabel={'draft':'Brouillon','sent':'Envoyée','paid':'Payée','overdue':'En retard'}[inv.status]||inv.status;
+  const items=(inv.items||[]).map(l=>'<tr><td style="padding:10px 8px;border-bottom:1px solid var(--border);">'+escHtml(l.description||'')+'</td><td style="padding:10px 8px;border-bottom:1px solid var(--border);text-align:right;">'+(l.quantity||1)+(l.unit?' '+l.unit:'')+'</td><td style="padding:10px 8px;border-bottom:1px solid var(--border);text-align:right;">'+fmt(l.unit_price)+'</td><td style="padding:10px 8px;border-bottom:1px solid var(--border);text-align:right;font-weight:600;">'+fmt(l.total)+'</td></tr>').join('');
+  const waLink=inv.client_whatsapp?'https://wa.me/230'+inv.client_whatsapp+'?text='+encodeURIComponent('Bonjour '+inv.client_name+' ! Voici votre facture ArtisanMU '+inv.invoice_number+' : '+location.origin+'/#invoice/'+inv.id):'';
+  return '<div class="inv-print-card">'+
+    '<div class="inv-print-header">'+
+      '<div><div class="inv-print-logo">Artisan<span>MU</span></div><div style="font-size:12px;color:var(--ink3);margin-top:4px;">'+escHtml(artisan.nom||'')+(artisan.metier?' · '+artisan.metier:'')+(artisan.ville?', '+artisan.ville:'')+'</div></div>'+
+      '<div style="text-align:right;"><span class="inv-status '+statusClass+'">'+statusLabel+'</span><div style="font-size:22px;font-weight:800;margin:8px 0 4px;">'+escHtml(inv.invoice_number||'')+'</div><div style="font-size:12px;color:var(--ink3);">Émise le '+new Date(inv.issue_date).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+(inv.due_date?' · Échéance '+new Date(inv.due_date).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}):'')+'</div></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;padding:20px;background:var(--paper);border-radius:14px;">'+
+      '<div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:8px;">De</div><div style="font-weight:700;">'+escHtml(artisan.nom||'')+'</div><div style="font-size:13px;color:var(--ink3);">'+escHtml(artisan.metier||'')+(artisan.ville?'<br>'+artisan.ville:'')+'</div></div>'+
+      '<div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:8px;">Pour</div><div style="font-weight:700;">'+escHtml(inv.client_name||'')+'</div><div style="font-size:13px;color:var(--ink3);">'+(inv.client_address?escHtml(inv.client_address):'')+(inv.client_whatsapp?'<br>'+inv.client_whatsapp:'')+'</div></div>'+
+    '</div>'+
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><thead><tr style="background:var(--paper);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);font-weight:700;"><th style="padding:10px 8px;text-align:left;">Description</th><th style="padding:10px 8px;text-align:right;">Qté</th><th style="padding:10px 8px;text-align:right;">Prix unit.</th><th style="padding:10px 8px;text-align:right;">Total</th></tr></thead><tbody>'+items+'</tbody></table>'+
+    '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-bottom:24px;">'+
+      '<div class="inv-total-row"><span style="color:var(--ink3);">Sous-total</span><span style="font-weight:600;">'+fmt(inv.subtotal_cents)+'</span></div>'+
+      (inv.vat_rate>0?'<div class="inv-total-row"><span style="color:var(--ink3);">TVA ('+inv.vat_rate+'%)</span><span style="font-weight:600;">'+fmt(inv.vat_cents)+'</span></div>':'')+
+      '<div class="inv-total-row"><span style="font-weight:700;font-size:18px;">TOTAL</span><span class="inv-grand-total">'+fmt(inv.total_cents)+'</span></div>'+
+    '</div>'+
+    (inv.payment_notes?'<div style="padding:16px;background:#f0fdf4;border-radius:12px;margin-bottom:20px;font-size:13px;"><strong>💳 Paiement :</strong> '+escHtml(inv.payment_notes)+'</div>':'')+
+    (inv.notes?'<div style="padding:16px;background:var(--paper);border-radius:12px;margin-bottom:20px;font-size:13px;color:var(--ink3);">'+escHtml(inv.notes)+'</div>':'')+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;" class="no-print">'+
+      '<button onclick="window.print()" class="btn-secondary" style="flex:1;min-width:140px;">🖨 Imprimer / PDF</button>'+
+      (waLink?'<a href="'+waLink+'" target="_blank" class="btn-primary" style="flex:1;min-width:140px;text-align:center;text-decoration:none;padding:12px;border-radius:12px;font-weight:700;font-size:14px;">💬 Envoyer sur WhatsApp</a>':'')+
+    '</div>'+
+  '</div>';
+}
+
+function createInvoiceFromJob(jobId,jobData){
+  setTimeout(()=>{
+    const el=document.getElementById('jc-'+jobId);
+    if(el){const banner=document.createElement('div');banner.style.cssText='background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 16px;margin-top:12px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:10px;';banner.innerHTML='<span>🧾 Travail terminé ? <strong>Créer une facture</strong></span><button onclick="openInvoiceBuilder('+JSON.stringify(jobData).replace(/"/g,"'")+')" class="btn-primary" style="padding:8px 14px;font-size:12px;">Créer</button>';el.appendChild(banner);}
+  },500);
+}
+
+// ─── HASH ROUTING (invoice public link) ──────────────────────────────────────
+function checkHashRoute(){
+  const h=location.hash;
+  if(h.startsWith('#invoice/')){const id=h.slice(9);if(id)openInvoicePage(id);}
+}
+window.addEventListener('hashchange',checkHashRoute);
+
+// ─── PWA SERVICE WORKER ───────────────────────────────────────────────────────
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
+
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded',()=>initApp());
+window.addEventListener('DOMContentLoaded',()=>{initApp();checkHashRoute();});
 </script>
 </body>
 </html>
