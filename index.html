@@ -752,6 +752,7 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
   <div style="font-size:52px;margin-bottom:20px;">🔐</div>
   <h2 class="form-title">Accès Admin</h2>
   <p class="form-sub" style="margin-bottom:28px;">Réservé à l'équipe ArtisanMu.</p>
+  <div class="fg" style="text-align:left;"><label class="fl">Email</label><input id="admin-email" class="inp" type="email" placeholder="admin@artisanmu.octolabs.app" onkeyup="if(event.key==='Enter')loginAdmin()"></div>
   <div class="fg" style="text-align:left;"><label class="fl">Mot de passe</label><input id="admin-pwd" class="inp" type="password" placeholder="••••••••" onkeyup="if(event.key==='Enter')loginAdmin()"></div>
   <button class="btn-primary" onclick="loginAdmin()" style="width:100%;padding:16px;margin-bottom:10px;">Accéder</button>
   <button class="btn-ghost" onclick="showPage('accueil')">← Retour</button>
@@ -1376,22 +1377,21 @@ function initMapProfile(coordsStr){const mc=document.getElementById('p-map-card'
 async function sha256(msg){const buf=new TextEncoder().encode(msg),hash=await crypto.subtle.digest('SHA-256',buf);return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');}
 
 async function loginAdmin(){
+  const email=document.getElementById('admin-email').value.trim();
   const pwd=document.getElementById('admin-pwd').value.trim();
-  if(!pwd)return showToast('⚠️ Entrez le mot de passe.');
-  const hash=await sha256(pwd);
+  if(!email||!pwd)return showToast('⚠️ Entrez email et mot de passe.');
   try{
-    const res=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({passwordHash:hash})});
-    const result=await res.json();
-    if(result.success&&result.token){
-      adminToken=result.token;isAdminLoggedIn=true;
-      document.getElementById('admin-pwd').value='';
-      showToast('✅ Accès accordé.');updateNavUI();showPage('admin');loadAdminDashboard();
-    }else showToast('❌ Mot de passe incorrect.');
+    // Admin user created in Supabase Dashboard. Email: admin@artisanmu.octolabs.app
+    const{data,error}=await _supabase.auth.signInWithPassword({email,password:pwd});
+    if(error||!data.session)return showToast('❌ Identifiants incorrects.');
+    adminToken=data.session.access_token;isAdminLoggedIn=true;
+    document.getElementById('admin-pwd').value='';
+    showToast('✅ Accès accordé.');updateNavUI();showPage('admin');loadAdminDashboard();
   }catch{showToast('❌ Erreur connexion.');}
 }
 
 async function logoutAdmin(){
-  if(adminToken){try{await fetch('/api/admin/logout',{method:'POST',headers:{'x-admin-token':adminToken}});}catch{}}
+  try{await _supabase.auth.signOut();}catch{}
   adminToken=null;isAdminLoggedIn=false;adminAllArtisans=[];
   updateNavUI();showPage('accueil');showToast('👋 Déconnecté.');
 }

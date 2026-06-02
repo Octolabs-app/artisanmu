@@ -58,4 +58,17 @@ function ok(data) {
   return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify(data) };
 }
 
-module.exports = { createToken, verifyToken, CORS_HEADERS, preflight, unauthorized, serverError, ok };
+async function verifyAdminToken(token) {
+  if (!token) return false;
+  if (verifyToken(token)) return true;
+  try {
+    const { createClient } = require('@supabase/supabase-js');
+    const url = process.env.SUPABASE_URL || 'https://tlvgcxshiapqswcyyvyq.supabase.co';
+    const key = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsdmdjeHNoaWFwcXN3Y3l5dnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjk4MDYsImV4cCI6MjA5NTk0NTgwNn0.MVJN-4wU7_cnPPPlX8IVcxDVG3CoPqPHmTebHGbMCVM';
+    const supabase = createClient(url, key);
+    const { data, error } = await supabase.auth.getUser(token);
+    return !error && !!data?.user;
+  } catch { return false; }
+}
+
+module.exports = { createToken, verifyToken, verifyAdminToken, CORS_HEADERS, preflight, unauthorized, serverError, ok };
