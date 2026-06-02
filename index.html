@@ -801,7 +801,23 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
     <div><div class="footer-col-title">Plateforme</div><a class="footer-link" onclick="showPage('inscription')">Devenir Artisan</a><a class="footer-link" onclick="showPage('login')">Connexion</a></div>
     <div><div class="footer-col-title">Informations</div><a class="footer-link" onclick="openModal('Contact')" id="foot-contact">Nous Contacter</a><a class="footer-link" onclick="openModal('Confidentialité')" id="foot-privacy">Confidentialité</a><a class="footer-link" onclick="openModal('Conditions')" id="foot-tos">Conditions</a></div>
   </div>
-  <div class="footer-bottom"><span class="footer-copy">© 2026 ArtisanMu · Made with ❤️ à Maurice</span><span onclick="showPage('admin-login')" style="font-size:12px;color:rgba(255,255,255,0.25);cursor:pointer;font-weight:600;letter-spacing:0.5px;border:1px solid rgba(255,255,255,0.12);padding:5px 12px;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.25)'">🛡️ Admin</span></div>
+  <div class="footer-bottom">
+    <span class="footer-copy">© 2026 ArtisanMu · Made with ❤️ à Maurice</span>
+    <a href="https://octolabs.app" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:rgba(255,255,255,0.4);font-size:11px;letter-spacing:2px;text-transform:uppercase;transition:color 0.2s;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">
+      <svg width="22" height="22" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+        <ellipse cx="32" cy="24" rx="14" ry="12" fill="currentColor"/>
+        <circle cx="27" cy="23" r="1.8" fill="#0A1914"/>
+        <circle cx="37" cy="23" r="1.8" fill="#0A1914"/>
+        <path d="M19,32 Q15,42 18,52" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+        <path d="M24,33 Q21,44 26,52" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+        <path d="M32,34 Q32,46 32,52" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+        <path d="M40,33 Q43,44 38,52" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+        <path d="M45,32 Q49,42 46,52" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+      </svg>
+      <span>Made by Octolabs · <a href="mailto:hello@octolabs.app" style="color:inherit;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.15);">hello@octolabs.app</a></span>
+    </a>
+    <span onclick="showPage('admin-login')" style="font-size:12px;color:rgba(255,255,255,0.25);cursor:pointer;font-weight:600;letter-spacing:0.5px;border:1px solid rgba(255,255,255,0.12);padding:5px 12px;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.25)'">🛡️ Admin</span>
+  </div>
 </footer>
 
 <dialog id="legal-modal">
