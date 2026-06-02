@@ -771,6 +771,28 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
   <div class="admin-chart-wrap"><div class="admin-chart-title">📈 Inscriptions par mois</div><canvas id="admin-chart" height="100"></canvas></div>
   <div class="admin-panel"><div class="admin-panel-title">⏳ Profils en attente</div><p style="font-size:13px;color:var(--ink3);margin-bottom:18px;">Vérifiez le NIC avant de valider.</p><div id="admin-pending-list"><p style="color:var(--ink3);">Chargement…</p></div></div>
   <div class="admin-panel"><div class="admin-panel-title">✅ Profils vérifiés</div><input id="admin-search" class="inp" placeholder="Rechercher…" oninput="adminSearch()" style="margin-bottom:18px;"><div id="admin-all-list"><p style="color:var(--ink3);">Chargement…</p></div></div>
+
+  <!-- WHATSAPP API SETUP CARD -->
+  <div class="admin-panel" id="admin-wa-panel">
+    <div class="admin-panel-title">📲 WhatsApp Business API</div>
+    <div id="admin-wa-status" style="margin-bottom:16px;"></div>
+    <p style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:16px;">
+      Connectez votre numéro ArtisanMU à l'API WhatsApp de Meta pour envoyer les factures directement — sans que les artisans n'aient à appuyer sur Envoyer.
+      <br><strong style="color:var(--dark);">Gratuit jusqu'à 1 000 messages/mois.</strong>
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div class="fg" style="grid-column:1/-1;"><label class="fl">Phone Number ID</label><input id="wa-phone-id-input" class="inp" placeholder="123456789012345" style="font-family:monospace;font-size:13px;"></div>
+      <div class="fg" style="grid-column:1/-1;"><label class="fl">Access Token</label><input id="wa-token-input" class="inp" type="password" placeholder="EAAxxxxxxx…" style="font-family:monospace;font-size:13px;"></div>
+      <div class="fg"><label class="fl">Template Name</label><input id="wa-template-input" class="inp" value="artisanmu_invoice" placeholder="artisanmu_invoice" style="font-size:13px;"></div>
+      <div class="fg"><label class="fl">App Base URL</label><input id="wa-baseurl-input" class="inp" placeholder="https://artisanmu.vercel.app" style="font-size:13px;"></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn-primary" onclick="testWhatsAppConfig()" style="flex:1;min-width:160px;">🔍 Tester la configuration</button>
+      <a href="https://github.com/A1l4n/ArtsianMU/blob/main/WHATSAPP_SETUP.md" target="_blank" class="btn-secondary" style="flex:1;min-width:160px;text-align:center;text-decoration:none;padding:12px;border-radius:12px;font-size:14px;font-weight:600;">📖 Guide complet</a>
+    </div>
+    <p style="font-size:12px;color:var(--ink3);margin-top:12px;">Ces identifiants doivent être ajoutés comme variables d'environnement dans Vercel (Settings → Environment Variables), pas ici. Ce formulaire sert uniquement à tester.</p>
+  </div>
+
 </div></div>
 
 <footer>
@@ -1367,7 +1389,7 @@ async function loadAdminDashboard(){
     document.getElementById('admin-stat-total').textContent=adminAllArtisans.length;
     document.getElementById('admin-stat-pending').textContent=adminAllArtisans.filter(a=>!a.is_verified).length;
     document.getElementById('admin-stat-avis').textContent=adminAllArtisans.reduce((s,a)=>s+(a.nombre_avis||0),0);
-    renderAdminPending();renderAdminAll(adminAllArtisans.filter(a=>a.is_verified));renderAdminChart(adminAllArtisans);
+    renderAdminPending();renderAdminAll(adminAllArtisans.filter(a=>a.is_verified));renderAdminChart(adminAllArtisans);checkWhatsAppStatus();
   }catch{showToast('❌ Erreur chargement admin.');}
 }
 
@@ -1782,10 +1804,11 @@ function renderInvoiceList(){
         '<div style="font-weight:700;font-size:14px;">'+total+'</div>'+
         '<span class="inv-status '+statusClass+'">'+statusLabel+'</span>'+
       '</div>'+
-      '<div style="display:flex;gap:6px;margin-left:12px;">'+
-        '<button onclick="openInvoicePage(\''+i.id+'\')" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:white;font-size:12px;cursor:pointer;">👁</button>'+
-        (i.status!=='paid'?'<button onclick="markInvoicePaid(\''+i.id+'\')" style="padding:6px 10px;border:1px solid #bbf7d0;border-radius:8px;background:#f0fdf4;font-size:12px;cursor:pointer;">✅</button>':'')+
-        (i.status==='draft'?'<button onclick="deleteInvoice(\''+i.id+'\')" style="padding:6px 10px;border:1px solid #fecaca;border-radius:8px;background:#fef2f2;font-size:12px;cursor:pointer;">🗑</button>':'')+
+      '<div style="display:flex;gap:6px;margin-left:12px;flex-wrap:wrap;">'+
+        '<button onclick="openInvoicePage(\''+i.id+'\')" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:white;font-size:12px;cursor:pointer;" title="Voir">👁</button>'+
+        (i.client_whatsapp&&i.status!=='paid'?'<button onclick="sendInvoiceViaAPI(\''+i.id+'\')" id="btn-wa-api-'+i.id+'" style="padding:6px 10px;border:1px solid #bbf7d0;border-radius:8px;background:#f0fdf4;font-size:12px;cursor:pointer;" title="Envoyer via WhatsApp">📲</button>':'')+
+        (i.status!=='paid'?'<button onclick="markInvoicePaid(\''+i.id+'\')" style="padding:6px 10px;border:1px solid #d1fae5;border-radius:8px;background:#ecfdf5;font-size:12px;cursor:pointer;" title="Marquer payée">✅</button>':'')+
+        (i.status==='draft'?'<button onclick="deleteInvoice(\''+i.id+'\')" style="padding:6px 10px;border:1px solid #fecaca;border-radius:8px;background:#fef2f2;font-size:12px;cursor:pointer;" title="Supprimer">🗑</button>':'')+
       '</div>'+
     '</div>';
   }).join('');
@@ -1845,9 +1868,44 @@ function renderInvoiceHTML(inv){
     (inv.notes?'<div style="padding:16px;background:var(--paper);border-radius:12px;margin-bottom:20px;font-size:13px;color:var(--ink3);">'+escHtml(inv.notes)+'</div>':'')+
     '<div style="display:flex;gap:10px;flex-wrap:wrap;" class="no-print">'+
       '<button onclick="window.print()" class="btn-secondary" style="flex:1;min-width:140px;">🖨 Imprimer / PDF</button>'+
-      (waLink?'<a href="'+waLink+'" target="_blank" class="btn-primary" style="flex:1;min-width:140px;text-align:center;text-decoration:none;padding:12px;border-radius:12px;font-weight:700;font-size:14px;">💬 Envoyer sur WhatsApp</a>':'')+
+      (inv.client_whatsapp?
+        '<button onclick="sendInvoiceViaAPI(\''+inv.id+'\')" class="btn-primary" id="btn-wa-api-'+inv.id+'" style="flex:1;min-width:180px;">📲 Envoyer via WhatsApp</button>'
+        :'')+
+      (waLink?'<a href="'+waLink+'" target="_blank" class="btn-ghost" style="flex:1;min-width:140px;text-align:center;text-decoration:none;padding:12px;border-radius:12px;font-weight:600;font-size:13px;border:1.5px solid var(--border);">💬 Lien manuel</a>':'')+
     '</div>'+
   '</div>';
+}
+
+// ─── WHATSAPP API SEND ────────────────────────────────────────────────────────
+async function sendInvoiceViaAPI(invoiceId){
+  if(!loggedInArtisanId)return showToast('⚠️ Non connecté.');
+  const btn=document.getElementById('btn-wa-api-'+invoiceId);
+  if(btn){btn.textContent='⏳ Envoi…';btn.disabled=true;}
+  try{
+    const res=await fetch('/api/invoices/'+invoiceId+'/send-whatsapp',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({artisan_id:loggedInArtisanId}),
+    });
+    const data=await res.json();
+    if(res.status===503&&data.error==='whatsapp_not_configured'){
+      // API not set up — fall back to deep link gracefully
+      showToast('⚙️ API WhatsApp non configurée. Utilisation du lien manuel…');
+      const inv=await fetch('/api/invoices/'+invoiceId+'?artisan_id='+loggedInArtisanId).then(r=>r.json());
+      if(inv.client_whatsapp){
+        const msg=encodeURIComponent('Bonjour '+inv.client_name+' ! Voici votre facture ArtisanMU '+inv.invoice_number+' : '+location.origin+'/#invoice/'+invoiceId);
+        window.open('https://wa.me/230'+inv.client_whatsapp+'?text='+msg,'_blank');
+      }
+      return;
+    }
+    if(!res.ok)throw new Error(data.meta_error||data.error||'Erreur envoi');
+    showToast('✅ Facture envoyée sur WhatsApp !');
+    if(btn){btn.textContent='✅ Envoyée';btn.style.background='var(--green)';}
+    loadInvoiceList();
+  }catch(err){
+    showToast('❌ '+err.message);
+    if(btn){btn.textContent='📲 Envoyer via WhatsApp';btn.disabled=false;}
+  }
 }
 
 function createInvoiceFromJob(jobId,jobData){
@@ -1855,6 +1913,46 @@ function createInvoiceFromJob(jobId,jobData){
     const el=document.getElementById('jc-'+jobId);
     if(el){const banner=document.createElement('div');banner.style.cssText='background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 16px;margin-top:12px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:10px;';banner.innerHTML='<span>🧾 Travail terminé ? <strong>Créer une facture</strong></span><button onclick="openInvoiceBuilder('+JSON.stringify(jobData).replace(/"/g,"'")+')" class="btn-primary" style="padding:8px 14px;font-size:12px;">Créer</button>';el.appendChild(banner);}
   },500);
+}
+
+// ─── WHATSAPP ADMIN STATUS CHECK ─────────────────────────────────────────────
+async function checkWhatsAppStatus(){
+  const el=document.getElementById('admin-wa-status');if(!el)return;
+  try{
+    // Probe with a dummy call — 503 = not configured, 400/403 = configured but bad params, 200 = good
+    const res=await fetch('/api/invoices/probe/send-whatsapp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({artisan_id:'probe'})});
+    const d=await res.json();
+    if(d.error==='whatsapp_not_configured'){
+      el.innerHTML='<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fef9c3;border-radius:10px;font-size:13px;font-weight:600;color:#713f12;">⚠️ API non configurée — ajoutez les variables d\'environnement Vercel</div>';
+    }else{
+      el.innerHTML='<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#dcfce7;border-radius:10px;font-size:13px;font-weight:600;color:#166534;">✅ API WhatsApp configurée</div>';
+    }
+  }catch{
+    el.innerHTML='<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--paper2);border-radius:10px;font-size:13px;color:var(--ink3);">— Statut inconnu</div>';
+  }
+}
+
+async function testWhatsAppConfig(){
+  const phoneId=document.getElementById('wa-phone-id-input')?.value.trim();
+  const token=document.getElementById('wa-token-input')?.value.trim();
+  if(!phoneId||!token){showToast('⚠️ Entrez le Phone Number ID et le Token.');return;}
+  const btn=document.querySelector('#admin-wa-panel .btn-primary');
+  if(btn){btn.textContent='⏳ Test…';btn.disabled=true;}
+  try{
+    // Direct Meta API probe — just fetch the phone number info to verify credentials
+    const res=await fetch('https://graph.facebook.com/v19.0/'+phoneId,{
+      headers:{'Authorization':'Bearer '+token},
+    });
+    const d=await res.json();
+    if(res.ok&&d.id){
+      showToast('✅ Credentials valides ! Numéro: '+(d.display_phone_number||d.id));
+      const el=document.getElementById('admin-wa-status');
+      if(el)el.innerHTML='<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#dcfce7;border-radius:10px;font-size:13px;font-weight:600;color:#166534;">✅ Credentials vérifiés — '+(d.display_phone_number||'')+'</div>';
+    }else{
+      showToast('❌ '+(d.error?.message||'Token ou Phone ID invalide'));
+    }
+  }catch(err){showToast('❌ Erreur réseau: '+err.message);}
+  finally{if(btn){btn.textContent='🔍 Tester la configuration';btn.disabled=false;}}
 }
 
 // ─── HASH ROUTING (invoice public link) ──────────────────────────────────────
