@@ -1,6 +1,9 @@
 -- ============================================================
 -- ArtisanMU — Full Migration
--- Run this in your Supabase SQL Editor (sypwtcndehuroudbnzdw)
+-- Project: tlvgcxshiapqswcyyvyq  (hopemore org)
+-- URL: https://tlvgcxshiapqswcyyvyq.supabase.co
+-- Applied automatically via Supabase MCP on 2026-06-02.
+-- This file is kept as reference only — schema is already live.
 -- ============================================================
 
 -- 1. Extend artisans table
