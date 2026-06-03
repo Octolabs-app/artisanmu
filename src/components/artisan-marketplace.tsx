@@ -22,7 +22,6 @@ import {
   UserCheck,
   Zap,
 } from "lucide-react";
-import { MauritiusMap } from "@/components/mauritius-map";
 import { districts, trades } from "@/lib/mock-data";
 import type { Artisan } from "@/lib/types";
 
@@ -213,7 +212,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
       </header>
 
       <section className="border-b border-[#ddd8cd] bg-[#fffdf8]">
-        <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-6 md:py-7 lg:grid-cols-[minmax(0,1fr)_390px]">
+        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 md:py-7">
           <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-md border border-[#c79b55]/35 bg-[#fff7e7] px-3 py-2 text-sm font-medium text-[#78511c]">
               <Zap className="size-4" aria-hidden="true" />
@@ -297,11 +296,6 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
               </div>
             </div>
           </div>
-
-          <MauritiusMap
-            selectedDistrict={selectedDistrict}
-            onSelectDistrict={setSelectedDistrict}
-          />
         </div>
       </section>
 
