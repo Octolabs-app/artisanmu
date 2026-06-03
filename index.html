@@ -103,6 +103,13 @@ nav.scrolled{border-bottom-color:var(--border);box-shadow:0 4px 32px rgba(10,20,
 .pill.active{background:var(--dark);color:var(--gold);border-color:var(--dark);box-shadow:0 4px 16px rgba(10,20,16,0.18);}
 .stat-count-box{font-size:13px;font-weight:600;color:var(--ink3);white-space:nowrap;flex-shrink:0;margin-left:16px;}
 .stat-count-box strong{color:var(--green);font-size:18px;font-weight:700;}
+.sponsor-strip{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;margin:6px 0 28px;padding:14px 16px;background:linear-gradient(135deg,rgba(255,255,255,0.92),rgba(253,245,232,0.72));border:1px solid rgba(198,168,124,0.28);border-radius:16px;box-shadow:var(--shadow-sm);}
+.sponsor-mark{width:40px;height:40px;border-radius:12px;background:var(--dark);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.sponsor-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.4px;color:var(--gold-dark);margin-bottom:3px;}
+.sponsor-title{font-size:14px;font-weight:800;color:var(--dark);line-height:1.25;}
+.sponsor-copy{font-size:12px;color:var(--ink3);line-height:1.4;margin-top:2px;}
+.sponsor-cta{padding:9px 14px;border-radius:10px;background:white;border:1.5px solid rgba(198,168,124,0.35);color:var(--dark);font-size:12px;font-weight:800;text-decoration:none;white-space:nowrap;transition:all 0.2s;}
+.sponsor-cta:hover{border-color:var(--gold-dark);box-shadow:var(--shadow-sm);transform:translateY(-1px);}
 </style>
 <style>
 #artisans-list{max-width:1100px;margin:0 auto;padding:0 48px 80px;display:grid;gap:20px;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));}
@@ -284,7 +291,81 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
 .footer-bottom{border-top:1px solid rgba(255,255,255,0.06);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;max-width:1100px;margin:0 auto;}
 .footer-copy{font-size:12px;color:rgba(255,255,255,0.18);}
 @media(max-width:900px){.footer-inner{grid-template-columns:1fr;gap:28px}.admin-stats-row{grid-template-columns:1fr 1fr}}
-@media(max-width:640px){nav{padding:0 20px;height:64px}#artisans-list{padding:0 16px 60px;grid-template-columns:1fr 1fr;gap:12px}.search-wrapper{padding:0 16px}.search-city,.search-div{display:none}.page-inner{padding:90px 16px 60px}.dash-layout{padding:80px 16px 60px}.admin-outer{padding:80px 16px 60px}.admin-stats-row{grid-template-columns:1fr}footer{padding:44px 20px 30px;border-radius:20px 20px 0 0}.profil-outer{padding:80px 16px 60px}.profil-hero-avatar{width:84px;height:84px}.profil-name-big{font-size:28px}.hero-inner{padding:60px 24px}.hero h1{font-size:40px}.hero-slide-name,.hero-slide-label{bottom:16px}.hero-slide-name{left:20px}.hero-slide-label{right:20px}}
+@media(max-width:640px){
+  nav{padding:0 14px;height:64px;gap:10px}
+  .nav-logo{font-size:22px;letter-spacing:2.5px;white-space:nowrap}
+  .nav-actions{gap:6px}
+  #nav-buttons .btn-nav-ghost{display:none}
+  #nav-buttons .btn-nav-primary{padding:9px 12px;font-size:12px}
+  .btn-lang{width:34px;height:34px;font-size:10px}
+  .btn-nav-admin{width:34px;height:34px}
+  .hero{min-height:620px;justify-content:flex-end}
+  .hero-inner{width:100%;padding:98px 20px 88px}
+  .hero-eyebrow{font-size:9px;letter-spacing:2px;margin-bottom:20px;gap:9px}
+  .hero-eyebrow::before{width:18px}
+  .hero h1{font-size:42px;line-height:1.05}
+  .hero-sub{font-size:15px;line-height:1.55;margin-top:16px}
+  .hero-cta{display:grid;grid-template-columns:1fr;gap:10px;margin-top:28px}
+  .btn-hero-main,.btn-hero-ghost{width:100%;padding:14px 18px;text-align:center}
+  .hero-stat-inline{margin-top:22px;padding:7px 14px}
+  .hero-slide-name,.hero-slide-label{bottom:16px}
+  .hero-slide-name{left:20px;font-size:9px;letter-spacing:2px}
+  .hero-slide-label{right:20px}
+  .discovery-section{padding:34px 0 56px}
+  .search-wrapper{padding:0 16px}
+  .search-bar{display:grid;grid-template-columns:auto 1fr;gap:0 8px;padding:8px;margin-bottom:18px;overflow:visible;border-radius:18px}
+  .search-icon{padding:0 0 0 6px;align-self:center}
+  .search-bar input.main-input{padding:12px 0;font-size:14px}
+  .search-city,.search-div{display:none}
+  .btn-search-go{grid-column:1/-1;width:100%;margin:0;padding:12px 16px}
+  .region-filter-row{margin-bottom:12px}
+  .filters-row{align-items:flex-start;margin-bottom:16px}
+  .pills-scroll{width:100%;flex-basis:100%}
+  .pill,.region-pill{padding:8px 14px}
+  .stat-count-box{margin-left:0}
+  .sponsor-strip{grid-template-columns:auto 1fr;gap:12px;margin:0 0 20px;padding:13px;border-radius:14px}
+  .sponsor-mark{width:36px;height:36px;border-radius:10px;font-size:16px}
+  .sponsor-label{font-size:8px;letter-spacing:1.1px}
+  .sponsor-title{font-size:13px}
+  .sponsor-copy{font-size:11px}
+  .sponsor-cta{grid-column:1/-1;text-align:center;padding:10px 12px}
+  #artisans-list{padding:0 16px 56px;grid-template-columns:1fr;gap:16px}
+  .card{border-radius:18px}
+  .card-cover{height:170px}
+  .card-body{padding:4px 16px 16px}
+  .card-name{font-size:22px}
+  .card-actions{gap:8px}
+  .btn-card-wa,.btn-card-view{padding:11px 12px}
+  .card-peek{display:none}
+  .page-inner{padding:84px 16px 56px}
+  .form-card{padding:28px 20px;border-radius:20px}
+  .form-title{font-size:32px}
+  .dash-layout{padding:80px 16px 56px}
+  .dash-hero-banner{padding:32px 24px;border-radius:20px}
+  .dash-stats-row{grid-template-columns:1fr}
+  .dash-section{padding:24px 18px}
+  .admin-outer{padding:80px 16px 56px}
+  .admin-topbar{padding:28px 22px;border-radius:20px;align-items:flex-start;gap:14px;flex-direction:column}
+  .admin-topbar-title{font-size:32px}
+  .admin-stats-row{grid-template-columns:1fr}
+  .admin-panel,.admin-chart-wrap{padding:22px 16px;border-radius:18px}
+  footer{padding:40px 20px 28px;border-radius:20px 20px 0 0}
+  .footer-inner{margin-bottom:32px}
+  .footer-bottom{align-items:flex-start;flex-direction:column}
+  .profil-outer{padding:80px 16px 56px}
+  .profil-hero-card{border-radius:22px}
+  .profil-hero-cover{height:190px}
+  .profil-hero-identity{padding:0 20px 22px}
+  .profil-hero-avatar{width:84px;height:84px}
+  .profil-name-big{font-size:28px}
+  .profil-action-row{grid-template-columns:1fr}
+  .btn-profil-share{min-height:46px}
+  .profil-rating-inner{align-items:flex-start;gap:16px;flex-direction:column}
+  .profil-gallery{grid-template-columns:repeat(2,1fr)}
+  .fab-cluster{bottom:18px;right:16px}
+  .fab{width:46px;height:46px}
+  .toast{left:16px;right:16px;bottom:18px;max-width:none}
+}
 @media(max-width:400px){#artisans-list{grid-template-columns:1fr}}
 @media(min-width:1100px){#artisans-list{grid-template-columns:repeat(3,1fr)}}
 </style>
@@ -452,6 +533,15 @@ footer{background:var(--dark);color:white;padding:64px 48px 44px;border-radius:3
           <div class="pill" onclick="setMetierFilter('Autres')">Autres</div>
         </div>
         <div class="stat-count-box"><strong id="stat-count">0</strong> <span id="stat-results">résultats</span></div>
+      </div>
+      <div class="sponsor-strip" aria-label="Annonce sponsorisée">
+        <div class="sponsor-mark">✦</div>
+        <div>
+          <div class="sponsor-label" id="ad-label">Sponsorisé</div>
+          <div class="sponsor-title" id="ad-title">Votre entreprise ici, sans interrompre la recherche.</div>
+          <div class="sponsor-copy" id="ad-copy">Un emplacement discret pour les fournisseurs locaux, outils et services utiles aux foyers mauriciens.</div>
+        </div>
+        <a class="sponsor-cta" id="ad-cta" href="mailto:hello@octolabs.app?subject=Annonce%20ArtisanMu">Annoncer</a>
       </div>
     </div>
     <div id="artisans-list">
@@ -1478,8 +1568,8 @@ function openModal(type){const d=document.getElementById('legal-modal');const da
 
 // ─── TRANSLATION ──────────────────────────────────────────────────────────────
 const TRANSLATIONS={
-  FR:{'hero-eyebrow':'Maurice · Artisans Vérifiés','hero-h1':'L\'annuaire d\'élite des <em>artisans</em> à Maurice.','hero-p':'Identité contrôlée, avis transparents, artisans de confiance pour tous vos travaux.','btn-find':'Trouver un artisan','btn-join':'Rejoindre','h-label-artisans':'Artisans Vérifiés','search-btn':'Explorer','stat-results':'résultats','ins-title':'Devenir Artisan','label-nom':'Nom Complet','label-tel':'WhatsApp (+230)','label-nic':'Numéro NIC','label-avatar':'Photo de Profil','label-photos':'Portfolio (3 max)','gallery-label':'Portfolio & Réalisations','foot-contact':'Nous Contacter','foot-privacy':'Confidentialité','foot-tos':'Conditions','footer-desc':'L\'ambition d\'élever l\'artisanat mauricien à l\'excellence.','ins-multi-clause':'💼 <strong>Multi-métier ?</strong> Contactez : <a href="https://wa.me/23058289431" target="_blank" style="color:var(--gold-dark);font-weight:700;">+230 5828 9431</a>','lang-btn':'EN'},
-  EN:{'hero-eyebrow':'Mauritius · Verified Craftsmen','hero-h1':'The elite directory of <em>craftsmen</em> in Mauritius.','hero-p':'Identity-verified, transparent reviews, trusted artisans for all your projects.','btn-find':'Find an artisan','btn-join':'Join the platform','h-label-artisans':'Verified Artisans','search-btn':'Explore','stat-results':'results','ins-title':'Join as Artisan','label-nom':'Full Name','label-tel':'WhatsApp (+230)','label-nic':'NIC Number','label-avatar':'Profile Picture','label-photos':'Portfolio (3 max)','gallery-label':'Portfolio & Work Gallery','foot-contact':'Contact Us','foot-privacy':'Privacy Policy','foot-tos':'Terms of Service','footer-desc':'Empowering Mauritian craftsmanship to excellence.','ins-multi-clause':'💼 <strong>Multiple trades?</strong> Contact support: <a href="https://wa.me/23058289431" target="_blank" style="color:var(--gold-dark);font-weight:700;">+230 5828 9431</a>','lang-btn':'FR'}
+  FR:{'hero-eyebrow':'Maurice · Artisans Vérifiés','hero-h1':'L\'annuaire d\'élite des <em>artisans</em> à Maurice.','hero-p':'Identité contrôlée, avis transparents, artisans de confiance pour tous vos travaux.','btn-find':'Trouver un artisan','btn-join':'Rejoindre','h-label-artisans':'Artisans Vérifiés','search-btn':'Explorer','stat-results':'résultats','ad-label':'Sponsorisé','ad-title':'Votre entreprise ici, sans interrompre la recherche.','ad-copy':'Un emplacement discret pour les fournisseurs locaux, outils et services utiles aux foyers mauriciens.','ad-cta':'Annoncer','ins-title':'Devenir Artisan','label-nom':'Nom Complet','label-tel':'WhatsApp (+230)','label-nic':'Numéro NIC','label-avatar':'Photo de Profil','label-photos':'Portfolio (3 max)','gallery-label':'Portfolio & Réalisations','foot-contact':'Nous Contacter','foot-privacy':'Confidentialité','foot-tos':'Conditions','footer-desc':'L\'ambition d\'élever l\'artisanat mauricien à l\'excellence.','ins-multi-clause':'💼 <strong>Multi-métier ?</strong> Contactez : <a href="https://wa.me/23058289431" target="_blank" style="color:var(--gold-dark);font-weight:700;">+230 5828 9431</a>','lang-btn':'EN'},
+  EN:{'hero-eyebrow':'Mauritius · Verified Craftsmen','hero-h1':'The elite directory of <em>craftsmen</em> in Mauritius.','hero-p':'Identity-verified, transparent reviews, trusted artisans for all your projects.','btn-find':'Find an artisan','btn-join':'Join the platform','h-label-artisans':'Verified Artisans','search-btn':'Explore','stat-results':'results','ad-label':'Sponsored','ad-title':'Your business here, without interrupting search.','ad-copy':'A quiet placement for local suppliers, tools, and services useful to Mauritian homes.','ad-cta':'Advertise','ins-title':'Join as Artisan','label-nom':'Full Name','label-tel':'WhatsApp (+230)','label-nic':'NIC Number','label-avatar':'Profile Picture','label-photos':'Portfolio (3 max)','gallery-label':'Portfolio & Work Gallery','foot-contact':'Contact Us','foot-privacy':'Privacy Policy','foot-tos':'Terms of Service','footer-desc':'Empowering Mauritian craftsmanship to excellence.','ins-multi-clause':'💼 <strong>Multiple trades?</strong> Contact support: <a href="https://wa.me/23058289431" target="_blank" style="color:var(--gold-dark);font-weight:700;">+230 5828 9431</a>','lang-btn':'FR'}
 };
 function toggleLang(){
   currentLang=currentLang==='FR'?'EN':'FR';
