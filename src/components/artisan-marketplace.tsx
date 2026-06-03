@@ -17,11 +17,11 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
   Star,
   UserCheck,
   Zap,
 } from "lucide-react";
+import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { districts, trades } from "@/lib/mock-data";
 import type { Artisan } from "@/lib/types";
 
@@ -162,15 +162,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
     <main id="top" className="min-h-screen bg-[#f6f4ef] pb-20 text-[#101410] sm:pb-0">
       <header className="sticky top-0 z-30 border-b border-[#ddd8cd] bg-[#f6f4ef]/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#0d1612] text-[#f6f4ef]">
-              <Sparkles className="size-5" aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-lg font-semibold">ArtisanMu</p>
-              <p className="truncate text-xs text-[#6c756f]">Mauritius artisan dispatch</p>
-            </div>
-          </div>
+          <ArtisanMuLogo subtitle="Mauritius artisan dispatch" />
 
           <nav className="flex items-center gap-2">
             <label className="hidden h-10 items-center gap-2 rounded-md border border-[#ddd8cd] bg-[#fffdf8] px-2 text-sm text-[#0d1612] shadow-sm md:flex">

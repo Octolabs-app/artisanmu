@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Clock,
   Gauge,
-  Home,
   ImagePlus,
   MapPin,
   MessageCircle,
@@ -24,6 +23,7 @@ import {
   UserRound,
   Wrench,
 } from "lucide-react";
+import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { fallbackArtisans } from "@/lib/mock-data";
 import { artisanJobs, commentThreads, reviewItems } from "@/lib/ops-data";
 
@@ -61,14 +61,8 @@ export function ArtisanDashboard() {
     <main className="min-h-screen bg-[#f6f4ef] pb-20 text-[#101410] md:pb-0">
       <header className="sticky top-0 z-30 border-b border-[#ddd8cd] bg-[#f6f4ef]/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link href="/" className="flex min-w-0 items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#0d1612] text-[#f6f4ef]">
-              <Home className="size-5" aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-lg font-semibold">ArtisanMu</p>
-              <p className="truncate text-xs text-[#6c756f]">Artisan dashboard</p>
-            </div>
+          <Link href="/" aria-label="ArtisanMU home">
+            <ArtisanMuLogo subtitle="Artisan dashboard" />
           </Link>
 
           <button

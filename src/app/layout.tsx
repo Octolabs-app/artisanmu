@@ -37,6 +37,10 @@ export const metadata: Metadata = {
     title: "ArtisanMu",
     description: "Find verified artisans in Mauritius quickly.",
   },
+  icons: {
+    icon: "/artisanmu-mark.svg",
+    apple: "/artisanmu-mark.svg",
+  },
 };
 
 export default function RootLayout({

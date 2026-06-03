@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   UserRoundPlus,
 } from "lucide-react";
+import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 
 export const metadata = {
   title: "Login",
@@ -22,10 +23,7 @@ export default function LoginPage() {
             <ArrowLeft className="size-4" aria-hidden="true" />
             Back
           </Link>
-          <div className="text-right">
-            <p className="font-semibold">ArtisanMu</p>
-            <p className="text-xs text-[#6c756f]">Secure access</p>
-          </div>
+          <ArtisanMuLogo subtitle="Secure access" />
         </div>
       </header>
 
