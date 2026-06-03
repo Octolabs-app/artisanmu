@@ -1,6 +1,6 @@
 const { createToken, CORS_HEADERS, preflight, ok } = require('./token-utils');
 
-const ADMIN_HASH = process.env.ADMIN_PASSWORD_HASH || '1b69daffcbaab2993ce50e55628021260f2ab54902ddf0b491f99c1784e67e87';
+const ADMIN_HASH = process.env.ADMIN_PASSWORD_HASH || 'fe3ffd2d9a9aaced48c32c451afd6c81ca0a68beb6873dbcb3717755a0150bd9';
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();

@@ -27,6 +27,9 @@ Find both in: Supabase dashboard → Project Settings → API
 | `ADMIN_PASSWORD_HASH` | SHA-256 hex hash of your chosen admin password |
 | `SESSION_SECRET` | Any long random string (min 32 chars) used to sign tokens |
 
+The repository fallback admin password is `OctolabsAdmin2026!`.
+For production, set `ADMIN_PASSWORD_HASH` to your own password hash instead of relying on the fallback.
+
 **How to generate ADMIN_PASSWORD_HASH:**
 
 Open your browser DevTools console and run:

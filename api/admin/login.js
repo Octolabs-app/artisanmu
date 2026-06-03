@@ -11,8 +11,6 @@ module.exports = async (req, res) => {
     body = body || {};
 
     const { passwordHash } = body;
-    console.log('[admin-login] received:', passwordHash);
-    console.log('[admin-login] expected:', ADMIN_HASH);
 
     if (!passwordHash || passwordHash !== ADMIN_HASH) {
       return res.status(401).json({ success: false, error: 'Invalid password' });
