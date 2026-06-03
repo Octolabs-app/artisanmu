@@ -1,14 +1,35 @@
 {
-  "name": "artisanmu",
-  "version": "1.0.0",
-  "description": "Artisan directory for Mauritius — SPA with Netlify + Vercel serverless functions",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/A1l4n/ArtsianMU.git"
+  "name": "artisanmu-next",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "deploy:cloudflare": "npm run build && wrangler pages deploy out --project-name artisanmu"
   },
-  "author": "A1l4n",
-  "license": "ISC",
   "dependencies": {
-    "@supabase/supabase-js": "^2.100.0"
+    "@supabase/supabase-js": "^2.107.0",
+    "lucide-react": "^1.17.0",
+    "next": "16.2.7",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.10"
+    }
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.7",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "wrangler": "^4.97.0"
   }
 }

@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /ops
+Allow: /
+
+Sitemap: https://artisanmu.octolabs.app/sitemap.xml

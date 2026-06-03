@@ -1,0 +1,596 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import {
+  Bell,
+  CalendarCheck,
+  ChevronRight,
+  Clock,
+  Globe2,
+  LogIn,
+  MapPin,
+  MessageCircle,
+  Navigation,
+  Phone,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  Star,
+  UserCheck,
+  Zap,
+} from "lucide-react";
+import { MauritiusMap } from "@/components/mauritius-map";
+import { districts, trades } from "@/lib/mock-data";
+import type { Artisan } from "@/lib/types";
+
+type ArtisanMarketplaceProps = {
+  artisans: Artisan[];
+};
+
+const allTradesLabel = "Tout metier";
+const allDistrictsLabel = "Toute l'ile";
+const marketplaceCopy = {
+  en: {
+    eyebrow: "Same-day matching in Mauritius",
+    headline: "Find the right artisan in minutes.",
+    support:
+      "Search by trade and location, compare verified profiles, then send a WhatsApp-ready request without calling around.",
+    requestTitle: "Send one clean brief",
+    details: "Job details",
+    phone: "Your WhatsApp",
+    action: "WhatsApp artisan",
+  },
+  fr: {
+    eyebrow: "Mise en relation le jour meme a Maurice",
+    headline: "Trouvez le bon artisan en quelques minutes.",
+    support:
+      "Cherchez par metier et region, comparez les profils verifies, puis envoyez une demande claire par WhatsApp.",
+    requestTitle: "Envoyer une demande claire",
+    details: "Details du travail",
+    phone: "Votre WhatsApp",
+    action: "Contacter sur WhatsApp",
+  },
+  mfe: {
+    eyebrow: "Gagn enn artizan zordi mem",
+    headline: "Trouv bon artizan vit-vit.",
+    support:
+      "Rod par metie ek landrwa, get bann profil verifye, apre avoy enn demann prop lor WhatsApp.",
+    requestTitle: "Avoy enn demann kler",
+    details: "Travay pou fer",
+    phone: "Ou WhatsApp",
+    action: "WhatsApp artizan",
+  },
+};
+
+type Language = keyof typeof marketplaceCopy;
+const tradeAliases: Record<string, string[]> = {
+  Plombier: ["leak", "fuite", "water", "pipe", "sink", "drain", "robinet"],
+  Electricien: ["wiring", "electric", "power", "light", "prise", "breaker", "circuit"],
+  Macon: ["wall", "concrete", "block", "tiles", "renovation", "repair"],
+  Menuisier: ["cabinet", "cupboard", "door", "wood", "kitchen", "shelf"],
+  Climatisation: ["ac", "aircon", "clim", "split", "cooling", "maintenance"],
+  Peintre: ["paint", "painting", "repaint", "wall finish", "color"],
+  Jardinier: ["garden", "grass", "yard", "tree", "plants", "trim"],
+  Serrurier: ["lock", "key", "door lock", "locked", "security"],
+};
+
+function buildWhatsAppLink(artisan: Artisan | null, note: string, clientPhone: string) {
+  if (!artisan?.phone) return "#";
+
+  const cleaned = artisan.phone.replace(/\D/g, "");
+  const phoneNumber = cleaned.startsWith("230") ? cleaned : `230${cleaned}`;
+  const message = encodeURIComponent(
+    `Bonjour ${artisan.name}, je vous contacte via ArtisanMu. ${note || "J'ai un travail a faire."} Mon numero: ${clientPhone || ""}`,
+  );
+
+  return `https://wa.me/${phoneNumber}?text=${message}`;
+}
+
+function scoreArtisan(
+  artisan: Artisan,
+  selectedTrade: string,
+  selectedDistrict: string,
+  urgent: boolean,
+) {
+  let score = artisan.rating * 10 + artisan.reviews / 8 - artisan.etaMinutes / 3;
+
+  if (artisan.available) score += urgent ? 44 : 16;
+  if (artisan.verified) score += 12;
+  if (selectedTrade !== allTradesLabel && artisan.trade === selectedTrade) score += 26;
+  if (selectedDistrict !== allDistrictsLabel && artisan.district === selectedDistrict) score += 18;
+
+  return score;
+}
+
+export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
+  const [query, setQuery] = useState("");
+  const [selectedTrade, setSelectedTrade] = useState(allTradesLabel);
+  const [selectedDistrict, setSelectedDistrict] = useState(allDistrictsLabel);
+  const [urgent, setUrgent] = useState(true);
+  const [selectedArtisanId, setSelectedArtisanId] = useState(artisans[0]?.id || "");
+  const [jobNote, setJobNote] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [language, setLanguage] = useState<Language>("en");
+  const copy = marketplaceCopy[language];
+
+  const filteredArtisans = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return [...artisans]
+      .filter((artisan) => {
+        const searchText = [
+          artisan.name,
+          artisan.trade,
+          artisan.town,
+          artisan.district,
+          artisan.bio,
+          ...(tradeAliases[artisan.trade] || []),
+          ...artisan.specialties,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        const matchesQuery = !normalizedQuery || searchText.includes(normalizedQuery);
+        const matchesTrade =
+          selectedTrade === allTradesLabel || artisan.trade === selectedTrade;
+        const matchesDistrict =
+          selectedDistrict === allDistrictsLabel || artisan.district === selectedDistrict;
+
+        return matchesQuery && matchesTrade && matchesDistrict;
+      })
+      .sort(
+        (a, b) =>
+          scoreArtisan(b, selectedTrade, selectedDistrict, urgent) -
+          scoreArtisan(a, selectedTrade, selectedDistrict, urgent),
+      );
+  }, [artisans, query, selectedDistrict, selectedTrade, urgent]);
+
+  const selectedArtisan =
+    filteredArtisans.find((artisan) => artisan.id === selectedArtisanId) ||
+    filteredArtisans[0] ||
+    null;
+
+  const availableCount = filteredArtisans.filter((artisan) => artisan.available).length;
+  const fastestEta = filteredArtisans.length
+    ? Math.min(...filteredArtisans.map((artisan) => artisan.etaMinutes))
+    : 0;
+  const whatsappLink = buildWhatsAppLink(selectedArtisan, jobNote, clientPhone);
+
+  return (
+    <main id="top" className="min-h-screen bg-[#f6f4ef] pb-20 text-[#101410] sm:pb-0">
+      <header className="sticky top-0 z-30 border-b border-[#ddd8cd] bg-[#f6f4ef]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#0d1612] text-[#f6f4ef]">
+              <Sparkles className="size-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-semibold">ArtisanMu</p>
+              <p className="truncate text-xs text-[#6c756f]">Mauritius artisan dispatch</p>
+            </div>
+          </div>
+
+          <nav className="flex items-center gap-2">
+            <label className="hidden h-10 items-center gap-2 rounded-md border border-[#ddd8cd] bg-[#fffdf8] px-2 text-sm text-[#0d1612] shadow-sm md:flex">
+              <Globe2 className="size-4" aria-hidden="true" />
+              <select
+                value={language}
+                onChange={(event) => setLanguage(event.target.value as Language)}
+                className="bg-transparent text-sm font-medium outline-none"
+                aria-label="Language"
+              >
+                <option value="en">EN</option>
+                <option value="fr">FR</option>
+                <option value="mfe">Morisien</option>
+              </select>
+            </label>
+            <Link
+              href="/login"
+              className="hidden h-10 items-center gap-2 rounded-md border border-[#ddd8cd] bg-[#fffdf8] px-3 text-sm font-medium text-[#0d1612] shadow-sm sm:flex"
+            >
+              <LogIn className="size-4" aria-hidden="true" />
+              Login
+            </Link>
+            <Link
+              href="/artisan"
+              className="hidden h-10 items-center gap-2 rounded-md border border-[#ddd8cd] bg-[#fffdf8] px-3 text-sm font-medium text-[#0d1612] shadow-sm sm:flex"
+            >
+              <UserCheck className="size-4" aria-hidden="true" />
+              Artisan access
+            </Link>
+            <a
+              href="#request"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-[#0d8b66] px-3 text-sm font-semibold text-white shadow-sm hover:bg-[#0b7758]"
+            >
+              <MessageCircle className="size-4" aria-hidden="true" />
+              <span>Post job</span>
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <section className="border-b border-[#ddd8cd] bg-[#fffdf8]">
+        <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-6 md:py-7 lg:grid-cols-[minmax(0,1fr)_390px]">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-2 rounded-md border border-[#c79b55]/35 bg-[#fff7e7] px-3 py-2 text-sm font-medium text-[#78511c]">
+              <Zap className="size-4" aria-hidden="true" />
+              {copy.eyebrow}
+            </div>
+            <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-tight text-[#101410] sm:text-4xl lg:text-5xl">
+              {copy.headline}
+            </h1>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-[#5f6a64]">
+              {copy.support}
+            </p>
+
+            <div className="mt-5 rounded-lg border border-[#d8d1c3] bg-[#f8f4ea] p-3 shadow-sm">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_170px_170px_auto]">
+                <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
+                  <Search className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#8b928e]"
+                    placeholder="Leak, wiring, AC, cabinet..."
+                  />
+                </label>
+
+                <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
+                  <SlidersHorizontal className="size-4 shrink-0 text-[#234f7a]" aria-hidden="true" />
+                  <select
+                    value={selectedTrade}
+                    onChange={(event) => setSelectedTrade(event.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  >
+                    <option>{allTradesLabel}</option>
+                    {trades.map((trade) => (
+                      <option key={trade}>{trade}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
+                  <MapPin className="size-4 shrink-0 text-[#9f4a4a]" aria-hidden="true" />
+                  <select
+                    value={selectedDistrict}
+                    onChange={(event) => setSelectedDistrict(event.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  >
+                    <option>{allDistrictsLabel}</option>
+                    {districts.map((district) => (
+                      <option key={district}>{district}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <button
+                  type="button"
+                  aria-pressed={urgent}
+                  onClick={() => setUrgent((value) => !value)}
+                  className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition ${
+                    urgent
+                      ? "bg-[#0d1612] text-white"
+                      : "border border-[#d8d1c3] bg-white text-[#0d1612]"
+                  }`}
+                >
+                  <Clock className="size-4" aria-hidden="true" />
+                  Urgent
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 text-sm text-[#5f6a64] sm:grid-cols-3">
+              <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
+                <ShieldCheck className="size-4 text-[#0d8b66]" aria-hidden="true" />
+                <span>{availableCount} available now</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
+                <Navigation className="size-4 text-[#234f7a]" aria-hidden="true" />
+                <span>{fastestEta || "--"} min fastest ETA</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
+                <CalendarCheck className="size-4 text-[#9f4a4a]" aria-hidden="true" />
+                <span>Review request after job</span>
+              </div>
+            </div>
+          </div>
+
+          <MauritiusMap
+            selectedDistrict={selectedDistrict}
+            onSelectDistrict={setSelectedDistrict}
+          />
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="min-w-0">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-[#0d8b66]">Best matches</p>
+              <h2 className="text-2xl font-semibold text-[#101410]">
+                {filteredArtisans.length
+                  ? `${filteredArtisans.length} artisans ready`
+                  : "No match yet"}
+              </h2>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs text-[#5f6a64]">
+              <span className="rounded-md border border-[#ddd8cd] bg-white px-2.5 py-1.5">
+                Sorted by ETA
+              </span>
+              <span className="rounded-md border border-[#ddd8cd] bg-white px-2.5 py-1.5">
+                Verified first
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {filteredArtisans.map((artisan) => {
+              const isSelected = selectedArtisan?.id === artisan.id;
+
+              return (
+                <article
+                  key={artisan.id}
+                  className={`grid overflow-hidden rounded-lg border bg-[#fffdf8] shadow-sm transition sm:grid-cols-[132px_minmax(0,1fr)] ${
+                    isSelected
+                      ? "border-[#0d8b66] ring-2 ring-[#0d8b66]/15"
+                      : "border-[#ddd8cd]"
+                  }`}
+                >
+                  <div className="relative aspect-[16/9] min-h-36 sm:aspect-auto sm:min-h-full">
+                    <Image
+                      src={artisan.image}
+                      alt={`${artisan.trade} work`}
+                      fill
+                      sizes="(min-width: 640px) 132px, 100vw"
+                      className="object-cover"
+                    />
+                    <span
+                      className={`absolute left-2 top-2 rounded-md px-2 py-1 text-xs font-semibold ${
+                        artisan.available
+                          ? "bg-[#0d8b66] text-white"
+                          : "bg-white text-[#5f6a64]"
+                      }`}
+                    >
+                      {artisan.available ? "Available" : "Later today"}
+                    </span>
+                  </div>
+
+                  <div className="min-w-0 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="min-w-0 text-lg font-semibold text-[#101410]">
+                            {artisan.name}
+                          </h3>
+                          {artisan.verified ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-[#e8f6f1] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
+                              <ShieldCheck className="size-3.5" aria-hidden="true" />
+                              Verified
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-sm text-[#5f6a64]">
+                          {artisan.trade} - {artisan.town}, {artisan.district}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1 rounded-md bg-[#fff7e7] px-2.5 py-1.5 text-sm font-semibold text-[#78511c]">
+                        <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
+                        {artisan.rating}
+                        <span className="font-normal text-[#8a7657]">({artisan.reviews})</span>
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-sm leading-6 text-[#5f6a64]">{artisan.bio}</p>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {artisan.specialties.map((specialty) => (
+                        <span
+                          key={specialty}
+                          className="rounded-md border border-[#ddd8cd] bg-white px-2.5 py-1 text-xs text-[#4d5651]"
+                        >
+                          {specialty}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap gap-2 text-sm text-[#4d5651]">
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-[#eef5f3] px-2.5 py-1.5">
+                          <Clock className="size-4 text-[#0f766e]" aria-hidden="true" />
+                          {artisan.etaMinutes} min
+                        </span>
+                        <span className="rounded-md bg-[#f2eee4] px-2.5 py-1.5">
+                          {artisan.priceHint}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedArtisanId(artisan.id)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white hover:bg-[#17251e]"
+                      >
+                        Select
+                        <ChevronRight className="size-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+
+            {!filteredArtisans.length ? (
+              <div className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
+                <h3 className="text-lg font-semibold text-[#101410]">Post a request instead</h3>
+                <p className="mt-2 text-sm leading-6">
+                  We can queue the job and notify matching artisans as soon as the backend rules are locked down.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <aside id="request" className="scroll-mt-20 min-w-0 lg:sticky lg:top-20 lg:self-start">
+          <div className="rounded-lg border border-[#d8d1c3] bg-[#fffdf8] p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-[#0d8b66]">Request</p>
+                <h2 className="text-xl font-semibold text-[#101410]">{copy.requestTitle}</h2>
+              </div>
+              <span className="rounded-md bg-[#eef5f3] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
+                Auto-match
+              </span>
+            </div>
+
+            {selectedArtisan ? (
+              <div className="mt-4 flex gap-3 rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
+                <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-[#ddd8cd]">
+                  <Image
+                    src={selectedArtisan.image}
+                    alt={selectedArtisan.name}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p
+                    data-testid="request-artisan-name"
+                    className="truncate font-semibold text-[#101410]"
+                  >
+                    {selectedArtisan.name}
+                  </p>
+                  <p className="text-sm text-[#5f6a64]">
+                    {selectedArtisan.trade} - {selectedArtisan.town}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#0d8b66]">
+                    {selectedArtisan.etaMinutes} min - {selectedArtisan.priceHint}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            <label className="mt-4 block text-sm font-medium text-[#101410]">
+              {copy.details}
+              <textarea
+                value={jobNote}
+                onChange={(event) => setJobNote(event.target.value)}
+                rows={4}
+                className="mt-2 w-full resize-none rounded-md border border-[#d8d1c3] bg-white px-3 py-2 text-sm outline-none focus:border-[#0d8b66]"
+                placeholder="Example: water leak under kitchen sink, need help today."
+              />
+            </label>
+
+            <label className="mt-3 block text-sm font-medium text-[#101410]">
+              {copy.phone}
+              <input
+                value={clientPhone}
+                onChange={(event) => setClientPhone(event.target.value)}
+                className="mt-2 h-11 w-full rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none focus:border-[#0d8b66]"
+                placeholder="+230 ..."
+              />
+            </label>
+
+            <label className="mt-3 block text-sm font-medium text-[#101410]">
+              Photo upload
+              <input
+                type="file"
+                accept="image/*"
+                className="mt-2 block w-full rounded-md border border-[#d8d1c3] bg-white px-3 py-2 text-sm text-[#4d5651] file:mr-3 file:rounded-md file:border-0 file:bg-[#eef5f3] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#0d7c5c]"
+              />
+              <span className="mt-2 block text-xs leading-5 text-[#6c756f]">
+                Photos help matching. Completed photo jobs should be deleted by backend cleanup.
+              </span>
+            </label>
+
+            <a
+              data-testid="whatsapp-request-link"
+              href={whatsappLink}
+              target="_blank"
+              rel="noreferrer"
+              className={`mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold ${
+                selectedArtisan
+                  ? "bg-[#0d8b66] text-white hover:bg-[#0b7758]"
+                  : "pointer-events-none bg-[#ddd8cd] text-[#6c756f]"
+              }`}
+            >
+              <MessageCircle className="size-4" aria-hidden="true" />
+              {copy.action}
+            </a>
+
+            <div className="mt-4 grid gap-3">
+              {[
+                { label: "Match verified artisans", icon: ShieldCheck },
+                { label: "Ping once, then rotate", icon: Bell },
+                { label: "Expire stale leads", icon: Clock },
+                { label: "Collect review after job", icon: Star },
+              ].map(({ label, icon: Icon }) => (
+                <div key={label} className="flex items-center gap-3 text-sm text-[#4d5651]">
+                  <span className="flex size-8 items-center justify-center rounded-md bg-[#eef5f3] text-[#0d7c5c]">
+                    <Icon className="size-4" aria-hidden="true" />
+                  </span>
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 rounded-lg border border-[#d7c292] bg-[#fff8e8] p-3">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[#78511c]">
+                <Phone className="size-3.5" aria-hidden="true" />
+                Sponsored
+              </div>
+              <p className="mt-1 text-sm leading-5 text-[#60451f]">
+                Small local partner placements can sit here without interrupting search.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <footer className="mt-auto border-t border-[#ddd8cd] bg-[#0d1612] text-[#f6f4ef]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <p className="font-semibold">ArtisanMu by Octolabs</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-[#cbd4ce]">
+            <a href="mailto:hello@octolabs.app" className="hover:text-white">
+              hello@octolabs.app
+            </a>
+            <span>Mauritius</span>
+            <span>Self-running marketplace prototype</span>
+          </div>
+        </div>
+      </footer>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[#ddd8cd] bg-[#fffdf8] px-2 py-2 shadow-lg sm:hidden">
+        <a
+          href="#top"
+          className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-xs font-semibold text-[#5f6a64]"
+        >
+          <Search className="size-4" aria-hidden="true" />
+          Search
+        </a>
+        <a
+          href="#request"
+          className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md bg-[#0d1612] text-xs font-semibold text-white"
+        >
+          <MessageCircle className="size-4" aria-hidden="true" />
+          Request
+        </a>
+        <Link
+          href="/artisan"
+          className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-xs font-semibold text-[#5f6a64]"
+        >
+          <UserCheck className="size-4" aria-hidden="true" />
+          Artisan
+        </Link>
+        <Link
+          href="/login"
+          className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-xs font-semibold text-[#5f6a64]"
+        >
+          <LogIn className="size-4" aria-hidden="true" />
+          Login
+        </Link>
+      </nav>
+    </main>
+  );
+}

@@ -1,51 +1,36 @@
-# 🇲🇺 ArtisanMu – L'annuaire d'élite des artisans à l'Île Maurice
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-ArtisanMu est une plateforme moderne, sécurisée et bilingue qui connecte les citoyens mauriciens avec les meilleurs artisans de l'île. Conçue avec une approche "Premium First", elle privilégie la fiabilité grâce à une vérification stricte de l'identité et une interface utilisateur haut de gamme.
+## Getting Started
 
-## ✨ Fonctionnalités Clés
+First, run the development server:
 
-- **🔍 Recherche Intuitive** : Filtrage par métier, ville ou expertise avec des résultats instantanés.
-- **🛡️ Administration Sécurisée** : Panneau de contrôle protégé par SHA-256 pour valider les nouveaux profils et gérer la communauté.
-- **🌍 Multi-langue (FR/EN)** : Basculement instantané entre le Français et l'Anglais pour une accessibilité maximale.
-- **📍 Cartes Interactives** : Géolocalisation précise des ateliers via Leaflet.js et synchronisation Google Maps.
-- **📸 Gestion de Portfolio** : Les artisans peuvent télécharger leur avatar et jusqu'à 3 photos de leurs réalisations.
-- **💬 Mise en relation WhatsApp** : Boutons "Magic Direct" pour contacter un artisan en un clic sans friction.
-
-## 🛠️ Stack Technique
-
-- **Frontend** : Vanilla HTML5, CSS3 (Glassmorphism), JavaScript (ES6+).
-- **Backend-as-a-Service** : [Supabase](https://supabase.com/) (PostgreSQL & Storage).
-- **Cartographie** : [Leaflet.js](https://leafletjs.com/) avec tuiles Voyager.
-- **Notifications** : [EmailJS](https://www.emailjs.com/) pour les alertes administrateur en temps réel.
-- **Sécurité** : Web Crypto API (Hachage client-side).
-
-## 🚀 Installation & Déploiement
-
-### 1. Configuration Supabase
-Créez un projet Supabase et une table `artisans` avec ces colonnes :
-- `id`: uuid (primary key)
-- `nom`, `tel`, `nic`, `metier`, `ville`, `lien`, `gps`, `expertise`, `avatar` (text)
-- `photos` (jsonb)
-- `is_verified` (bool)
-- `note_total` (int), `nombre_avis` (int)
-
-Ajoutez un bucket nommé `portfolios` avec accès public.
-
-### 2. Variables d'environnement
-Modifiez les constantes au début du fichier `artisanmu-v3.html` :
-```javascript
-const SUPABASE_URL = 'VOTRE_URL';
-const SUPABASE_KEY = 'VOTRE_CLÉ_ANON';
-const EMAILJS_SERVICE = 'VOTRE_SERVICE_ID';
-// ...
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-### 3. Déploiement
-Le projet est un fichier unique (SPA). Vous pouvez l'héberger sur :
-- **GitHub Pages** (Gratuit)
-- **Vercel** (`npx vercel`)
-- **Netlify** (Glissez-déposez le dossier)
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## 📄 Licence
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
-© 2026 ArtisanMu. Développé pour le rayonnement de l'artisanat mauricien.
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
