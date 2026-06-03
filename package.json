@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "deploy:cloudflare": "npm run build && wrangler pages deploy out --project-name artisanmu"
+    "deploy:cloudflare": "npm run build && wrangler pages deploy out --project-name artisanmu",
+    "android:sync": "npm run build && cap sync android",
+    "android:apk": "npm run android:sync && cd android && gradlew.bat assembleDebug"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
@@ -22,6 +24,9 @@
     }
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

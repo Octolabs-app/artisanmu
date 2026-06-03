@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ArtisanMU</string>
+    <string name="title_activity_main">ArtisanMU</string>
+    <string name="package_name">app.octolabs.artisanmu</string>
+    <string name="custom_url_scheme">app.octolabs.artisanmu</string>
+</resources>
