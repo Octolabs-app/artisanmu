@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { fallbackArtisans } from "@/lib/mock-data";
-import { artisanJobs, commentThreads, reviewItems } from "@/lib/ops-data";
+import { artisanJobs, commentThreads, reviewItems } from "@/lib/admin-data";
 
 const dashboardTabs = [
   { id: "jobs", label: "Jobs", icon: Wrench },

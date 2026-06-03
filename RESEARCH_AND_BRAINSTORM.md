@@ -4,7 +4,7 @@
 
 - Search must support natural problem language, not only exact trade names. Baymard's search UX research highlights that users submit many query types and need guidance through search, results, and filtering.
   Source: https://baymard.com/ecommerce-search
-- Admin dashboards should reduce scanning cost, keep data light, and use progressive disclosure. The ops console should surface the next decision first: validate, pause, approve, publish, or review.
+- Admin dashboards should reduce scanning cost, keep data light, and use progressive disclosure. The admin console should surface the next decision first: validate, pause, approve, publish, or review.
   Source: https://www.nielsen.com/insights/2019/7-key-features-of-a-marketing-kpi-dashboard/
 - Mobile navigation should keep primary destinations reachable and stable. For ArtisanMu, public users need Search, Request, and Artisan access; operators need Review, Ads, Jobs, and Rules.
   Sources: https://developer.apple.com/design/human-interface-guidelines/tab-bars and https://m2.material.io/components/navigation-drawer
@@ -25,9 +25,9 @@
 - Keep sponsor placements small, labelled, and away from accidental tap zones.
 - Use bottom mobile actions because the app may become a mobile app shell.
 
-### Ops Console
+### Admin Console
 
-- Keep it discreet at `/ops`, not in public navigation.
+- Keep it discreet at `/admin`, not in public navigation.
 - First task is always the approval queue.
 - Artisan approval should combine:
   - verification checks
@@ -46,7 +46,7 @@
 - Make availability impossible to miss.
 - Jobs should show price, distance, timing, and one primary action.
 - Profile quality should be visual but not gamified too much.
-- Badges should be visible and requestable, but granting remains ops-only.
+- Badges should be visible and requestable, but granting remains admin-only.
 - Sponsored offers for artisans can exist, but should sit below work actions.
 
 ## Product Rules

@@ -34,9 +34,9 @@ import {
   reviewItems,
   type AdPlacement,
   type PendingArtisan,
-} from "@/lib/ops-data";
+} from "@/lib/admin-data";
 
-const opsTabs = [
+const adminTabs = [
   { id: "review", label: "Review", icon: UserCheck },
   { id: "artisans", label: "Artisans", icon: ShieldCheck },
   { id: "ads", label: "Ads", icon: Megaphone },
@@ -44,7 +44,7 @@ const opsTabs = [
   { id: "rules", label: "Rules", icon: Settings },
 ] as const;
 
-type OpsTab = (typeof opsTabs)[number]["id"];
+type AdminTab = (typeof adminTabs)[number]["id"];
 
 function statusClass(status: string) {
   if (status === "Live" || status === "Low" || status === "Claimed") {
@@ -247,8 +247,8 @@ function AdEditor({ placement }: { placement: AdPlacement }) {
   );
 }
 
-export function OpsConsole() {
-  const [activeTab, setActiveTab] = useState<OpsTab>("review");
+export function AdminConsole() {
+  const [activeTab, setActiveTab] = useState<AdminTab>("review");
   const [query, setQuery] = useState("");
   const [approvedIds, setApprovedIds] = useState<string[]>([]);
   const [removedArtisanIds, setRemovedArtisanIds] = useState<string[]>([]);
@@ -276,13 +276,13 @@ export function OpsConsole() {
               <ShieldCheck className="size-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-lg font-semibold">Octolabs Ops</p>
-              <p className="truncate text-xs text-[#b7c4bd]">Private marketplace controls</p>
+              <p className="truncate text-lg font-semibold">ArtisanMU Admin</p>
+              <p className="truncate text-xs text-[#b7c4bd]">Validation, ads and marketplace controls</p>
             </div>
           </div>
           <div className="hidden items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm text-[#dbe5df] sm:flex">
             <Sparkles className="size-4 text-[#c79b55]" aria-hidden="true" />
-            Draft mode
+            Admin mode
           </div>
         </div>
       </header>
@@ -290,7 +290,7 @@ export function OpsConsole() {
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[230px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
           <nav className="sticky top-5 grid gap-2">
-            {opsTabs.map((item) => {
+            {adminTabs.map((item) => {
               const Icon = item.icon;
               const selected = activeTab === item.id;
               return (
@@ -322,7 +322,7 @@ export function OpsConsole() {
 
           <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm font-medium text-[#0d8b66]">Console</p>
+              <p className="text-sm font-medium text-[#0d8b66]">Admin</p>
               <h1 className="text-2xl font-semibold text-[#101410]">
                 {activeTab === "review" && "Validate artisans"}
                 {activeTab === "artisans" && "Manage artisans"}
@@ -549,7 +549,7 @@ export function OpsConsole() {
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {[
                 ["Auto-rotate unmatched requests", "Ping 3 verified artisans, then pause for manual review."],
-                ["Badge guardrails", "Only Octolabs ops can grant badges until RLS is hardened."],
+                ["Badge guardrails", "Only ArtisanMU admins can grant badges until RLS is hardened."],
                 ["Ad safety", "Require sponsor, label, dates, budget and surface before publishing."],
                 ["Review prompts", "Ask clients for rating 24 hours after a job is marked done."],
               ].map(([title, copy]) => (
@@ -567,7 +567,7 @@ export function OpsConsole() {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[#ddd8cd] bg-[#fffdf8] px-2 py-2 shadow-lg lg:hidden">
-        {opsTabs.map((item) => {
+        {adminTabs.map((item) => {
           const Icon = item.icon;
           const selected = activeTab === item.id;
           return (

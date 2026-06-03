@@ -11,7 +11,7 @@ The new local prototype now reflects the intended product:
 
 - Public users search, use the map, submit one request, and optionally upload photos.
 - Artisans manage availability, jobs, profile quality, reviews, and comments.
-- Ops manages artisan validation, removals, badges, reviews/comments, ad links/embeds, and job cleanup.
+- Admin manages artisan validation, removals, badges, reviews/comments, ad links/embeds, and job cleanup.
 - Income tracking is removed from the artisan dashboard for phase 1.
 - Fair market pricing is deferred to phase 3.
 
@@ -76,7 +76,7 @@ Missing automation:
 - send review prompts
 - clean up completed photo jobs
 - log admin actions
-- notify ops about abuse/flags
+- notify admins about abuse/flags
 
 ## UI/Product Audit
 
@@ -97,11 +97,11 @@ Remaining release tasks:
 - Add true location/distance matching after backend supports coordinates.
 - Add empty states for districts with no verified artisans.
 
-### Ops Console
+### Admin Console
 
 Current improvements:
 
-- Ops remains discreet at `/ops`.
+- Admin remains discreet at `/admin`.
 - Artisan approval queue exists.
 - Active artisan management added with remove/restore UI.
 - Review moderation added with hide/show UI.
@@ -111,8 +111,8 @@ Current improvements:
 
 Remaining release tasks:
 
-- Require admin login before `/ops`.
-- All ops actions must call server-owned mutations.
+- Require admin login before `/admin`.
+- All admin actions must call server-owned mutations.
 - Add audit logs for every approve/remove/badge/ad/review/delete action.
 - Add confirmation modals for destructive actions.
 
@@ -187,13 +187,13 @@ Do not deploy the rebuild over the live site until:
 - broad anon grants are revoked
 - permissive RLS policies are replaced
 - storage uploads use signed URLs
-- `/ops` is protected
+- `/admin` is protected
 - service role key is server-only
 - job cleanup automation exists
-- destructive ops actions have audit logs and confirmations
+- destructive admin actions have audit logs and confirmations
 
 ## Verification Done Locally
 
 - Lint/build completed before this audit pass.
-- Mobile route checks previously passed for `/`, `/artisan`, `/ops`.
+- Mobile route checks previously passed for `/`, `/artisan`, `/admin`.
 - New post-audit UI changes still require final lint/build/browser verification before validation.

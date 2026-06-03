@@ -37,7 +37,7 @@ export default function LoginPage() {
             Log in to manage ArtisanMu.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f6a64]">
-            Use one secure account for ops, artisans, and client request follow-up. Admin mutations stay server-owned after the backend hardening pass.
+            Use one secure account for admins, artisans, and client request follow-up. Admin mutations stay server-owned after the backend hardening pass.
           </p>
 
           <form className="mt-5 grid gap-4">
@@ -49,7 +49,7 @@ export default function LoginPage() {
               >
                 <option>Client</option>
                 <option>Artisan</option>
-                <option>Octolabs Ops</option>
+                <option>ArtisanMU Admin</option>
               </select>
             </label>
 
@@ -108,7 +108,7 @@ export default function LoginPage() {
               Business sponsor
             </div>
             <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
-              Prepare a sponsored link, banner, or embed placement for ops review before it appears publicly.
+              Prepare a sponsored link, banner, or embed placement for admin review before it appears publicly.
             </p>
             <button className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-md border border-[#ddd8cd] bg-white text-sm font-semibold text-[#0d1612]">
               Sponsor request

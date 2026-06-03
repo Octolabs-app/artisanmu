@@ -8,7 +8,7 @@ Make ArtisanMu safe to run by itself:
 
 - public users can create job requests
 - verified artisans can manage only their own dashboard data
-- Octolabs ops can approve artisans, grant badges, and manage ad placements
+- ArtisanMU admins can approve artisans, grant badges, and manage ad placements
 - stale jobs, reminders, and review prompts run automatically
 - all sensitive actions have audit trails
 
@@ -20,7 +20,7 @@ Make ArtisanMu safe to run by itself:
 - The new local frontend has:
   - `/` marketplace search
   - `/artisan` artisan dashboard prototype
-  - `/ops` discreet ops console prototype
+  - `/admin` discreet admin console prototype
 
 ## Deliverables
 
