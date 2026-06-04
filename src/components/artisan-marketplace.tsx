@@ -17,8 +17,10 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
   Star,
   UserCheck,
+  Wrench,
   Zap,
 } from "lucide-react";
 import { AdBanner } from "@/components/ad-banner";
@@ -38,6 +40,16 @@ const marketplaceCopy = {
     headline: "Find the right artisan in minutes.",
     support:
       "Search by trade and location, compare verified profiles, then send a WhatsApp-ready request without calling around.",
+    introTitle: "Welcome to ArtisanMU",
+    introCopy:
+      "Tell us what broke, pick a trusted profile, and send one clean request when you are ready.",
+    stepSearch: "Describe the job",
+    stepCompare: "Compare profiles",
+    stepContact: "Contact on WhatsApp",
+    quickTitle: "Quick starts",
+    filterAction: "Filter results",
+    resetAction: "Reset",
+    hideIntro: "Hide",
     requestTitle: "Send one clean brief",
     details: "Job details",
     phone: "Your WhatsApp",
@@ -48,6 +60,16 @@ const marketplaceCopy = {
     headline: "Trouvez le bon artisan en quelques minutes.",
     support:
       "Cherchez par metier et region, comparez les profils verifies, puis envoyez une demande claire par WhatsApp.",
+    introTitle: "Bienvenue sur ArtisanMU",
+    introCopy:
+      "Expliquez le travail, choisissez un profil de confiance, puis envoyez une demande claire quand vous etes pret.",
+    stepSearch: "Decrire le travail",
+    stepCompare: "Comparer les profils",
+    stepContact: "Contacter sur WhatsApp",
+    quickTitle: "Departs rapides",
+    filterAction: "Filtrer",
+    resetAction: "Reinitialiser",
+    hideIntro: "Fermer",
     requestTitle: "Envoyer une demande claire",
     details: "Details du travail",
     phone: "Votre WhatsApp",
@@ -58,6 +80,16 @@ const marketplaceCopy = {
     headline: "Trouv bon artizan vit-vit.",
     support:
       "Rod par metie ek landrwa, get bann profil verifye, apre avoy enn demann prop lor WhatsApp.",
+    introTitle: "Bienveni lor ArtisanMU",
+    introCopy:
+      "Dir ki travay ena, swazir enn profil serye, apre avoy enn demann prop kan ou pare.",
+    stepSearch: "Dekrir travay-la",
+    stepCompare: "Konpar profil",
+    stepContact: "Koz lor WhatsApp",
+    quickTitle: "Koumans vit",
+    filterAction: "Filtre rezilta",
+    resetAction: "Reset",
+    hideIntro: "Kasiet",
     requestTitle: "Avoy enn demann kler",
     details: "Travay pou fer",
     phone: "Ou WhatsApp",
@@ -76,6 +108,14 @@ const tradeAliases: Record<string, string[]> = {
   Jardinier: ["garden", "grass", "yard", "tree", "plants", "trim"],
   Serrurier: ["lock", "key", "door lock", "locked", "security"],
 };
+
+const quickFilters = [
+  { label: "Pipe leak", query: "leak", trade: "Plombier" },
+  { label: "No power", query: "wiring", trade: "Electricien" },
+  { label: "AC service", query: "ac service", trade: "Climatisation" },
+  { label: "Door lock", query: "door lock", trade: "Serrurier" },
+  { label: "Paint room", query: "paint", trade: "Peintre" },
+];
 
 function buildWhatsAppLink(artisan: Artisan | null, note: string, clientPhone: string) {
   if (!artisan?.phone) return "#";
@@ -115,6 +155,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
   const [jobNote, setJobNote] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [language, setLanguage] = useState<Language>("en");
+  const [showIntro, setShowIntro] = useState(true);
   const copy = marketplaceCopy[language];
 
   const filteredArtisans = useMemo(() => {
@@ -159,10 +200,46 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
     ? Math.min(...filteredArtisans.map((artisan) => artisan.etaMinutes))
     : 0;
   const whatsappLink = buildWhatsAppLink(selectedArtisan, jobNote, clientPhone);
+  const activeFilterCount =
+    (query.trim() ? 1 : 0) +
+    (selectedTrade !== allTradesLabel ? 1 : 0) +
+    (selectedDistrict !== allDistrictsLabel ? 1 : 0);
+  const filterSummary = activeFilterCount
+    ? [
+        query.trim() ? `"${query.trim()}"` : "",
+        selectedTrade !== allTradesLabel ? selectedTrade : "",
+        selectedDistrict !== allDistrictsLabel ? selectedDistrict : "",
+      ]
+        .filter(Boolean)
+        .join(" - ")
+    : "All verified artisans";
 
   function toggleArtisanCard(artisanId: string) {
     setSelectedArtisanId(artisanId);
     setExpandedArtisanId((current) => (current === artisanId ? "" : artisanId));
+  }
+
+  function applyQuickFilter(preset: (typeof quickFilters)[number]) {
+    setQuery(preset.query);
+    setSelectedTrade(preset.trade);
+    setSelectedDistrict(allDistrictsLabel);
+    setUrgent(true);
+    setExpandedArtisanId("");
+    document.getElementById("matches")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function resetFilters() {
+    setQuery("");
+    setSelectedTrade(allTradesLabel);
+    setSelectedDistrict(allDistrictsLabel);
+    setUrgent(true);
+    setExpandedArtisanId("");
+    setSelectedArtisanId(artisans[0]?.id || "");
+  }
+
+  function applyFilters() {
+    setExpandedArtisanId("");
+    document.getElementById("matches")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return (
@@ -211,103 +288,201 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
       </header>
 
       <section className="border-b border-[#ddd8cd] bg-[#fffdf8]">
-        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 md:py-7">
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-md border border-[#c79b55]/35 bg-[#fff7e7] px-3 py-2 text-sm font-medium text-[#78511c]">
-              <Zap className="size-4" aria-hidden="true" />
-              {copy.eyebrow}
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 md:py-7">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-md border border-[#c79b55]/35 bg-[#fff7e7] px-3 py-2 text-sm font-medium text-[#78511c]">
+                <Zap className="size-4" aria-hidden="true" />
+                {copy.eyebrow}
+              </div>
+              <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-tight text-[#101410] sm:text-4xl lg:text-5xl">
+                {copy.headline}
+              </h1>
+              <p className="mt-3 max-w-2xl text-base leading-7 text-[#5f6a64]">
+                {copy.support}
+              </p>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {[copy.stepSearch, copy.stepCompare, copy.stepContact].map((step, index) => (
+                  <span
+                    key={step}
+                    className="inline-flex min-h-9 items-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-3 text-sm font-medium text-[#4d5651]"
+                  >
+                    <span className="flex size-5 items-center justify-center rounded-md bg-[#0d1612] text-xs font-semibold text-white">
+                      {index + 1}
+                    </span>
+                    {step}
+                  </span>
+                ))}
+              </div>
             </div>
-            <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-tight text-[#101410] sm:text-4xl lg:text-5xl">
-              {copy.headline}
-            </h1>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-[#5f6a64]">
-              {copy.support}
-            </p>
 
-            <div className="mt-5 rounded-lg border border-[#d8d1c3] bg-[#f8f4ea] p-3 shadow-sm">
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_170px_170px_auto]">
-                <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
-                  <Search className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#8b928e]"
-                    placeholder="Leak, wiring, AC, cabinet..."
-                  />
-                </label>
+            {showIntro ? (
+              <aside className="rounded-lg border border-[#d8d1c3] bg-[#f8f4ea] p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#0d8b66] text-white">
+                    <Sparkles className="size-5" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <h2 className="font-semibold text-[#101410]">{copy.introTitle}</h2>
+                      <button
+                        type="button"
+                        onClick={() => setShowIntro(false)}
+                        className="rounded-md px-2 py-1 text-xs font-semibold text-[#5f6a64] hover:bg-white"
+                      >
+                        {copy.hideIntro}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-[#5f6a64]">{copy.introCopy}</p>
+                  </div>
+                </div>
+              </aside>
+            ) : null}
+          </div>
 
-                <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
-                  <SlidersHorizontal className="size-4 shrink-0 text-[#234f7a]" aria-hidden="true" />
-                  <select
-                    value={selectedTrade}
-                    onChange={(event) => setSelectedTrade(event.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+          <div className="mt-5 rounded-lg border border-[#d8d1c3] bg-[#f8f4ea] p-3 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-[#101410]">
+                  <SlidersHorizontal className="size-4 text-[#234f7a]" aria-hidden="true" />
+                  Filters
+                  {activeFilterCount ? (
+                    <span className="rounded-md bg-[#234f7a] px-2 py-0.5 text-xs text-white">
+                      {activeFilterCount}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-1 text-xs text-[#6c756f]">{filterSummary}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex min-h-9 items-center gap-2 rounded-md bg-white px-3 text-xs font-semibold text-[#5f6a64]">
+                  <Wrench className="size-3.5 text-[#0d8b66]" aria-hidden="true" />
+                  {copy.quickTitle}
+                </span>
+                {quickFilters.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => applyQuickFilter(preset)}
+                    className="inline-flex min-h-9 items-center rounded-md border border-[#ddd8cd] bg-white px-3 text-xs font-semibold text-[#0d1612] hover:border-[#0d8b66]"
                   >
-                    <option>{allTradesLabel}</option>
-                    {trades.map((trade) => (
-                      <option key={trade}>{trade}</option>
-                    ))}
-                  </select>
-                </label>
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
-                  <MapPin className="size-4 shrink-0 text-[#9f4a4a]" aria-hidden="true" />
-                  <select
-                    value={selectedDistrict}
-                    onChange={(event) => setSelectedDistrict(event.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                  >
-                    <option>{allDistrictsLabel}</option>
-                    {districts.map((district) => (
-                      <option key={district}>{district}</option>
-                    ))}
-                  </select>
-                </label>
+            <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_170px_170px_120px_130px_auto]">
+              <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
+                <Search className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#8b928e]"
+                  placeholder="Leak, wiring, AC, cabinet..."
+                  aria-label="Search by job, town, or specialty"
+                />
+              </label>
 
+              <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
+                <SlidersHorizontal className="size-4 shrink-0 text-[#234f7a]" aria-hidden="true" />
+                <select
+                  value={selectedTrade}
+                  onChange={(event) => {
+                    setSelectedTrade(event.target.value);
+                    setExpandedArtisanId("");
+                  }}
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  aria-label="Filter by trade"
+                >
+                  <option>{allTradesLabel}</option>
+                  {trades.map((trade) => (
+                    <option key={trade}>{trade}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
+                <MapPin className="size-4 shrink-0 text-[#9f4a4a]" aria-hidden="true" />
+                <select
+                  value={selectedDistrict}
+                  onChange={(event) => {
+                    setSelectedDistrict(event.target.value);
+                    setExpandedArtisanId("");
+                  }}
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  aria-label="Filter by district"
+                >
+                  <option>{allDistrictsLabel}</option>
+                  {districts.map((district) => (
+                    <option key={district}>{district}</option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                type="button"
+                aria-pressed={urgent}
+                onClick={() => setUrgent((value) => !value)}
+                className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition ${
+                  urgent
+                    ? "bg-[#0d1612] text-white"
+                    : "border border-[#d8d1c3] bg-white text-[#0d1612]"
+                }`}
+              >
+                <Clock className="size-4" aria-hidden="true" />
+                Fast first
+              </button>
+
+              <button
+                type="button"
+                onClick={applyFilters}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white transition hover:bg-[#0b7758]"
+              >
+                <SlidersHorizontal className="size-4" aria-hidden="true" />
+                {copy.filterAction}
+              </button>
+
+              {activeFilterCount ? (
                 <button
                   type="button"
-                  aria-pressed={urgent}
-                  onClick={() => setUrgent((value) => !value)}
-                  className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition ${
-                    urgent
-                      ? "bg-[#0d1612] text-white"
-                      : "border border-[#d8d1c3] bg-white text-[#0d1612]"
-                  }`}
+                  onClick={resetFilters}
+                  className="inline-flex min-h-12 items-center justify-center rounded-md border border-[#d8d1c3] bg-white px-4 text-sm font-semibold text-[#0d1612] transition hover:border-[#9f4a4a]"
                 >
-                  <Clock className="size-4" aria-hidden="true" />
-                  Urgent
+                  {copy.resetAction}
                 </button>
-              </div>
+              ) : null}
             </div>
-
-            <div className="mt-4 grid gap-3 text-sm text-[#5f6a64] sm:grid-cols-3">
-              <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
-                <ShieldCheck className="size-4 text-[#0d8b66]" aria-hidden="true" />
-                <span>{availableCount ? `${availableCount} available now` : "No artisans online yet"}</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
-                <Navigation className="size-4 text-[#234f7a]" aria-hidden="true" />
-                <span>{fastestEta ? `${fastestEta} min fastest ETA` : "ETA appears when matches are live"}</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
-                <CalendarCheck className="size-4 text-[#9f4a4a]" aria-hidden="true" />
-                <span>Review request after job</span>
-              </div>
-            </div>
-
-            <AdBanner
-              className="mt-4"
-              placement="public-search"
-              slot={process.env.NEXT_PUBLIC_ADSENSE_SEARCH_SLOT}
-              format="horizontal"
-              fallbackTitle="Advertise to homeowners looking for local help"
-              fallbackCopy="A quiet placement for banks, hardware shops, insurers, and home-service partners."
-            />
           </div>
+
+          <div className="mt-4 grid gap-3 text-sm text-[#5f6a64] sm:grid-cols-3">
+            <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
+              <ShieldCheck className="size-4 text-[#0d8b66]" aria-hidden="true" />
+              <span>{availableCount ? `${availableCount} available now` : "No artisans online yet"}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
+              <Navigation className="size-4 text-[#234f7a]" aria-hidden="true" />
+              <span>{fastestEta ? `${fastestEta} min fastest ETA` : "ETA appears when matches are live"}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
+              <CalendarCheck className="size-4 text-[#9f4a4a]" aria-hidden="true" />
+              <span>Review request after job</span>
+            </div>
+          </div>
+
+          <AdBanner
+            className="mt-4"
+            placement="public-search"
+            slot={process.env.NEXT_PUBLIC_ADSENSE_SEARCH_SLOT}
+            format="horizontal"
+            fallbackTitle="Advertise to homeowners looking for local help"
+            fallbackCopy="A quiet placement for banks, hardware shops, insurers, and home-service partners."
+          />
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <section id="matches" className="mx-auto grid max-w-7xl scroll-mt-24 gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
