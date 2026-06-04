@@ -276,11 +276,11 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
             <div className="mt-4 grid gap-3 text-sm text-[#5f6a64] sm:grid-cols-3">
               <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
                 <ShieldCheck className="size-4 text-[#0d8b66]" aria-hidden="true" />
-                <span>{availableCount} available now</span>
+                <span>{availableCount ? `${availableCount} available now` : "No artisans online yet"}</span>
               </div>
               <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
                 <Navigation className="size-4 text-[#234f7a]" aria-hidden="true" />
-                <span>{fastestEta || "--"} min fastest ETA</span>
+                <span>{fastestEta ? `${fastestEta} min fastest ETA` : "ETA appears when matches are live"}</span>
               </div>
               <div className="flex items-center gap-2 rounded-md border border-[#ddd8cd] bg-white/70 px-3 py-2">
                 <CalendarCheck className="size-4 text-[#9f4a4a]" aria-hidden="true" />
@@ -308,7 +308,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
               <h2 className="text-2xl font-semibold text-[#101410]">
                 {filteredArtisans.length
                   ? `${filteredArtisans.length} artisans ready`
-                  : "No match yet"}
+                  : "No verified artisans live yet"}
               </h2>
             </div>
             <div className="flex flex-wrap gap-2 text-xs text-[#5f6a64]">
@@ -417,9 +417,10 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
 
             {!filteredArtisans.length ? (
               <div className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
-                <h3 className="text-lg font-semibold text-[#101410]">Post a request instead</h3>
+                <h3 className="text-lg font-semibold text-[#101410]">No approved profiles yet</h3>
                 <p className="mt-2 text-sm leading-6">
-                  We can queue the job and notify matching artisans as soon as the backend rules are locked down.
+                  Verified artisans will appear here as soon as real profiles are approved.
+                  You can still prepare a clean job brief and come back once matching is live.
                 </p>
               </div>
             ) : null}
@@ -464,7 +465,14 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
                   </p>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="mt-4 rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
+                <p className="font-semibold text-[#101410]">No artisan selected</p>
+                <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                  The WhatsApp request button will activate after an approved artisan is available.
+                </p>
+              </div>
+            )}
 
             <label className="mt-4 block text-sm font-medium text-[#101410]">
               {copy.details}
@@ -495,7 +503,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
                 className="mt-2 block w-full rounded-md border border-[#d8d1c3] bg-white px-3 py-2 text-sm text-[#4d5651] file:mr-3 file:rounded-md file:border-0 file:bg-[#eef5f3] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#0d7c5c]"
               />
               <span className="mt-2 block text-xs leading-5 text-[#6c756f]">
-                Photos help matching. Completed photo jobs should be deleted by backend cleanup.
+                Photos help artisans understand the job before they reply.
               </span>
             </label>
 
@@ -511,7 +519,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
               }`}
             >
               <MessageCircle className="size-4" aria-hidden="true" />
-              {copy.action}
+              {selectedArtisan ? copy.action : "Select an artisan first"}
             </a>
 
             <div className="mt-4 grid gap-3">

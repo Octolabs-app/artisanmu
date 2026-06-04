@@ -25,8 +25,8 @@ import {
 } from "lucide-react";
 import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
-import { fallbackArtisans } from "@/lib/mock-data";
 import { artisanJobs, commentThreads, reviewItems } from "@/lib/admin-data";
+import type { Artisan } from "@/lib/types";
 
 const dashboardTabs = [
   { id: "jobs", label: "Jobs", icon: Wrench },
@@ -37,14 +37,65 @@ const dashboardTabs = [
 
 type DashboardTab = (typeof dashboardTabs)[number]["id"];
 
+function getConnectedArtisan(): Artisan | null {
+  return null;
+}
+
 function jobStatusClass(status: string) {
   if (status === "New") return "bg-[#fff7e7] text-[#78511c]";
   if (status === "Done") return "bg-[#f2eee4] text-[#5f6a64]";
   return "bg-[#e8f6f1] text-[#0d7c5c]";
 }
 
+function EmptyDashboard() {
+  return (
+    <main className="min-h-screen bg-[#f6f4ef] text-[#101410]">
+      <header className="sticky top-0 z-30 border-b border-[#ddd8cd] bg-[#f6f4ef]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <Link href="/" aria-label="ArtisanMU home">
+            <ArtisanMuLogo subtitle="Artisan dashboard" />
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex h-10 items-center justify-center rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white"
+          >
+            Login
+          </Link>
+        </div>
+      </header>
+
+      <section className="mx-auto grid min-h-[calc(100vh-74px)] max-w-3xl place-items-center px-4 py-8 sm:px-6">
+        <div className="w-full rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+          <div className="flex size-12 items-center justify-center rounded-lg bg-[#0d1612] text-white">
+            <Wrench className="size-5" aria-hidden="true" />
+          </div>
+          <h1 className="mt-4 text-2xl font-semibold">No artisan profile connected</h1>
+          <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
+            This dashboard will show real leads, profile settings, reviews, and comments after
+            an approved artisan account is connected.
+          </p>
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            <Link
+              href="/login"
+              className="inline-flex h-11 items-center justify-center rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white"
+            >
+              Create or connect profile
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex h-11 items-center justify-center rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]"
+            >
+              Back to marketplace
+            </Link>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 export function ArtisanDashboard() {
-  const artisan = fallbackArtisans[0];
+  const artisan = getConnectedArtisan();
   const [activeTab, setActiveTab] = useState<DashboardTab>("jobs");
   const [available, setAvailable] = useState(true);
   const [acceptedIds, setAcceptedIds] = useState<string[]>([]);
@@ -57,6 +108,10 @@ export function ArtisanDashboard() {
       })),
     [acceptedIds],
   );
+
+  if (!artisan) {
+    return <EmptyDashboard />;
+  }
 
   return (
     <main className="min-h-screen bg-[#f6f4ef] pb-20 text-[#101410] md:pb-0">

@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { fallbackArtisans, tradeImages } from "./mock-data";
+import { tradeImages } from "./mock-data";
 import type { Artisan } from "./types";
 
 type SupabaseArtisan = {
@@ -50,10 +50,10 @@ function mapArtisan(row: SupabaseArtisan): Artisan {
 }
 
 export async function getArtisans(): Promise<Artisan[]> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
-  if (!url || !key) return fallbackArtisans;
+  if (!url || !key) return [];
 
   const supabase = createClient(url, key);
   const { data, error } = await supabase
@@ -64,7 +64,7 @@ export async function getArtisans(): Promise<Artisan[]> {
     .eq("is_verified", true)
     .order("created_at", { ascending: false });
 
-  if (error || !data?.length) return fallbackArtisans;
+  if (error || !data?.length) return [];
 
   return data.map(mapArtisan);
 }

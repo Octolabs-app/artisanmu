@@ -12,7 +12,7 @@ ArtisanMu should behave less like a directory and more like a dispatch app:
 ## Current Backend Findings
 
 - `artisans`, `job_requests`, `invoices`, `invoice_items`, and `products` exist in Supabase.
-- The live `artisans` table currently has no rows, so the local Next prototype includes safe fallback data.
+- The live `artisans` table should drive public profiles. Fake fallback accounts have been removed so empty datasets show setup states instead of invented artisans.
 - Row Level Security is enabled, but several public policies and grants are too broad for production:
   - anon can update/manage main tables.
   - anon storage uploads are allowed.

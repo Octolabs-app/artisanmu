@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   BadgeCheck,
   BriefcaseBusiness,
@@ -77,6 +77,27 @@ function Metric({
         </span>
       </div>
       <p className="mt-3 text-2xl font-semibold text-[#101410]">{value}</p>
+    </div>
+  );
+}
+
+function EmptyState({
+  title,
+  copy,
+  action,
+}: {
+  title: string;
+  copy: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-dashed border-[#cfc6b6] bg-[#fffdf8] p-5 text-[#4d5651]">
+      <div className="flex size-10 items-center justify-center rounded-md bg-[#eef5f3] text-[#0d7c5c]">
+        <ShieldCheck className="size-4" aria-hidden="true" />
+      </div>
+      <h3 className="mt-3 text-lg font-semibold text-[#101410]">{title}</h3>
+      <p className="mt-2 text-sm leading-6">{copy}</p>
+      {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
 }
@@ -292,7 +313,10 @@ export function AdminConsole() {
   const [removedArtisanIds, setRemovedArtisanIds] = useState<string[]>([]);
   const [hiddenReviewIds, setHiddenReviewIds] = useState<string[]>([]);
   const [deletedJobIds, setDeletedJobIds] = useState<string[]>([]);
+  const activeArtisanCount = Math.max(0, activeArtisans.length - removedArtisanIds.length);
   const livePlacementCount = adPlacements.filter((placement) => placement.status === "Live").length;
+  const visibleJobRequests = jobRequests.filter((job) => !deletedJobIds.includes(job.id));
+  const cleanupQueueCount = visibleJobRequests.filter((job) => job.cleanupEligible).length;
 
   const filteredPending = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -354,9 +378,9 @@ export function AdminConsole() {
         <section className="min-w-0">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Metric label="Pending artisans" value={`${pendingArtisans.length}`} icon={UserCheck} tone="bg-[#e8f6f1] text-[#0d7c5c]" />
-            <Metric label="Active artisans" value={`${activeArtisans.length - removedArtisanIds.length}`} icon={ShieldCheck} tone="bg-[#eef5f3] text-[#234f7a]" />
+            <Metric label="Active artisans" value={`${activeArtisanCount}`} icon={ShieldCheck} tone="bg-[#eef5f3] text-[#234f7a]" />
             <Metric label="Live placements" value={`${livePlacementCount}`} icon={Megaphone} tone="bg-[#fff7e7] text-[#78511c]" />
-            <Metric label="Cleanup queue" value={`${jobRequests.filter((job) => job.cleanupEligible && !deletedJobIds.includes(job.id)).length}`} icon={Clock} tone="bg-[#f8e9e7] text-[#9f4a4a]" />
+            <Metric label="Cleanup queue" value={`${cleanupQueueCount}`} icon={Clock} tone="bg-[#f8e9e7] text-[#9f4a4a]" />
           </div>
 
           <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -383,18 +407,25 @@ export function AdminConsole() {
 
           {activeTab === "review" ? (
             <div className="mt-4 grid gap-3">
-              {filteredPending.map((artisan) => (
-                <ReviewCard
-                  key={artisan.id}
-                  artisan={artisan}
-                  approved={approvedIds.includes(artisan.id)}
-                  onApprove={(id) =>
-                    setApprovedIds((current) =>
-                      current.includes(id) ? current : [...current, id],
-                    )
-                  }
+              {filteredPending.length ? (
+                filteredPending.map((artisan) => (
+                  <ReviewCard
+                    key={artisan.id}
+                    artisan={artisan}
+                    approved={approvedIds.includes(artisan.id)}
+                    onApprove={(id) =>
+                      setApprovedIds((current) =>
+                        current.includes(id) ? current : [...current, id],
+                      )
+                    }
+                  />
+                ))
+              ) : (
+                <EmptyState
+                  title="No artisan applications"
+                  copy="New real artisan submissions will appear here after signup and verification data is connected."
                 />
-              ))}
+              )}
             </div>
           ) : null}
 
@@ -402,113 +433,132 @@ export function AdminConsole() {
             <div className="mt-4 grid gap-3">
               <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="grid gap-3">
-                  {activeArtisans.map((artisan) => {
-                    const removed = removedArtisanIds.includes(artisan.id);
-                    return (
-                      <article key={artisan.id} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="text-lg font-semibold text-[#101410]">{artisan.name}</h3>
-                              <span className={`rounded-md px-2 py-1 text-xs font-semibold ${statusClass(removed ? "Removed" : artisan.status)}`}>
-                                {removed ? "Removed" : artisan.status}
-                              </span>
-                              {artisan.flags ? (
-                                <span className="rounded-md bg-[#f8e9e7] px-2 py-1 text-xs font-semibold text-[#9f4a4a]">
-                                  {artisan.flags} flag
+                  {activeArtisans.length ? (
+                    activeArtisans.map((artisan) => {
+                      const removed = removedArtisanIds.includes(artisan.id);
+                      return (
+                        <article key={artisan.id} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-lg font-semibold text-[#101410]">{artisan.name}</h3>
+                                <span className={`rounded-md px-2 py-1 text-xs font-semibold ${statusClass(removed ? "Removed" : artisan.status)}`}>
+                                  {removed ? "Removed" : artisan.status}
                                 </span>
-                              ) : null}
+                                {artisan.flags ? (
+                                  <span className="rounded-md bg-[#f8e9e7] px-2 py-1 text-xs font-semibold text-[#9f4a4a]">
+                                    {artisan.flags} flag
+                                  </span>
+                                ) : null}
+                              </div>
+                              <p className="mt-1 text-sm text-[#5f6a64]">
+                                {artisan.trade} - {artisan.town}
+                              </p>
                             </div>
-                            <p className="mt-1 text-sm text-[#5f6a64]">
-                              {artisan.trade} - {artisan.town}
-                            </p>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setRemovedArtisanIds((current) =>
+                                  current.includes(artisan.id)
+                                    ? current.filter((id) => id !== artisan.id)
+                                    : [...current, artisan.id],
+                                )
+                              }
+                              className={`inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold ${
+                                removed
+                                  ? "bg-[#e8f6f1] text-[#0d7c5c]"
+                                  : "bg-[#9f4a4a] text-white"
+                              }`}
+                            >
+                              <Trash2 className="size-4" aria-hidden="true" />
+                              {removed ? "Restore" : "Remove"}
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setRemovedArtisanIds((current) =>
-                                current.includes(artisan.id)
-                                  ? current.filter((id) => id !== artisan.id)
-                                  : [...current, artisan.id],
-                              )
-                            }
-                            className={`inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold ${
-                              removed
-                                ? "bg-[#e8f6f1] text-[#0d7c5c]"
-                                : "bg-[#9f4a4a] text-white"
-                            }`}
-                          >
-                            <Trash2 className="size-4" aria-hidden="true" />
-                            {removed ? "Restore" : "Remove"}
-                          </button>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {artisan.badges.map((badge) => (
-                            <span key={badge} className="inline-flex items-center gap-1 rounded-md bg-[#e8f6f1] px-2.5 py-1 text-xs font-semibold text-[#0d7c5c]">
-                              <BadgeCheck className="size-3.5" aria-hidden="true" />
-                              {badge}
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {artisan.badges.map((badge) => (
+                              <span key={badge} className="inline-flex items-center gap-1 rounded-md bg-[#e8f6f1] px-2.5 py-1 text-xs font-semibold text-[#0d7c5c]">
+                                <BadgeCheck className="size-3.5" aria-hidden="true" />
+                                {badge}
+                              </span>
+                            ))}
+                            <span className="inline-flex items-center gap-1 rounded-md bg-[#fff7e7] px-2.5 py-1 text-xs text-[#78511c]">
+                              <Star className="size-3.5" aria-hidden="true" />
+                              {artisan.reviews} reviews
                             </span>
-                          ))}
-                          <span className="inline-flex items-center gap-1 rounded-md bg-[#fff7e7] px-2.5 py-1 text-xs text-[#78511c]">
-                            <Star className="size-3.5" aria-hidden="true" />
-                            {artisan.reviews} reviews
-                          </span>
-                        </div>
-                      </article>
-                    );
-                  })}
+                          </div>
+                        </article>
+                      );
+                    })
+                  ) : (
+                    <EmptyState
+                      title="No active artisans"
+                      copy="Approved real artisans will appear here with removal, badge, review and comment controls."
+                    />
+                  )}
                 </div>
 
                 <aside className="grid gap-3">
                   <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
                     <h3 className="font-semibold text-[#101410]">Reviews</h3>
                     <div className="mt-3 grid gap-3">
-                      {reviewItems.map((review) => {
-                        const hidden = hiddenReviewIds.includes(review.id) || review.status === "Hidden";
-                        return (
-                          <div key={review.id} className="rounded-md border border-[#ddd8cd] bg-[#f8f4ea] p-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="font-semibold text-[#101410]">{review.artisan}</p>
-                              <span className={`rounded-md px-2 py-1 text-xs font-semibold ${statusClass(hidden ? "Removed" : review.status)}`}>
-                                {hidden ? "Hidden" : review.status}
-                              </span>
+                      {reviewItems.length ? (
+                        reviewItems.map((review) => {
+                          const hidden = hiddenReviewIds.includes(review.id) || review.status === "Hidden";
+                          return (
+                            <div key={review.id} className="rounded-md border border-[#ddd8cd] bg-[#f8f4ea] p-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-semibold text-[#101410]">{review.artisan}</p>
+                                <span className={`rounded-md px-2 py-1 text-xs font-semibold ${statusClass(hidden ? "Removed" : review.status)}`}>
+                                  {hidden ? "Hidden" : review.status}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-[#5f6a64]">
+                                {review.client} - {review.rating}/5 - {review.age}
+                              </p>
+                              <p className="mt-2 text-sm leading-5 text-[#4d5651]">{review.comment}</p>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setHiddenReviewIds((current) =>
+                                    current.includes(review.id)
+                                      ? current.filter((id) => id !== review.id)
+                                      : [...current, review.id],
+                                  )
+                                }
+                                className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-md border border-[#ddd8cd] bg-white text-sm font-semibold text-[#0d1612]"
+                              >
+                                {hidden ? "Show review" : "Hide review"}
+                              </button>
                             </div>
-                            <p className="mt-1 text-sm text-[#5f6a64]">
-                              {review.client} - {review.rating}/5 - {review.age}
-                            </p>
-                            <p className="mt-2 text-sm leading-5 text-[#4d5651]">{review.comment}</p>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setHiddenReviewIds((current) =>
-                                  current.includes(review.id)
-                                    ? current.filter((id) => id !== review.id)
-                                    : [...current, review.id],
-                                )
-                              }
-                              className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-md border border-[#ddd8cd] bg-white text-sm font-semibold text-[#0d1612]"
-                            >
-                              {hidden ? "Show review" : "Hide review"}
-                            </button>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      ) : (
+                        <p className="rounded-md border border-[#ddd8cd] bg-[#f8f4ea] p-3 text-sm leading-5 text-[#5f6a64]">
+                          Reviews from completed real jobs will appear here.
+                        </p>
+                      )}
                     </div>
                   </article>
 
                   <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
                     <h3 className="font-semibold text-[#101410]">Comments</h3>
                     <div className="mt-3 grid gap-3">
-                      {commentThreads.map((thread) => (
-                        <div key={thread.id} className="rounded-md border border-[#ddd8cd] bg-white p-3">
-                          <div className="flex items-center gap-2 font-semibold text-[#101410]">
-                            <MessageSquareText className="size-4 text-[#234f7a]" aria-hidden="true" />
-                            {thread.artisan}
+                      {commentThreads.length ? (
+                        commentThreads.map((thread) => (
+                          <div key={thread.id} className="rounded-md border border-[#ddd8cd] bg-white p-3">
+                            <div className="flex items-center gap-2 font-semibold text-[#101410]">
+                              <MessageSquareText className="size-4 text-[#234f7a]" aria-hidden="true" />
+                              {thread.artisan}
+                            </div>
+                            <p className="mt-1 text-xs text-[#6c756f]">{thread.job} - {thread.status}</p>
+                            <p className="mt-2 text-sm leading-5 text-[#4d5651]">{thread.lastMessage}</p>
                           </div>
-                          <p className="mt-1 text-xs text-[#6c756f]">{thread.job} - {thread.status}</p>
-                          <p className="mt-2 text-sm leading-5 text-[#4d5651]">{thread.lastMessage}</p>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p className="rounded-md border border-[#ddd8cd] bg-white p-3 text-sm leading-5 text-[#5f6a64]">
+                          Comment threads will appear after real jobs start.
+                        </p>
+                      )}
                     </div>
                   </article>
                 </aside>
@@ -558,50 +608,66 @@ export function AdminConsole() {
                   <span className="rounded-md bg-white px-3 py-2">Use responsive width with stable spacing</span>
                 </div>
               </div>
-              {adPlacements.map((placement) => (
-                <AdEditor key={placement.id} placement={placement} />
-              ))}
+              {adPlacements.length ? (
+                adPlacements.map((placement) => (
+                  <AdEditor key={placement.id} placement={placement} />
+                ))
+              ) : (
+                <EmptyState
+                  title="No ad placements configured"
+                  copy="Create a direct banner or add real AdSense slot IDs before public monetization starts."
+                />
+              )}
             </div>
           ) : null}
 
           {activeTab === "requests" ? (
-            <div className="mt-4 overflow-hidden rounded-lg border border-[#ddd8cd] bg-[#fffdf8] shadow-sm">
-              <div className="grid gap-3 border-b border-[#ddd8cd] bg-[#f8f4ea] px-4 py-3 text-xs font-semibold uppercase text-[#6c756f] md:grid-cols-[90px_1fr_150px_130px_130px]">
-                <span>ID</span>
-                <span>Request</span>
-                <span>Status</span>
-                <span>Assigned</span>
-                <span>Age</span>
+            visibleJobRequests.length ? (
+              <div className="mt-4 overflow-hidden rounded-lg border border-[#ddd8cd] bg-[#fffdf8] shadow-sm">
+                <div className="grid gap-3 border-b border-[#ddd8cd] bg-[#f8f4ea] px-4 py-3 text-xs font-semibold uppercase text-[#6c756f] md:grid-cols-[90px_1fr_150px_130px_130px]">
+                  <span>ID</span>
+                  <span>Request</span>
+                  <span>Status</span>
+                  <span>Assigned</span>
+                  <span>Age</span>
+                </div>
+                {visibleJobRequests.map((job) => (
+                  <article key={job.id} className="grid gap-2 border-b border-[#eee8dc] px-4 py-4 text-sm last:border-b-0 md:grid-cols-[90px_1fr_150px_130px_130px] md:items-center">
+                    <span className="font-mono text-xs text-[#6c756f]">{job.id}</span>
+                    <div>
+                      <p className="font-semibold text-[#101410]">{job.trade}</p>
+                      <p className="text-[#5f6a64]">
+                        {job.client} - {job.town}, {job.district}
+                      </p>
+                    </div>
+                    <span className={`w-fit rounded-md px-2 py-1 text-xs font-semibold ${statusClass(job.status)}`}>
+                      {job.status}
+                    </span>
+                    <span className="text-[#4d5651]">{job.assignedTo}</span>
+                    <div className="grid gap-2">
+                      <span className="text-[#4d5651]">{job.age}</span>
+                      {job.cleanupEligible ? (
+                        <button
+                          type="button"
+                          onClick={() => setDeletedJobIds((current) => [...current, job.id])}
+                          className="inline-flex h-9 items-center justify-center gap-1 rounded-md bg-[#9f4a4a] px-2 text-xs font-semibold text-white"
+                        >
+                          <ImageIcon className="size-3.5" aria-hidden="true" />
+                          Delete photo job
+                        </button>
+                      ) : null}
+                    </div>
+                  </article>
+                ))}
               </div>
-              {jobRequests.filter((job) => !deletedJobIds.includes(job.id)).map((job) => (
-                <article key={job.id} className="grid gap-2 border-b border-[#eee8dc] px-4 py-4 text-sm last:border-b-0 md:grid-cols-[90px_1fr_150px_130px_130px] md:items-center">
-                  <span className="font-mono text-xs text-[#6c756f]">{job.id}</span>
-                  <div>
-                    <p className="font-semibold text-[#101410]">{job.trade}</p>
-                    <p className="text-[#5f6a64]">
-                      {job.client} - {job.town}, {job.district}
-                    </p>
-                  </div>
-                  <span className={`w-fit rounded-md px-2 py-1 text-xs font-semibold ${statusClass(job.status)}`}>
-                    {job.status}
-                  </span>
-                  <span className="text-[#4d5651]">{job.assignedTo}</span>
-                  <div className="grid gap-2">
-                    <span className="text-[#4d5651]">{job.age}</span>
-                    {job.cleanupEligible ? (
-                      <button
-                        type="button"
-                        onClick={() => setDeletedJobIds((current) => [...current, job.id])}
-                        className="inline-flex h-9 items-center justify-center gap-1 rounded-md bg-[#9f4a4a] px-2 text-xs font-semibold text-white"
-                      >
-                        <ImageIcon className="size-3.5" aria-hidden="true" />
-                        Delete photo job
-                      </button>
-                    ) : null}
-                  </div>
-                </article>
-              ))}
-            </div>
+            ) : (
+              <div className="mt-4">
+                <EmptyState
+                  title="No job requests"
+                  copy="Real client requests, assigned artisans, and photo cleanup tasks will appear here after request storage is connected."
+                />
+              </div>
+            )
           ) : null}
 
           {activeTab === "rules" ? (
