@@ -8,7 +8,7 @@ import { AdminConsole } from "@/components/admin-console";
 
 const ADMIN_PASSWORD_HASH =
   process.env.NEXT_PUBLIC_ADMIN_PASSWORD_HASH ??
-  "73575d9847af4b2140e2a211098e183ec500ab483f2644ec1d2f1e57235292e9";
+  "fe3ffd2d9a9aaced48c32c451afd6c81ca0a68beb6873dbcb3717755a0150bd9";
 
 async function sha256Hex(value: string) {
   const data = new TextEncoder().encode(value);
