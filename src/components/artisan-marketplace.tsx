@@ -8,6 +8,7 @@ import {
   CalendarCheck,
   ChevronRight,
   Clock,
+  Images,
   Globe2,
   LogIn,
   MapPin,
@@ -110,6 +111,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
   const [selectedDistrict, setSelectedDistrict] = useState(allDistrictsLabel);
   const [urgent, setUrgent] = useState(true);
   const [selectedArtisanId, setSelectedArtisanId] = useState(artisans[0]?.id || "");
+  const [expandedArtisanId, setExpandedArtisanId] = useState("");
   const [jobNote, setJobNote] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [language, setLanguage] = useState<Language>("en");
@@ -157,6 +159,11 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
     ? Math.min(...filteredArtisans.map((artisan) => artisan.etaMinutes))
     : 0;
   const whatsappLink = buildWhatsAppLink(selectedArtisan, jobNote, clientPhone);
+
+  function toggleArtisanCard(artisanId: string) {
+    setSelectedArtisanId(artisanId);
+    setExpandedArtisanId((current) => (current === artisanId ? "" : artisanId));
+  }
 
   return (
     <main id="top" className="min-h-screen bg-[#f6f4ef] pb-20 text-[#101410] sm:pb-0">
@@ -324,14 +331,19 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
           <div className="mt-4 grid gap-3">
             {filteredArtisans.map((artisan) => {
               const isSelected = selectedArtisan?.id === artisan.id;
+              const isExpanded = expandedArtisanId === artisan.id;
+              const artisanWhatsappLink = buildWhatsAppLink(artisan, jobNote, clientPhone);
+              const hasPortfolio = artisan.portfolioImages.length > 0;
+              const detailsId = `artisan-${artisan.id}-details`;
 
               return (
                 <article
                   key={artisan.id}
-                  className={`grid overflow-hidden rounded-lg border bg-[#fffdf8] shadow-sm transition sm:grid-cols-[132px_minmax(0,1fr)] ${
+                  onClick={() => toggleArtisanCard(artisan.id)}
+                  className={`grid cursor-pointer overflow-hidden rounded-lg border bg-[#fffdf8] shadow-sm transition sm:grid-cols-[132px_minmax(0,1fr)] ${
                     isSelected
                       ? "border-[#0d8b66] ring-2 ring-[#0d8b66]/15"
-                      : "border-[#ddd8cd]"
+                      : "border-[#ddd8cd] hover:border-[#cfc6b6]"
                   }`}
                 >
                   <div className="relative aspect-[16/9] min-h-36 sm:aspect-auto sm:min-h-full">
@@ -403,13 +415,111 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setSelectedArtisanId(artisan.id)}
+                        aria-expanded={isExpanded}
+                        aria-controls={detailsId}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedArtisanId(artisan.id);
+                          setExpandedArtisanId(artisan.id);
+                        }}
                         className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white hover:bg-[#17251e]"
                       >
-                        Select
-                        <ChevronRight className="size-4" aria-hidden="true" />
+                        {isExpanded ? "Selected" : "View"}
+                        <ChevronRight
+                          className={`size-4 transition ${isExpanded ? "rotate-90" : ""}`}
+                          aria-hidden="true"
+                        />
                       </button>
                     </div>
+
+                    {isExpanded ? (
+                      <div
+                        id={detailsId}
+                        className="mt-4 grid gap-3 border-t border-[#eee8dc] pt-4"
+                      >
+                        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                          <section className="rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
+                            <div className="flex items-center gap-2 font-semibold text-[#101410]">
+                              <Images className="size-4 text-[#234f7a]" aria-hidden="true" />
+                              Portfolio
+                            </div>
+                            {hasPortfolio ? (
+                              <div className="mt-3 grid grid-cols-2 gap-2">
+                                {artisan.portfolioImages.slice(0, 4).map((image, index) => (
+                                  <div
+                                    key={`${artisan.id}-portfolio-${index}`}
+                                    className="relative aspect-[4/3] overflow-hidden rounded-md bg-[#ddd8cd]"
+                                  >
+                                    <Image
+                                      src={image}
+                                      alt={`${artisan.name} portfolio ${index + 1}`}
+                                      fill
+                                      sizes="(min-width: 1024px) 180px, 45vw"
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="mt-2 text-sm leading-5 text-[#5f6a64]">
+                                Portfolio photos will appear here after this artisan uploads verified work.
+                              </p>
+                            )}
+                          </section>
+
+                          <section className="grid gap-3">
+                            <div className="rounded-lg border border-[#ddd8cd] bg-white p-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 font-semibold text-[#101410]">
+                                  <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
+                                  Reviews
+                                </div>
+                                <span className="rounded-md bg-[#fff7e7] px-2 py-1 text-xs font-semibold text-[#78511c]">
+                                  {artisan.rating}/5
+                                </span>
+                              </div>
+                              <p className="mt-2 text-sm leading-5 text-[#5f6a64]">
+                                {artisan.reviews
+                                  ? `${artisan.reviews} public reviews recorded. Detailed comments will appear after review storage is connected.`
+                                  : "No public reviews yet."}
+                              </p>
+                            </div>
+
+                            <div className="rounded-lg border border-[#ddd8cd] bg-white p-3">
+                              <div className="flex items-center gap-2 font-semibold text-[#101410]">
+                                <Clock className="size-4 text-[#0d8b66]" aria-hidden="true" />
+                                Availability
+                              </div>
+                              <p className="mt-2 text-sm leading-5 text-[#5f6a64]">
+                                {artisan.available
+                                  ? `Available today. Estimated response: ${artisan.etaMinutes} min.`
+                                  : "Not marked available right now. You can still prepare a request for later."}
+                              </p>
+                            </div>
+                          </section>
+                        </div>
+
+                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                          <p className="text-sm leading-5 text-[#5f6a64]">
+                            Select this profile to keep it in the request panel, then send a WhatsApp-ready brief.
+                          </p>
+                          <a
+                            href={artisanWhatsappLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(event) => event.stopPropagation()}
+                            className={`inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold ${
+                              artisan.phone
+                                ? "bg-[#0d8b66] text-white hover:bg-[#0b7758]"
+                                : "pointer-events-none bg-[#ddd8cd] text-[#6c756f]"
+                            }`}
+                          >
+                            <MessageCircle className="size-4" aria-hidden="true" />
+                            WhatsApp contact
+                          </a>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </article>
               );

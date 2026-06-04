@@ -14,4 +14,5 @@ export type Artisan = {
   bio: string;
   phone: string;
   image: string;
+  portfolioImages: string[];
 };

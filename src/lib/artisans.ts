@@ -22,6 +22,8 @@ type SupabaseArtisan = {
 function mapArtisan(row: SupabaseArtisan): Artisan {
   const reviews = row.nombre_avis || 0;
   const rating = reviews > 0 ? (row.note_total || 0) / reviews : 4.6;
+  const avatarImage = row.avatar && row.avatar.startsWith("http") ? row.avatar : "";
+  const profileImage = avatarImage || tradeImages[row.metier || ""] || tradeImages.default;
 
   return {
     id: String(row.id),
@@ -42,10 +44,8 @@ function mapArtisan(row: SupabaseArtisan): Artisan {
       .slice(0, 3),
     bio: row.bio || "Profil verifie par ArtisanMu.",
     phone: row.tel || "",
-    image:
-      row.avatar && row.avatar.startsWith("http")
-        ? row.avatar
-        : tradeImages[row.metier || ""] || tradeImages.default,
+    image: profileImage,
+    portfolioImages: [],
   };
 }
 
