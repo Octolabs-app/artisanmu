@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -12,23 +12,100 @@ import {
   UserRoundPlus,
 } from "lucide-react";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
+import { getBrowserSupabase, getMissingBrowserSupabaseEnv } from "@/lib/supabase-browser";
 
-type AccountRole = "Client" | "Artisan" | "ArtisanMU Admin";
+async function hasLinkedArtisanProfile(userId: string) {
+  const supabase = getBrowserSupabase();
+  if (!supabase) return false;
+
+  const { data, error } = await supabase
+    .from("artisans")
+    .select("id")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+
+  return !error && !!data;
+}
 
 export function LoginAccessPanel() {
-  const [role, setRole] = useState<AccountRole>("Client");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState("");
+  const [checking, setChecking] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    const supabase = getBrowserSupabase();
+    let active = true;
+
+    async function checkExistingSession() {
+      if (!supabase) {
+        const missing = getMissingBrowserSupabaseEnv().join(", ");
+        setNotice(`Artisan login needs ${missing} configured before production sign-in can work.`);
+        setChecking(false);
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!active) return;
+
+      if (user && (await hasLinkedArtisanProfile(user.id))) {
+        window.location.assign("/artisan/");
+        return;
+      }
+
+      setChecking(false);
+    }
+
+    checkExistingSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice(
-      role === "ArtisanMU Admin"
-        ? "Admin access is handled on the private admin page for now."
-        : "Account access is being connected. Contact Octolabs to activate this profile.",
-    );
-    setPassword("");
+    const supabase = getBrowserSupabase();
+    const cleanEmail = email.trim();
+
+    if (!supabase) {
+      const missing = getMissingBrowserSupabaseEnv().join(", ");
+      setNotice(`Artisan login is not configured yet. Missing: ${missing}.`);
+      return;
+    }
+
+    setSubmitting(true);
+    setNotice("");
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
+
+    if (error || !data.user) {
+      setNotice("We could not sign you in. Check the artisan email and password.");
+      setPassword("");
+      setSubmitting(false);
+      return;
+    }
+
+    const linked = await hasLinkedArtisanProfile(data.user.id);
+
+    if (!linked) {
+      await supabase.auth.signOut();
+      setNotice(
+        "This account is not linked to an ArtisanMu artisan profile yet. Ask the admin to approve and link it first.",
+      );
+      setPassword("");
+      setSubmitting(false);
+      return;
+    }
+
+    window.location.assign("/artisan/");
   }
 
   return (
@@ -50,32 +127,18 @@ export function LoginAccessPanel() {
         <div className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-md bg-[#e8f6f1] px-3 py-2 text-sm font-semibold text-[#0d7c5c]">
             <ShieldCheck className="size-4" aria-hidden="true" />
-            Password-manager friendly
+            Artisan-only access
           </div>
           <h1 className="mt-4 text-3xl font-semibold leading-tight sm:text-4xl">
-            Log in to manage ArtisanMu.
+            Log in to manage your ArtisanMu profile.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f6a64]">
-            Use one secure account for admins, artisans, and client request follow-up. Admin mutations stay server-owned after the backend hardening pass.
+            Use the email and password linked to your approved artisan profile. Admin access stays on the private admin page.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-5 grid gap-4" noValidate>
             <label className="block text-sm font-medium text-[#101410]">
-              Account type
-              <select
-                name="role"
-                value={role}
-                onChange={(event) => setRole(event.target.value as AccountRole)}
-                className="mt-2 h-12 w-full rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none focus:border-[#0d8b66]"
-              >
-                <option>Client</option>
-                <option>Artisan</option>
-                <option>ArtisanMU Admin</option>
-              </select>
-            </label>
-
-            <label className="block text-sm font-medium text-[#101410]">
-              Email or phone
+              Artisan email
               <span className="mt-2 flex h-12 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
                 <Mail className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
                 <input
@@ -114,11 +177,11 @@ export function LoginAccessPanel() {
 
             <button
               type="submit"
-              disabled={!email.trim() || !password.trim()}
+              disabled={checking || submitting || !email.trim() || !password.trim()}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white hover:bg-[#17251e] disabled:cursor-not-allowed disabled:bg-[#93a198]"
             >
               <ShieldCheck className="size-4" aria-hidden="true" />
-              Continue
+              {checking ? "Checking session..." : submitting ? "Signing in..." : "Open artisan dashboard"}
             </button>
           </form>
         </div>
@@ -132,16 +195,12 @@ export function LoginAccessPanel() {
             <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
               Submit your trade, district, WhatsApp, documents, and portfolio photos for Octolabs validation.
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                setRole("Artisan");
-                setNotice("Artisan applications are not connected yet. Contact Octolabs to submit a real profile.");
-              }}
+            <a
+              href="mailto:hello@octolabs.app?subject=ArtisanMU%20artisan%20application"
               className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-md border border-[#ddd8cd] bg-white text-sm font-semibold text-[#0d1612]"
             >
-              Start artisan form
-            </button>
+              Request onboarding
+            </a>
           </article>
 
           <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
@@ -154,7 +213,7 @@ export function LoginAccessPanel() {
             </p>
             <button
               type="button"
-              onClick={() => setNotice("Sponsor requests are not connected yet. Contact Octolabs to review an ad placement.")}
+              onClick={() => setNotice("Send the destination link, banner, or AdSense slot details to hello@octolabs.app for review.")}
               className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-md border border-[#ddd8cd] bg-white text-sm font-semibold text-[#0d1612]"
             >
               Sponsor request

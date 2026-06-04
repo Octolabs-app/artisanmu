@@ -2,19 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
-  CalendarCheck,
   CheckCircle2,
   ChevronRight,
   Clock,
   Gauge,
   ImagePlus,
+  LoaderCircle,
+  LogOut,
   MapPin,
   MessageCircle,
   MessageSquareText,
   PauseCircle,
+  RefreshCcw,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -22,10 +24,17 @@ import {
   TimerReset,
   UserRound,
   Wrench,
+  type LucideIcon,
 } from "lucide-react";
 import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { artisanJobs, commentThreads, reviewItems } from "@/lib/admin-data";
+import {
+  mapSupabaseArtisan,
+  ownArtisanProfileSelect,
+  type SupabaseArtisanProfile,
+} from "@/lib/artisan-profile";
+import { getBrowserSupabase, getMissingBrowserSupabaseEnv } from "@/lib/supabase-browser";
 import type { Artisan } from "@/lib/types";
 
 const dashboardTabs = [
@@ -36,10 +45,7 @@ const dashboardTabs = [
 ] as const;
 
 type DashboardTab = (typeof dashboardTabs)[number]["id"];
-
-function getConnectedArtisan(): Artisan | null {
-  return null;
-}
+type DashboardStatus = "loading" | "missing-config" | "signed-out" | "no-profile" | "ready";
 
 function jobStatusClass(status: string) {
   if (status === "New") return "bg-[#fff7e7] text-[#78511c]";
@@ -47,7 +53,32 @@ function jobStatusClass(status: string) {
   return "bg-[#e8f6f1] text-[#0d7c5c]";
 }
 
-function EmptyDashboard() {
+function profileCompletion(artisan: Artisan) {
+  const checks = [
+    artisan.name && artisan.name !== "Artisan",
+    artisan.phone,
+    artisan.trade && artisan.trade !== "Artisan",
+    artisan.town && artisan.town !== "Maurice",
+    artisan.bio && artisan.bio !== "Profil verifie par ArtisanMu.",
+    artisan.specialties.length > 0,
+    artisan.portfolioImages.length > 0,
+  ];
+  const complete = checks.filter(Boolean).length;
+
+  return Math.round((complete / checks.length) * 100);
+}
+
+function EmptyDashboard({
+  title,
+  copy,
+  actionLabel = "Log in",
+  showSpinner = false,
+}: {
+  title: string;
+  copy: string;
+  actionLabel?: string;
+  showSpinner?: boolean;
+}) {
   return (
     <main className="min-h-screen bg-[#f6f4ef] text-[#101410]">
       <header className="sticky top-0 z-30 border-b border-[#ddd8cd] bg-[#f6f4ef]/95 backdrop-blur">
@@ -67,19 +98,20 @@ function EmptyDashboard() {
       <section className="mx-auto grid min-h-[calc(100vh-74px)] max-w-3xl place-items-center px-4 py-8 sm:px-6">
         <div className="w-full rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 shadow-sm sm:p-6">
           <div className="flex size-12 items-center justify-center rounded-lg bg-[#0d1612] text-white">
-            <Wrench className="size-5" aria-hidden="true" />
+            {showSpinner ? (
+              <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Wrench className="size-5" aria-hidden="true" />
+            )}
           </div>
-          <h1 className="mt-4 text-2xl font-semibold">No artisan profile connected</h1>
-          <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
-            This dashboard will show real leads, profile settings, reviews, and comments after
-            an approved artisan account is connected.
-          </p>
+          <h1 className="mt-4 text-2xl font-semibold">{title}</h1>
+          <p className="mt-2 text-sm leading-6 text-[#5f6a64]">{copy}</p>
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
             <Link
               href="/login"
               className="inline-flex h-11 items-center justify-center rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white"
             >
-              Create or connect profile
+              {actionLabel}
             </Link>
             <Link
               href="/"
@@ -95,10 +127,15 @@ function EmptyDashboard() {
 }
 
 export function ArtisanDashboard() {
-  const artisan = getConnectedArtisan();
   const [activeTab, setActiveTab] = useState<DashboardTab>("jobs");
-  const [available, setAvailable] = useState(true);
+  const [artisan, setArtisan] = useState<Artisan | null>(null);
+  const [status, setStatus] = useState<DashboardStatus>("loading");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [available, setAvailable] = useState(false);
+  const [savingAvailability, setSavingAvailability] = useState(false);
   const [acceptedIds, setAcceptedIds] = useState<string[]>([]);
+
+  const supabase = useMemo(() => getBrowserSupabase(), []);
 
   const liveJobs = useMemo(
     () =>
@@ -109,8 +146,200 @@ export function ArtisanDashboard() {
     [acceptedIds],
   );
 
+  const reviewsForArtisan = useMemo(
+    () => (artisan ? reviewItems.filter((review) => review.artisan === artisan.name) : []),
+    [artisan],
+  );
+  const commentsForArtisan = useMemo(
+    () => (artisan ? commentThreads.filter((thread) => thread.artisan === artisan.name) : []),
+    [artisan],
+  );
+
+  const completion = artisan ? profileCompletion(artisan) : 0;
+  const profileTasks = useMemo<Array<[string, string, LucideIcon]>>(() => {
+    if (!artisan) return [];
+
+    const tasks: Array<[string, string, LucideIcon]> = [];
+    if (!available) {
+      tasks.push(["Go online", "Turn on availability when you are ready for new leads.", CheckCircle2]);
+    }
+    if (!artisan.portfolioImages.length) {
+      tasks.push(["Add portfolio photos", "Show recent verified work to improve trust.", ImagePlus]);
+    }
+    if (!artisan.specialties.length) {
+      tasks.push(["Add specialties", "List the jobs you handle most often.", Wrench]);
+    }
+
+    return tasks.length
+      ? tasks
+      : [["Profile ready", "Your profile has the essentials for matching.", ShieldCheck]];
+  }, [artisan, available]);
+  const profileCards = useMemo<Array<[string, string, LucideIcon, string]>>(() => {
+    if (!artisan) return [];
+
+    return [
+      [
+        "Portfolio photos",
+        `${artisan.portfolioImages.length} added`,
+        ImagePlus,
+        "Add photos",
+      ],
+      [
+        "Badges",
+        artisan.badges?.length ? artisan.badges.join(", ") : artisan.verified ? "Verified" : "Pending review",
+        BadgeCheck,
+        "Request badge",
+      ],
+      ["Availability", available ? "Online today" : "Paused", TimerReset, "Edit hours"],
+      ["Service area", `${artisan.town}, ${artisan.district}`, MapPin, "Update towns"],
+    ];
+  }, [artisan, available]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProfile() {
+      if (!supabase) {
+        const missing = getMissingBrowserSupabaseEnv().join(", ");
+        setErrorMessage(`Missing browser Supabase config: ${missing}.`);
+        setStatus("missing-config");
+        return;
+      }
+
+      setStatus("loading");
+      setErrorMessage("");
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (!active) return;
+
+      if (userError || !user) {
+        setArtisan(null);
+        setStatus("signed-out");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("artisans")
+        .select(ownArtisanProfileSelect)
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (!active) return;
+
+      if (error) {
+        setArtisan(null);
+        setErrorMessage(error.message);
+        setStatus("no-profile");
+        return;
+      }
+
+      if (!data) {
+        setArtisan(null);
+        setStatus("no-profile");
+        return;
+      }
+
+      const mappedArtisan = mapSupabaseArtisan(data as SupabaseArtisanProfile);
+      setArtisan(mappedArtisan);
+      setAvailable(mappedArtisan.available);
+      setStatus("ready");
+    }
+
+    loadProfile();
+
+    if (!supabase) {
+      return () => {
+        active = false;
+      };
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setArtisan(null);
+        setStatus("signed-out");
+        return;
+      }
+
+      loadProfile();
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  async function handleAvailabilityToggle() {
+    if (!supabase || !artisan || savingAvailability) return;
+
+    const nextAvailable = !available;
+    setSavingAvailability(true);
+    setAvailable(nextAvailable);
+    setErrorMessage("");
+
+    const { error } = await supabase
+      .from("artisans")
+      .update({ is_available_today: nextAvailable })
+      .eq("id", Number(artisan.id));
+
+    if (error) {
+      setAvailable(!nextAvailable);
+      setErrorMessage("Availability could not be saved. Please try again.");
+    } else {
+      setArtisan({ ...artisan, available: nextAvailable });
+    }
+
+    setSavingAvailability(false);
+  }
+
+  async function handleSignOut() {
+    if (!supabase) return;
+
+    await supabase.auth.signOut();
+    setArtisan(null);
+    setStatus("signed-out");
+  }
+
+  if (status === "loading") {
+    return (
+      <EmptyDashboard
+        title="Loading artisan dashboard"
+        copy="Checking your secure session and linked ArtisanMu profile."
+        actionLabel="Go to login"
+        showSpinner
+      />
+    );
+  }
+
+  if (status === "missing-config") {
+    return (
+      <EmptyDashboard
+        title="Artisan login is not configured"
+        copy={errorMessage || "The public Supabase URL and publishable key must be available at build time."}
+        actionLabel="Back to login"
+      />
+    );
+  }
+
   if (!artisan) {
-    return <EmptyDashboard />;
+    return (
+      <EmptyDashboard
+        title={status === "signed-out" ? "Log in to continue" : "No artisan profile connected"}
+        copy={
+          status === "signed-out"
+            ? "Use your approved artisan account to open leads, profile settings, reviews, and comments."
+            : errorMessage ||
+              "This account is not linked to an ArtisanMu artisan profile yet. Ask the admin to approve and link it first."
+        }
+        actionLabel="Artisan login"
+      />
+    );
   }
 
   return (
@@ -124,7 +353,8 @@ export function ArtisanDashboard() {
           <button
             type="button"
             aria-pressed={available}
-            onClick={() => setAvailable((value) => !value)}
+            onClick={handleAvailabilityToggle}
+            disabled={savingAvailability}
             className={`inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold ${
               available
                 ? "bg-[#0d8b66] text-white"
@@ -136,7 +366,15 @@ export function ArtisanDashboard() {
             ) : (
               <PauseCircle className="size-4" aria-hidden="true" />
             )}
-            {available ? "Online" : "Paused"}
+            {savingAvailability ? "Saving" : available ? "Online" : "Paused"}
+          </button>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="hidden h-11 items-center gap-2 rounded-md border border-[#ddd8cd] bg-[#fffdf8] px-3 text-sm font-semibold text-[#0d1612] sm:inline-flex"
+          >
+            <LogOut className="size-4" aria-hidden="true" />
+            Sign out
           </button>
         </div>
       </header>
@@ -161,7 +399,7 @@ export function ArtisanDashboard() {
                 </h1>
                 <span className="inline-flex items-center gap-1 rounded-md bg-[#e8f6f1] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
                   <ShieldCheck className="size-3.5" aria-hidden="true" />
-                  Verified
+                  {artisan.verified ? "Verified" : "Pending"}
                 </span>
               </div>
               <p className="mt-1 text-sm text-[#5f6a64]">
@@ -186,7 +424,7 @@ export function ArtisanDashboard() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm text-[#5f6a64]">Today</p>
-                <p className="text-2xl font-semibold text-[#101410]">3 jobs</p>
+                <p className="text-2xl font-semibold text-[#101410]">{liveJobs.length} jobs</p>
               </div>
               <div className="flex size-12 items-center justify-center rounded-md bg-[#0d1612] text-white">
                 <Gauge className="size-5" aria-hidden="true" />
@@ -194,15 +432,15 @@ export function ArtisanDashboard() {
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
               <div className="rounded-md bg-white px-2 py-3">
-                <p className="text-lg font-semibold">18m</p>
-                <p className="text-[#6c756f]">response</p>
+                <p className="text-lg font-semibold">{available ? "On" : "Off"}</p>
+                <p className="text-[#6c756f]">status</p>
               </div>
               <div className="rounded-md bg-white px-2 py-3">
-                <p className="text-lg font-semibold">2</p>
+                <p className="text-lg font-semibold">{artisan.reviews}</p>
                 <p className="text-[#6c756f]">reviews</p>
               </div>
               <div className="rounded-md bg-white px-2 py-3">
-                <p className="text-lg font-semibold">92%</p>
+                <p className="text-lg font-semibold">{completion}%</p>
                 <p className="text-[#6c756f]">profile</p>
               </div>
             </div>
@@ -211,6 +449,12 @@ export function ArtisanDashboard() {
       </section>
 
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        {errorMessage ? (
+          <div className="lg:col-span-2 rounded-lg border border-[#d7c292] bg-[#fff8e8] px-4 py-3 text-sm font-medium text-[#78511c]">
+            {errorMessage}
+          </div>
+        ) : null}
+
         <section className="min-w-0">
           <div className="hidden gap-2 md:flex">
             {dashboardTabs.map((item) => {
@@ -236,66 +480,73 @@ export function ArtisanDashboard() {
 
           {activeTab === "jobs" ? (
             <div className="mt-0 grid gap-3 md:mt-4">
-              {liveJobs.map((job) => (
-                <article key={job.id} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-semibold text-[#101410]">{job.title}</h2>
-                        <span className={`rounded-md px-2 py-1 text-xs font-semibold ${jobStatusClass(job.status)}`}>
-                          {job.status}
+              {liveJobs.length ? (
+                liveJobs.map((job) => (
+                  <article key={job.id} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-lg font-semibold text-[#101410]">{job.title}</h2>
+                          <span className={`rounded-md px-2 py-1 text-xs font-semibold ${jobStatusClass(job.status)}`}>
+                            {job.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-[#5f6a64]">
+                          {job.town} - {job.distance}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-[#0d8b66]">Quote in chat</p>
+                    </div>
+
+                    <p className="mt-3 text-sm leading-6 text-[#4d5651]">{job.note}</p>
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+                      <div className="flex flex-wrap gap-2 text-sm text-[#4d5651]">
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-[#eef5f3] px-2.5 py-1.5">
+                          <Clock className="size-4 text-[#0f766e]" aria-hidden="true" />
+                          {job.time}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-[#f2eee4] px-2.5 py-1.5">
+                          <MapPin className="size-4 text-[#9f4a4a]" aria-hidden="true" />
+                          Route
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-[#5f6a64]">
-                        {job.town} - {job.distance}
-                      </p>
+                      <button className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]">
+                        <MessageCircle className="size-4" aria-hidden="true" />
+                        Chat
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAcceptedIds((current) =>
+                            current.includes(job.id) ? current : [...current, job.id],
+                          )
+                        }
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white"
+                      >
+                        Accept
+                        <ChevronRight className="size-4" aria-hidden="true" />
+                      </button>
                     </div>
-                    <p className="text-sm font-semibold text-[#0d8b66]">Quote in chat</p>
+                  </article>
+                ))
+              ) : (
+                <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
+                  <div className="flex size-11 items-center justify-center rounded-md bg-[#eef5f3] text-[#0d7c5c]">
+                    <RefreshCcw className="size-5" aria-hidden="true" />
                   </div>
-
-                  <p className="mt-3 text-sm leading-6 text-[#4d5651]">{job.note}</p>
-
-                  <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
-                    <div className="flex flex-wrap gap-2 text-sm text-[#4d5651]">
-                      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#eef5f3] px-2.5 py-1.5">
-                        <Clock className="size-4 text-[#0f766e]" aria-hidden="true" />
-                        {job.time}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-md bg-[#f2eee4] px-2.5 py-1.5">
-                        <MapPin className="size-4 text-[#9f4a4a]" aria-hidden="true" />
-                        Route
-                      </span>
-                    </div>
-                    <button className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]">
-                      <MessageCircle className="size-4" aria-hidden="true" />
-                      Chat
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setAcceptedIds((current) =>
-                          current.includes(job.id) ? current : [...current, job.id],
-                        )
-                      }
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white"
-                    >
-                      Accept
-                      <ChevronRight className="size-4" aria-hidden="true" />
-                    </button>
-                  </div>
+                  <h2 className="mt-4 text-lg font-semibold text-[#101410]">No open leads yet</h2>
+                  <p className="mt-2 text-sm leading-6">
+                    Keep your profile online. New matching requests will appear here once the urgent job API is fully connected.
+                  </p>
                 </article>
-              ))}
+              )}
             </div>
           ) : null}
 
           {activeTab === "profile" ? (
             <div className="mt-0 grid gap-3 md:mt-4 md:grid-cols-2">
-              {[
-                ["Portfolio photos", "4 of 6 added", ImagePlus, "Add photos"],
-                ["Badges", "Verified, Fair price", BadgeCheck, "Request badge"],
-                ["Availability", available ? "Online today" : "Paused", TimerReset, "Edit hours"],
-                ["Service area", "Plaines Wilhems + nearby", MapPin, "Update towns"],
-              ].map(([title, value, Icon, action]) => (
+              {profileCards.map(([title, value, Icon, action]) => (
                 <article key={title as string} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -317,9 +568,8 @@ export function ArtisanDashboard() {
           {activeTab === "reviews" ? (
             <div className="mt-0 grid gap-3 md:mt-4 xl:grid-cols-[minmax(0,1fr)_360px]">
               <div className="grid gap-3">
-                {reviewItems
-                  .filter((review) => review.artisan === artisan.name)
-                  .map((review) => (
+                {reviewsForArtisan.length ? (
+                  reviewsForArtisan.map((review) => (
                     <article key={review.id} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
@@ -341,19 +591,27 @@ export function ArtisanDashboard() {
                           Reply
                         </button>
                         <button className="inline-flex h-11 items-center justify-center rounded-md bg-[#0d1612] text-sm font-semibold text-white">
-                          Mark handled
-                        </button>
-                      </div>
-                    </article>
-                  ))}
+                        Mark handled
+                      </button>
+                    </div>
+                  </article>
+                  ))
+                ) : (
+                  <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 shadow-sm">
+                    <Star className="size-5 text-[#c79b55]" aria-hidden="true" />
+                    <h2 className="mt-3 text-lg font-semibold text-[#101410]">No reviews yet</h2>
+                    <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
+                      Client reviews and replies will appear here after completed jobs are connected.
+                    </p>
+                  </article>
+                )}
               </div>
 
               <aside className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
                 <h2 className="font-semibold text-[#101410]">Comment threads</h2>
                 <div className="mt-3 grid gap-3">
-                  {commentThreads
-                    .filter((thread) => thread.artisan === artisan.name)
-                    .map((thread) => (
+                  {commentsForArtisan.length ? (
+                    commentsForArtisan.map((thread) => (
                       <article key={thread.id} className="rounded-md border border-[#ddd8cd] bg-[#f8f4ea] p-3">
                         <div className="flex items-center gap-2 font-semibold text-[#101410]">
                           <MessageSquareText className="size-4 text-[#234f7a]" aria-hidden="true" />
@@ -362,7 +620,12 @@ export function ArtisanDashboard() {
                         <p className="mt-1 text-xs text-[#6c756f]">{thread.status}</p>
                         <p className="mt-2 text-sm leading-5 text-[#4d5651]">{thread.lastMessage}</p>
                       </article>
-                    ))}
+                    ))
+                  ) : (
+                    <p className="rounded-md border border-[#ddd8cd] bg-[#f8f4ea] p-3 text-sm leading-5 text-[#5f6a64]">
+                      No comment threads yet.
+                    </p>
+                  )}
                 </div>
               </aside>
             </div>
@@ -370,7 +633,7 @@ export function ArtisanDashboard() {
 
           {activeTab === "settings" ? (
             <div className="mt-0 grid gap-3 md:mt-4">
-              {["Notification preferences", "Pricing and callout fee", "Documents and verification", "Support"].map((item) => (
+              {["Notification preferences", "WhatsApp and profile", "Documents and verification", "Support"].map((item) => (
                 <button
                   key={item}
                   className="flex min-h-12 items-center justify-between rounded-lg border border-[#ddd8cd] bg-[#fffdf8] px-4 text-left text-sm font-semibold text-[#101410] shadow-sm"
@@ -394,11 +657,7 @@ export function ArtisanDashboard() {
             </div>
 
             <div className="mt-4 grid gap-3">
-              {[
-                ["Reply to new lead", "Kitchen sink leak waits for acceptance.", MessageCircle],
-                ["Upload 2 photos", "Portfolio reaches trusted threshold.", ImagePlus],
-                ["Confirm tomorrow", "Tap replacement scheduled at 09:00.", CalendarCheck],
-              ].map(([title, copy, Icon]) => (
+              {profileTasks.map(([title, copy, Icon]) => (
                 <article key={title as string} className="flex gap-3 rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-white text-[#0d8b66]">
                     <Icon className="size-4" aria-hidden="true" />

@@ -15,4 +15,11 @@ export type Artisan = {
   phone: string;
   image: string;
   portfolioImages: string[];
+  initials?: string;
+  contactPreference?: string;
+  profileUrl?: string;
+  gps?: string;
+  authUserId?: string;
+  createdAt?: string;
+  badges?: string[];
 };

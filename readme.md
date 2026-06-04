@@ -53,6 +53,10 @@ SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 CONTACT_ENCRYPTION_KEY=<long random secret, 16+ chars>
 CONTACT_HASH_SALT=<optional separate random salt>
+
+# Browser auth for the static artisan login
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<public Supabase publishable key>
 ```
 
 Keep `SUPABASE_SERVICE_ROLE_KEY` and `CONTACT_ENCRYPTION_KEY` out of
@@ -60,6 +64,8 @@ Keep `SUPABASE_SERVICE_ROLE_KEY` and `CONTACT_ENCRYPTION_KEY` out of
 `/api/job-photos/sign-upload`; browser clients never write directly to the core
 Supabase tables. Supabase signed upload URLs currently use the platform's fixed
 upload-token lifetime, so the app validates file type/size before issuing one.
+The artisan login page is client-side, so the `NEXT_PUBLIC_SUPABASE_*` values
+must exist at build time.
 
 ## Android APK
 
