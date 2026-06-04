@@ -2,18 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
   CheckCircle2,
   ChevronRight,
-  Clock,
   Gauge,
   ImagePlus,
   LoaderCircle,
   LogOut,
   MapPin,
-  MessageCircle,
   MessageSquareText,
   PauseCircle,
   RefreshCcw,
@@ -28,7 +26,8 @@ import {
 } from "lucide-react";
 import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
-import { artisanJobs, commentThreads, reviewItems } from "@/lib/admin-data";
+import { UrgentJobCard } from "@/components/UrgentJobCard";
+import { commentThreads, reviewItems } from "@/lib/admin-data";
 import {
   mapSupabaseArtisan,
   ownArtisanProfileSelect,
@@ -47,10 +46,40 @@ const dashboardTabs = [
 type DashboardTab = (typeof dashboardTabs)[number]["id"];
 type DashboardStatus = "loading" | "missing-config" | "signed-out" | "no-profile" | "ready";
 
-function jobStatusClass(status: string) {
-  if (status === "New") return "bg-[#fff7e7] text-[#78511c]";
-  if (status === "Done") return "bg-[#f2eee4] text-[#5f6a64]";
-  return "bg-[#e8f6f1] text-[#0d7c5c]";
+type JobNotificationStatus = "pending" | "read" | "claimed" | "dismissed" | "expired";
+
+type DashboardJobRow = {
+  id: string;
+  category: string | null;
+  description: string;
+  district: string | null;
+  town: string | null;
+  urgency: "urgent" | "planned" | null;
+  status: string;
+  created_at: string;
+  expires_at: string | null;
+  customer_display_name: string | null;
+  photo_storage_path: string | null;
+};
+
+type DashboardNotificationRow = {
+  id: string;
+  status: JobNotificationStatus;
+  urgency: "urgent" | "planned";
+  created_at: string;
+  job: DashboardJobRow | DashboardJobRow[] | null;
+};
+
+type DashboardNotification = {
+  id: string;
+  status: JobNotificationStatus;
+  urgency: "urgent" | "planned";
+  createdAt: string;
+  job: DashboardJobRow;
+};
+
+function joinedJob(value: DashboardNotificationRow["job"]) {
+  return Array.isArray(value) ? value[0] || null : value;
 }
 
 function profileCompletion(artisan: Artisan) {
@@ -133,18 +162,11 @@ export function ArtisanDashboard() {
   const [errorMessage, setErrorMessage] = useState("");
   const [available, setAvailable] = useState(false);
   const [savingAvailability, setSavingAvailability] = useState(false);
-  const [acceptedIds, setAcceptedIds] = useState<string[]>([]);
+  const [jobNotifications, setJobNotifications] = useState<DashboardNotification[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
+  const [jobsError, setJobsError] = useState("");
 
   const supabase = useMemo(() => getBrowserSupabase(), []);
-
-  const liveJobs = useMemo(
-    () =>
-      artisanJobs.map((job) => ({
-        ...job,
-        status: acceptedIds.includes(job.id) ? "Accepted" : job.status,
-      })),
-    [acceptedIds],
-  );
 
   const reviewsForArtisan = useMemo(
     () => (artisan ? reviewItems.filter((review) => review.artisan === artisan.name) : []),
@@ -195,6 +217,77 @@ export function ArtisanDashboard() {
     ];
   }, [artisan, available]);
 
+  const loadTargetedJobs = useCallback(async () => {
+    if (!supabase) return;
+
+    setJobsLoading(true);
+    setJobsError("");
+
+    const { data, error } = await supabase
+      .from("job_notifications")
+      .select(
+        `
+        id,
+        status,
+        urgency,
+        created_at,
+        job:job_requests (
+          id,
+          category,
+          description,
+          district,
+          town,
+          urgency,
+          status,
+          created_at,
+          expires_at,
+          customer_display_name,
+          photo_storage_path
+        )
+      `,
+      )
+      .in("status", ["pending", "read"])
+      .order("created_at", { ascending: false })
+      .limit(30);
+
+    if (error) {
+      setJobNotifications([]);
+      setJobsError(error.message);
+      setJobsLoading(false);
+      return;
+    }
+
+    const rows = (data || []) as DashboardNotificationRow[];
+    const notifications = rows
+      .map((row) => {
+        const job = joinedJob(row.job);
+        if (!job) return null;
+        return {
+          id: row.id,
+          status: row.status,
+          urgency: row.urgency,
+          createdAt: row.created_at,
+          job,
+        };
+      })
+      .filter((row): row is DashboardNotification => Boolean(row));
+
+    setJobNotifications(notifications);
+
+    const unreadIds = rows
+      .filter((row) => row.status === "pending")
+      .map((row) => row.id);
+
+    if (unreadIds.length) {
+      await supabase
+        .from("job_notifications")
+        .update({ status: "read", read_at: new Date().toISOString() })
+        .in("id", unreadIds);
+    }
+
+    setJobsLoading(false);
+  }, [supabase]);
+
   useEffect(() => {
     let active = true;
 
@@ -218,6 +311,7 @@ export function ArtisanDashboard() {
 
       if (userError || !user) {
         setArtisan(null);
+        setJobNotifications([]);
         setStatus("signed-out");
         return;
       }
@@ -232,6 +326,7 @@ export function ArtisanDashboard() {
 
       if (error) {
         setArtisan(null);
+        setJobNotifications([]);
         setErrorMessage(error.message);
         setStatus("no-profile");
         return;
@@ -239,6 +334,7 @@ export function ArtisanDashboard() {
 
       if (!data) {
         setArtisan(null);
+        setJobNotifications([]);
         setStatus("no-profile");
         return;
       }
@@ -247,6 +343,7 @@ export function ArtisanDashboard() {
       setArtisan(mappedArtisan);
       setAvailable(mappedArtisan.available);
       setStatus("ready");
+      void loadTargetedJobs();
     }
 
     loadProfile();
@@ -262,6 +359,7 @@ export function ArtisanDashboard() {
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         setArtisan(null);
+        setJobNotifications([]);
         setStatus("signed-out");
         return;
       }
@@ -273,7 +371,7 @@ export function ArtisanDashboard() {
       active = false;
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [loadTargetedJobs, supabase]);
 
   async function handleAvailabilityToggle() {
     if (!supabase || !artisan || savingAvailability) return;
@@ -303,6 +401,7 @@ export function ArtisanDashboard() {
 
     await supabase.auth.signOut();
     setArtisan(null);
+    setJobNotifications([]);
     setStatus("signed-out");
   }
 
@@ -424,7 +523,7 @@ export function ArtisanDashboard() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm text-[#5f6a64]">Today</p>
-                <p className="text-2xl font-semibold text-[#101410]">{liveJobs.length} jobs</p>
+                <p className="text-2xl font-semibold text-[#101410]">{jobNotifications.length} leads</p>
               </div>
               <div className="flex size-12 items-center justify-center rounded-md bg-[#0d1612] text-white">
                 <Gauge className="size-5" aria-hidden="true" />
@@ -480,55 +579,58 @@ export function ArtisanDashboard() {
 
           {activeTab === "jobs" ? (
             <div className="mt-0 grid gap-3 md:mt-4">
-              {liveJobs.length ? (
-                liveJobs.map((job) => (
-                  <article key={job.id} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="text-lg font-semibold text-[#101410]">{job.title}</h2>
-                          <span className={`rounded-md px-2 py-1 text-xs font-semibold ${jobStatusClass(job.status)}`}>
-                            {job.status}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-sm text-[#5f6a64]">
-                          {job.town} - {job.distance}
-                        </p>
-                      </div>
-                      <p className="text-sm font-semibold text-[#0d8b66]">Quote in chat</p>
-                    </div>
+              <div className="flex flex-col gap-3 rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="font-semibold text-[#101410]">Targeted leads</h2>
+                  <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                    Only requests matched to your verified profile appear here.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadTargetedJobs}
+                  disabled={jobsLoading}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612] disabled:cursor-wait disabled:opacity-70"
+                >
+                  {jobsLoading ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <RefreshCcw className="size-4" aria-hidden="true" />
+                  )}
+                  Refresh
+                </button>
+              </div>
 
-                    <p className="mt-3 text-sm leading-6 text-[#4d5651]">{job.note}</p>
+              {jobsError ? (
+                <div className="rounded-md border border-[#E24B4A]/30 bg-[#E24B4A]/10 px-3 py-2 text-sm text-[#9f2f2e]">
+                  {jobsError}
+                </div>
+              ) : null}
 
-                    <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
-                      <div className="flex flex-wrap gap-2 text-sm text-[#4d5651]">
-                        <span className="inline-flex items-center gap-1.5 rounded-md bg-[#eef5f3] px-2.5 py-1.5">
-                          <Clock className="size-4 text-[#0f766e]" aria-hidden="true" />
-                          {job.time}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-md bg-[#f2eee4] px-2.5 py-1.5">
-                          <MapPin className="size-4 text-[#9f4a4a]" aria-hidden="true" />
-                          Route
-                        </span>
-                      </div>
-                      <button className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]">
-                        <MessageCircle className="size-4" aria-hidden="true" />
-                        Chat
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setAcceptedIds((current) =>
-                            current.includes(job.id) ? current : [...current, job.id],
-                          )
-                        }
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white"
-                      >
-                        Accept
-                        <ChevronRight className="size-4" aria-hidden="true" />
-                      </button>
-                    </div>
-                  </article>
+              {jobsLoading && !jobNotifications.length ? (
+                <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
+                  <LoaderCircle className="size-5 animate-spin text-[#0d8b66]" aria-hidden="true" />
+                  <h2 className="mt-3 text-lg font-semibold text-[#101410]">Checking new leads</h2>
+                  <p className="mt-2 text-sm leading-6">Loading your assigned ArtisanMu requests.</p>
+                </article>
+              ) : jobNotifications.length ? (
+                jobNotifications.map((notification) => (
+                  <UrgentJobCard
+                    key={notification.id}
+                    job={{
+                      id: notification.job.id,
+                      trade: notification.job.category || artisan.trade,
+                      district: notification.job.district || notification.job.town || artisan.district,
+                      description: notification.job.description,
+                      urgency: notification.urgency || notification.job.urgency || "planned",
+                      customerDisplayName: notification.job.customer_display_name || undefined,
+                      distanceLabel: notification.job.town
+                        ? `${notification.job.town} area`
+                        : "Matched service area",
+                    }}
+                    onTaken={loadTargetedJobs}
+                    onOpenThread={() => setActiveTab("reviews")}
+                  />
                 ))
               ) : (
                 <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
@@ -537,7 +639,7 @@ export function ArtisanDashboard() {
                   </div>
                   <h2 className="mt-4 text-lg font-semibold text-[#101410]">No open leads yet</h2>
                   <p className="mt-2 text-sm leading-6">
-                    Keep your profile online. New matching requests will appear here once the urgent job API is fully connected.
+                    Keep your profile online. New matching requests will appear here when clients post work in your trade and service area.
                   </p>
                 </article>
               )}

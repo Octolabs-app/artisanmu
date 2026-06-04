@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let browserSupabase: SupabaseClient | null = null;
 
-export function getBrowserSupabase() {
+export function getBrowserSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
@@ -12,8 +12,16 @@ export function getBrowserSupabase() {
 
   if (!url || !publishableKey) return null;
 
+  return { url, publishableKey };
+}
+
+export function getBrowserSupabase() {
+  const config = getBrowserSupabaseConfig();
+
+  if (!config) return null;
+
   if (!browserSupabase) {
-    browserSupabase = createClient(url, publishableKey, {
+    browserSupabase = createClient(config.url, config.publishableKey, {
       auth: {
         autoRefreshToken: true,
         detectSessionInUrl: true,

@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, Clock3, Lock, MessageCircle, MessageSquareText, ShieldCheck } from "lucide-react";
+import { ArtisanMuFunctionError, invokeUserFunction } from "@/lib/artisanmu-functions";
 
 type UrgentJob = {
   id: string;
   trade: string;
   district: string;
   description: string;
+  urgency?: "urgent" | "planned";
   distanceLabel?: string;
   customerDisplayName?: string;
 };
@@ -18,9 +20,9 @@ type ClaimContact = {
 };
 
 type UrgentJobCardProps = {
-  artisanId: string;
   job: UrgentJob;
   onTaken?: (jobId: string) => void;
+  onClaimed?: (jobId: string) => void;
   onOpenThread?: (jobId: string) => void;
 };
 
@@ -28,51 +30,30 @@ function excerpt(value: string) {
   return value.length > 120 ? `${value.slice(0, 117)}...` : value;
 }
 
-export function UrgentJobCard({ artisanId, job, onTaken, onOpenThread }: UrgentJobCardProps) {
-  const [secondsLeft, setSecondsLeft] = useState(60);
+export function UrgentJobCard({ job, onTaken, onClaimed, onOpenThread }: UrgentJobCardProps) {
   const [claiming, setClaiming] = useState(false);
   const [taken, setTaken] = useState(false);
   const [contact, setContact] = useState<ClaimContact | null>(null);
   const [error, setError] = useState("");
   const customerName = job.customerDisplayName || "Client A.";
-
-  useEffect(() => {
-    if (contact || taken) return undefined;
-    const timer = window.setInterval(() => {
-      setSecondsLeft((current) => {
-        if (current <= 1) {
-          window.clearInterval(timer);
-          setTaken(true);
-          onTaken?.(job.id);
-          return 0;
-        }
-        return current - 1;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [contact, job.id, onTaken, taken]);
-
-  const countdownLabel = useMemo(() => `${secondsLeft}s`, [secondsLeft]);
+  const isUrgent = job.urgency === "urgent";
+  const accentClass = isUrgent ? "border-[#E24B4A]/35 shadow-lg" : "border-[#0d8b66]/25 shadow-sm";
+  const headerClass = isUrgent ? "bg-[#E24B4A] text-white" : "bg-[#0d1612] text-white";
+  const statusClass = isUrgent ? "bg-[#E24B4A]/10 text-[#b33c3b]" : "bg-[#e8f6f1] text-[#0d7c5c]";
 
   async function claimJob() {
     setClaiming(true);
     setError("");
 
     try {
-      const response = await fetch(`/api/job-requests/${job.id}/claim`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ artisan_id: artisanId }),
-      });
-      const payload = (await response.json()) as {
+      const payload = await invokeUserFunction<{
         success?: boolean;
         reason?: string;
         contact?: ClaimContact;
         message?: string;
-      };
+      }>("artisanmu-claim-job", { job_id: job.id });
 
-      if (!response.ok || !payload.success || !payload.contact) {
+      if (!payload.success || !payload.contact) {
         if (payload.reason === "already_claimed") {
           setTaken(true);
           onTaken?.(job.id);
@@ -82,7 +63,16 @@ export function UrgentJobCard({ artisanId, job, onTaken, onOpenThread }: UrgentJ
       }
 
       setContact(payload.contact);
+      onClaimed?.(job.id);
     } catch (claimError) {
+      if (
+        claimError instanceof ArtisanMuFunctionError &&
+        (claimError.reason === "already_claimed" || claimError.code === "already_handled")
+      ) {
+        setTaken(true);
+        onTaken?.(job.id);
+        return;
+      }
       setError(claimError instanceof Error ? claimError.message : "Claim failed.");
     } finally {
       setClaiming(false);
@@ -98,15 +88,15 @@ export function UrgentJobCard({ artisanId, job, onTaken, onOpenThread }: UrgentJ
   }
 
   return (
-    <article className="overflow-hidden rounded-lg border border-[#E24B4A]/35 bg-[#fffdf8] shadow-lg">
-      <div className="flex items-center justify-between gap-3 bg-[#E24B4A] px-4 py-3 text-white">
+    <article className={`overflow-hidden rounded-lg bg-[#fffdf8] ${accentClass}`}>
+      <div className={`flex items-center justify-between gap-3 px-4 py-3 ${headerClass}`}>
         <div className="flex items-center gap-2 font-semibold">
           <span className="size-2 rounded-full bg-white shadow-[0_0_0_6px_rgba(255,255,255,0.2)]" />
-          Urgent job - {job.district}
+          {isUrgent ? "Urgent job" : "Planned request"} - {job.district}
         </div>
         <span className="inline-flex items-center gap-1 rounded-md bg-white/18 px-2 py-1 text-sm font-semibold">
           <Clock3 className="size-4" aria-hidden="true" />
-          {countdownLabel}
+          {isUrgent ? "Today" : "Open"}
         </span>
       </div>
 
@@ -115,9 +105,9 @@ export function UrgentJobCard({ artisanId, job, onTaken, onOpenThread }: UrgentJ
           <span className="rounded-md bg-[#f2eee4] px-2.5 py-1.5 text-sm font-semibold text-[#101410]">
             {job.trade}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-md bg-[#E24B4A]/10 px-2.5 py-1.5 text-sm font-semibold text-[#b33c3b]">
-            <span className="size-2 animate-pulse rounded-full bg-[#E24B4A]" />
-            Urgent
+          <span className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold ${statusClass}`}>
+            <span className={`size-2 rounded-full ${isUrgent ? "animate-pulse bg-[#E24B4A]" : "bg-[#0d8b66]"}`} />
+            {isUrgent ? "Urgent" : "Planned"}
           </span>
           <span className="rounded-md bg-[#eef5f3] px-2.5 py-1.5 text-sm font-semibold text-[#0d7c5c]">
             {job.distanceLabel || "Nearby district"}
@@ -149,7 +139,9 @@ export function UrgentJobCard({ artisanId, job, onTaken, onOpenThread }: UrgentJ
           className={`mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold ${
             contact
               ? "bg-[#e8f6f1] text-[#0d7c5c]"
-              : "bg-[#E24B4A] text-white hover:bg-[#cf3f3e]"
+              : isUrgent
+                ? "bg-[#E24B4A] text-white hover:bg-[#cf3f3e]"
+                : "bg-[#0d1612] text-white hover:bg-[#17251e]"
           } disabled:cursor-default disabled:opacity-90`}
         >
           {contact ? (

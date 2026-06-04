@@ -15,6 +15,8 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
+import { invokePublicFunction } from "@/lib/artisanmu-functions";
+import { getBrowserSupabase } from "@/lib/supabase-browser";
 
 type Urgency = "urgent" | "planned";
 
@@ -77,39 +79,32 @@ function normalizedLocalPhone(value: string) {
 }
 
 async function uploadPhoto(file: File) {
-  const signResponse = await fetch("/api/job-photos/sign-upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      filename: file.name,
-      content_type: file.type || "image/jpeg",
-      size: file.size,
-    }),
-  });
+  const supabase = getBrowserSupabase();
 
-  const signPayload = (await signResponse.json()) as {
+  if (!supabase) {
+    throw new Error("Photo upload is not configured for this build.");
+  }
+
+  const signPayload = await invokePublicFunction<{
     signedUrl?: string;
+    token?: string;
     path?: string;
     message?: string;
-  };
+  }>("artisanmu-sign-upload", {
+    filename: file.name,
+    content_type: file.type || "image/jpeg",
+    size: file.size,
+  });
 
-  if (!signResponse.ok || !signPayload.signedUrl || !signPayload.path) {
+  if (!signPayload.signedUrl || !signPayload.token || !signPayload.path) {
     throw new Error(signPayload.message || "Photo upload could not start.");
   }
 
-  const uploadBody = new FormData();
-  uploadBody.append("cacheControl", "3600");
-  uploadBody.append("", file);
+  const { error } = await supabase.storage
+    .from("job-photos")
+    .uploadToSignedUrl(signPayload.path, signPayload.token, file);
 
-  const uploadResponse = await fetch(signPayload.signedUrl, {
-    method: "PUT",
-    headers: { "x-upsert": "false" },
-    body: uploadBody,
-  });
-
-  if (!uploadResponse.ok) {
-    throw new Error("Photo upload failed. Try again without the photo.");
-  }
+  if (error) throw new Error(error.message || "Photo upload failed. Try again without the photo.");
 
   return signPayload.path;
 }
@@ -190,26 +185,21 @@ export function JobRequestForm() {
 
     try {
       const photoPath = form.photoFile ? await uploadPhoto(form.photoFile) : null;
-      const response = await fetch("/api/job-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          urgency: form.urgency,
-          description: form.description.trim(),
-          trade: form.trade,
-          district: form.district,
-          whatsapp_number: `+230${localPhone}`,
-          photo_url: photoPath,
-        }),
-      });
-      const payload = (await response.json()) as {
+      const payload = await invokePublicFunction<{
         id?: string;
         artisan_count_nearby?: number;
         estimated_response_minutes?: number;
         message?: string;
-      };
+      }>("artisanmu-job-requests", {
+        urgency: form.urgency,
+        description: form.description.trim(),
+        trade: form.trade,
+        district: form.district,
+        whatsapp_number: `+230${localPhone}`,
+        photo_url: photoPath,
+      });
 
-      if (!response.ok || !payload.id || !form.urgency) {
+      if (!payload.id || !form.urgency) {
         throw new Error(payload.message || "Request could not be posted.");
       }
 
@@ -244,13 +234,13 @@ export function JobRequestForm() {
         <p className="mt-4 text-sm font-medium text-[#0d8b66]">Request #{confirmation.id.slice(0, 8)}</p>
         <h2 className="mt-1 text-2xl font-semibold text-[#101410]">Your request is live</h2>
         <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
-          Notifying {confirmation.artisanCount} verified artisans in {confirmation.district} now
+          Notifying {confirmation.artisanCount} registered artisans matched to {confirmation.district} now
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
             <p className="text-2xl font-semibold text-[#101410]">{confirmation.artisanCount}</p>
-            <p className="mt-1 text-xs font-medium text-[#5f6a64]">artisans nearby</p>
+            <p className="mt-1 text-xs font-medium text-[#5f6a64]">targeted artisans</p>
           </div>
           <div className="rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
             <p className="text-2xl font-semibold text-[#101410]">{confirmation.responseMinutes}m</p>

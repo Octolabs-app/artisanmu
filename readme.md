@@ -46,7 +46,20 @@ npm run deploy:cloudflare
 
 This requires `CLOUDFLARE_API_TOKEN` in non-interactive environments.
 
-Cloudflare Pages Functions power the server-only job request APIs:
+Supabase Edge Functions power the production job request flow:
+
+```bash
+artisanmu-sign-upload   # public, validates image metadata and returns a signed Storage upload token
+artisanmu-job-requests  # public, creates a protected job request and targeted artisan notifications
+artisanmu-claim-job     # authenticated, derives the artisan from the Supabase session before contact reveal
+```
+
+The static app calls those functions with the public Supabase URL and publishable
+key. Server-only secrets stay inside Supabase Functions; hosted functions receive
+the project service role/secret key from Supabase by default.
+
+Cloudflare Pages Functions and Vercel `/api` routes remain as compatibility
+fallbacks and require these server-only variables if used:
 
 ```bash
 SUPABASE_URL=https://<project-ref>.supabase.co
@@ -60,12 +73,13 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<public Supabase publishable key>
 ```
 
 Keep `SUPABASE_SERVICE_ROLE_KEY` and `CONTACT_ENCRYPTION_KEY` out of
-`NEXT_PUBLIC_*` variables. The public form calls `/api/job-requests` and
-`/api/job-photos/sign-upload`; browser clients never write directly to the core
-Supabase tables. Supabase signed upload URLs currently use the platform's fixed
-upload-token lifetime, so the app validates file type/size before issuing one.
-The artisan login page is client-side, so the `NEXT_PUBLIC_SUPABASE_*` values
-must exist at build time.
+`NEXT_PUBLIC_*` variables. Browser clients never write directly to the core
+Supabase tables. Job notifications are targeted to verified artisans with a
+linked `auth_user_id`; artisans can only read their own notification rows via
+RLS. Supabase signed upload URLs currently use the platform's fixed upload-token
+lifetime, so the app validates file type/size before issuing one. The artisan
+login page is client-side, so the `NEXT_PUBLIC_SUPABASE_*` values must exist at
+build time.
 
 ## Android APK
 
