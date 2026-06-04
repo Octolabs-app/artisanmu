@@ -46,6 +46,21 @@ npm run deploy:cloudflare
 
 This requires `CLOUDFLARE_API_TOKEN` in non-interactive environments.
 
+Cloudflare Pages Functions power the server-only job request APIs:
+
+```bash
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
+CONTACT_ENCRYPTION_KEY=<long random secret, 16+ chars>
+CONTACT_HASH_SALT=<optional separate random salt>
+```
+
+Keep `SUPABASE_SERVICE_ROLE_KEY` and `CONTACT_ENCRYPTION_KEY` out of
+`NEXT_PUBLIC_*` variables. The public form calls `/api/job-requests` and
+`/api/job-photos/sign-upload`; browser clients never write directly to the core
+Supabase tables. Supabase signed upload URLs currently use the platform's fixed
+upload-token lifetime, so the app validates file type/size before issuing one.
+
 ## Android APK
 
 The Android wrapper uses Capacitor and bundles the static `out` export.

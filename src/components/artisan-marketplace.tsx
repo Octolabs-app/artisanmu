@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  Bell,
   CalendarCheck,
   ChevronRight,
   Clock,
@@ -25,6 +24,7 @@ import {
 } from "lucide-react";
 import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
+import { JobRequestForm } from "@/components/JobRequestForm";
 import { districts, trades } from "@/lib/mock-data";
 import type { Artisan } from "@/lib/types";
 
@@ -152,11 +152,11 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
   const [urgent, setUrgent] = useState(true);
   const [selectedArtisanId, setSelectedArtisanId] = useState(artisans[0]?.id || "");
   const [expandedArtisanId, setExpandedArtisanId] = useState("");
-  const [jobNote, setJobNote] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
   const [language, setLanguage] = useState<Language>("en");
   const [showIntro, setShowIntro] = useState(true);
   const copy = marketplaceCopy[language];
+  const jobNote = "";
+  const clientPhone = "";
 
   const filteredArtisans = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -199,7 +199,6 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
   const fastestEta = filteredArtisans.length
     ? Math.min(...filteredArtisans.map((artisan) => artisan.etaMinutes))
     : 0;
-  const whatsappLink = buildWhatsAppLink(selectedArtisan, jobNote, clientPhone);
   const activeFilterCount =
     (query.trim() ? 1 : 0) +
     (selectedTrade !== allTradesLabel ? 1 : 0) +
@@ -713,117 +712,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
         </div>
 
         <aside id="request" className="scroll-mt-20 min-w-0 lg:sticky lg:top-20 lg:self-start">
-          <div className="rounded-lg border border-[#d8d1c3] bg-[#fffdf8] p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-[#0d8b66]">Request</p>
-                <h2 className="text-xl font-semibold text-[#101410]">{copy.requestTitle}</h2>
-              </div>
-              <span className="rounded-md bg-[#eef5f3] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
-                Auto-match
-              </span>
-            </div>
-
-            {selectedArtisan ? (
-              <div className="mt-4 flex gap-3 rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
-                <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-[#ddd8cd]">
-                  <Image
-                    src={selectedArtisan.image}
-                    alt={selectedArtisan.name}
-                    fill
-                    sizes="64px"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p
-                    data-testid="request-artisan-name"
-                    className="truncate font-semibold text-[#101410]"
-                  >
-                    {selectedArtisan.name}
-                  </p>
-                  <p className="text-sm text-[#5f6a64]">
-                    {selectedArtisan.trade} - {selectedArtisan.town}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#0d8b66]">
-                    {selectedArtisan.etaMinutes} min - {selectedArtisan.priceHint}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-4 rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
-                <p className="font-semibold text-[#101410]">No artisan selected</p>
-                <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
-                  The WhatsApp request button will activate after an approved artisan is available.
-                </p>
-              </div>
-            )}
-
-            <label className="mt-4 block text-sm font-medium text-[#101410]">
-              {copy.details}
-              <textarea
-                value={jobNote}
-                onChange={(event) => setJobNote(event.target.value)}
-                rows={4}
-                className="mt-2 w-full resize-none rounded-md border border-[#d8d1c3] bg-white px-3 py-2 text-sm outline-none focus:border-[#0d8b66]"
-                placeholder="Example: water leak under kitchen sink, need help today."
-              />
-            </label>
-
-            <label className="mt-3 block text-sm font-medium text-[#101410]">
-              {copy.phone}
-              <input
-                value={clientPhone}
-                onChange={(event) => setClientPhone(event.target.value)}
-                className="mt-2 h-11 w-full rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none focus:border-[#0d8b66]"
-                placeholder="+230 ..."
-              />
-            </label>
-
-            <label className="mt-3 block text-sm font-medium text-[#101410]">
-              Photo upload
-              <input
-                type="file"
-                accept="image/*"
-                className="mt-2 block w-full rounded-md border border-[#d8d1c3] bg-white px-3 py-2 text-sm text-[#4d5651] file:mr-3 file:rounded-md file:border-0 file:bg-[#eef5f3] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#0d7c5c]"
-              />
-              <span className="mt-2 block text-xs leading-5 text-[#6c756f]">
-                Photos help artisans understand the job before they reply.
-              </span>
-            </label>
-
-            <a
-              data-testid="whatsapp-request-link"
-              href={whatsappLink}
-              target="_blank"
-              rel="noreferrer"
-              className={`mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold ${
-                selectedArtisan
-                  ? "bg-[#0d8b66] text-white hover:bg-[#0b7758]"
-                  : "pointer-events-none bg-[#ddd8cd] text-[#6c756f]"
-              }`}
-            >
-              <MessageCircle className="size-4" aria-hidden="true" />
-              {selectedArtisan ? copy.action : "Select an artisan first"}
-            </a>
-
-            <div className="mt-4 grid gap-3">
-              {[
-                { label: "Match verified artisans", icon: ShieldCheck },
-                { label: "Ping once, then rotate", icon: Bell },
-                { label: "Expire stale leads", icon: Clock },
-                { label: "Collect review after job", icon: Star },
-              ].map(({ label, icon: Icon }) => (
-                <div key={label} className="flex items-center gap-3 text-sm text-[#4d5651]">
-                  <span className="flex size-8 items-center justify-center rounded-md bg-[#eef5f3] text-[#0d7c5c]">
-                    <Icon className="size-4" aria-hidden="true" />
-                  </span>
-                  <span>{label}</span>
-                </div>
-              ))}
-            </div>
-
-          </div>
+          <JobRequestForm />
 
           <AdBanner
             className="mt-4"
