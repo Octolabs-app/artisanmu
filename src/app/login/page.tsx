@@ -108,7 +108,7 @@ export default function LoginPage() {
               Business sponsor
             </div>
             <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
-              Prepare a sponsored link, banner, or embed placement for admin review before it appears publicly.
+              Prepare an advertising link, banner, or AdSense slot for admin review before it appears publicly.
             </p>
             <button className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-md border border-[#ddd8cd] bg-white text-sm font-semibold text-[#0d1612]">
               Sponsor request

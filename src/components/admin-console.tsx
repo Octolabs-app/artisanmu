@@ -35,6 +35,7 @@ import {
   type AdPlacement,
   type PendingArtisan,
 } from "@/lib/admin-data";
+import { AdBanner } from "@/components/ad-banner";
 
 const adminTabs = [
   { id: "review", label: "Review", icon: UserCheck },
@@ -150,6 +151,7 @@ function ReviewCard({
 function AdEditor({ placement }: { placement: AdPlacement }) {
   const [status, setStatus] = useState(placement.status);
   const [format, setFormat] = useState(placement.format);
+  const [adsenseFormat, setAdsenseFormat] = useState(placement.adsenseFormat);
   const clickRate = placement.impressions
     ? `${((placement.clicks / placement.impressions) * 100).toFixed(1)}%`
     : "0.0%";
@@ -189,9 +191,9 @@ function AdEditor({ placement }: { placement: AdPlacement }) {
               onChange={(event) => setFormat(event.target.value as AdPlacement["format"])}
               className="mt-2 h-11 w-full rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none"
             >
-              <option>Native card</option>
-              <option>Banner link</option>
-              <option>Embed code</option>
+              <option>AdSense responsive</option>
+              <option>Direct banner</option>
+              <option>Direct link</option>
             </select>
           </label>
           <label className="block text-sm font-medium text-[#101410]">
@@ -215,6 +217,31 @@ function AdEditor({ placement }: { placement: AdPlacement }) {
 
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <label className="block text-sm font-medium text-[#101410]">
+          AdSense slot ID
+          <span className="mt-2 flex h-11 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
+            <Megaphone className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
+            <input
+              defaultValue={placement.adsenseSlot}
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+              inputMode="numeric"
+              placeholder="1234567890"
+            />
+          </span>
+        </label>
+        <label className="block text-sm font-medium text-[#101410]">
+          AdSense format
+          <select
+            value={adsenseFormat}
+            onChange={(event) => setAdsenseFormat(event.target.value as AdPlacement["adsenseFormat"])}
+            className="mt-2 h-11 w-full rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none"
+          >
+            <option value="auto">auto</option>
+            <option value="horizontal">horizontal</option>
+            <option value="rectangle">rectangle</option>
+            <option value="vertical">vertical</option>
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-[#101410]">
           Destination URL
           <span className="mt-2 flex h-11 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
             <Link2 className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
@@ -226,17 +253,28 @@ function AdEditor({ placement }: { placement: AdPlacement }) {
           </span>
         </label>
         <label className="block text-sm font-medium text-[#101410]">
-          Embed slot or code
+          Direct embed code
           <span className="mt-2 flex h-11 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
             <Code2 className="size-4 shrink-0 text-[#234f7a]" aria-hidden="true" />
             <input
               defaultValue={placement.embedCode}
               className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-              placeholder="<ins data-ad-slot=...>"
+              placeholder="<ins class=...>"
             />
           </span>
         </label>
       </div>
+
+      <AdBanner
+        className="mt-4"
+        placement={placement.id}
+        slot={placement.adsenseSlot}
+        format={adsenseFormat}
+        fallbackTitle={placement.sponsor}
+        fallbackCopy={placement.copy}
+        fallbackHref={placement.destinationUrl}
+        compact
+      />
 
       <div className="mt-4 grid gap-2 text-sm text-[#4d5651] sm:grid-cols-3">
         <span className="rounded-md bg-[#f2eee4] px-3 py-2">{placement.period}</span>
@@ -254,6 +292,7 @@ export function AdminConsole() {
   const [removedArtisanIds, setRemovedArtisanIds] = useState<string[]>([]);
   const [hiddenReviewIds, setHiddenReviewIds] = useState<string[]>([]);
   const [deletedJobIds, setDeletedJobIds] = useState<string[]>([]);
+  const livePlacementCount = adPlacements.filter((placement) => placement.status === "Live").length;
 
   const filteredPending = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -316,7 +355,7 @@ export function AdminConsole() {
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Metric label="Pending artisans" value={`${pendingArtisans.length}`} icon={UserCheck} tone="bg-[#e8f6f1] text-[#0d7c5c]" />
             <Metric label="Active artisans" value={`${activeArtisans.length - removedArtisanIds.length}`} icon={ShieldCheck} tone="bg-[#eef5f3] text-[#234f7a]" />
-            <Metric label="Live placements" value="1" icon={Megaphone} tone="bg-[#fff7e7] text-[#78511c]" />
+            <Metric label="Live placements" value={`${livePlacementCount}`} icon={Megaphone} tone="bg-[#fff7e7] text-[#78511c]" />
             <Metric label="Cleanup queue" value={`${jobRequests.filter((job) => job.cleanupEligible && !deletedJobIds.includes(job.id)).length}`} icon={Clock} tone="bg-[#f8e9e7] text-[#9f4a4a]" />
           </div>
 
@@ -480,23 +519,43 @@ export function AdminConsole() {
           {activeTab === "ads" ? (
             <div className="mt-4 grid gap-3">
               <div className="rounded-lg border border-[#d7c292] bg-[#fff8e8] p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#78511c]">
-                  <SlidersHorizontal className="size-4" aria-hidden="true" />
-                  Placement builder
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[#78511c]">
+                      <SlidersHorizontal className="size-4" aria-hidden="true" />
+                      Placement builder
+                    </div>
+                    <p className="mt-1 text-sm leading-5 text-[#60451f]">
+                      Use AdSense responsive slots when available; direct partner banners stay clearly labeled.
+                    </p>
+                  </div>
+                  <span className="w-fit rounded-md bg-white px-2.5 py-1.5 text-xs font-semibold text-[#78511c]">
+                    Label: Advertisements
+                  </span>
                 </div>
-                <div className="mt-3 grid gap-3 md:grid-cols-5">
+                <div className="mt-3 grid gap-3 md:grid-cols-6">
                   <input className="h-11 rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none" placeholder="Sponsor name" />
                   <select className="h-11 rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none">
                     <option>Search results</option>
                     <option>Request panel</option>
                     <option>Artisan dashboard</option>
                   </select>
-                  <input className="h-11 rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none" placeholder="Budget" />
+                  <select className="h-11 rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none">
+                    <option>AdSense responsive</option>
+                    <option>Direct banner</option>
+                    <option>Direct link</option>
+                  </select>
+                  <input className="h-11 rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none" inputMode="numeric" placeholder="AdSense slot ID" />
                   <input className="h-11 rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none" placeholder="https://destination" />
                   <button className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white">
                     <CircleDollarSign className="size-4" aria-hidden="true" />
                     Save draft
                   </button>
+                </div>
+                <div className="mt-3 grid gap-2 text-xs text-[#60451f] sm:grid-cols-3">
+                  <span className="rounded-md bg-white px-3 py-2">Keep away from navigation and primary CTAs</span>
+                  <span className="rounded-md bg-white px-3 py-2">No popups, overlays, or auto-refresh</span>
+                  <span className="rounded-md bg-white px-3 py-2">Use responsive width with stable spacing</span>
                 </div>
               </div>
               {adPlacements.map((placement) => (

@@ -7,7 +7,7 @@ Scope: local Next.js rebuild, live Supabase posture, admin/artisan/public workfl
 
 ArtisanMu should not launch with browser-side writes to the current Supabase tables. The UI can move forward locally, but production release needs a backend hardening sprint first.
 
-The new local prototype now reflects the intended product:
+The current local build now reflects the intended product:
 
 - Public users search, use the map, submit one request, and optionally upload photos.
 - Artisans manage availability, jobs, profile quality, reviews, and comments.
@@ -134,11 +134,11 @@ Phase decision:
 
 ### Ads
 
-Ads should be labelled and placed natively in the flow. Google Ad Manager describes native ads as publisher-styled elements and requires visible attribution such as "Ad", "Advertisement", or "Sponsored".
+Ads should be clearly labelled and placed in separated, predictable slots.
 
 Implementation direction:
 
-- Support sponsored link placements first.
+- Support advertising link placements first.
 - Support embed snippets only after sanitization and allowlisting.
 - Do not allow arbitrary script embeds in the browser admin form.
 - Preview every ad before publishing.

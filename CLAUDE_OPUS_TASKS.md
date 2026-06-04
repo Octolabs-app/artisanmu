@@ -19,8 +19,8 @@ Make ArtisanMu safe to run by itself:
 - Storage buckets are public and upload/delete policies need review.
 - The new local frontend has:
   - `/` marketplace search
-  - `/artisan` artisan dashboard prototype
-  - `/admin` discreet admin console prototype
+  - `/artisan` artisan dashboard
+  - `/admin` discreet admin console
 
 ## Deliverables
 

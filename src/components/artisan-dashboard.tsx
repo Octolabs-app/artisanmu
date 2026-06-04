@@ -23,6 +23,7 @@ import {
   UserRound,
   Wrench,
 } from "lucide-react";
+import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { fallbackArtisans } from "@/lib/mock-data";
 import { artisanJobs, commentThreads, reviewItems } from "@/lib/admin-data";
@@ -355,13 +356,16 @@ export function ArtisanDashboard() {
               ))}
             </div>
 
-            <div className="mt-4 rounded-lg border border-[#d7c292] bg-[#fff8e8] p-3">
-              <div className="text-xs font-semibold uppercase text-[#78511c]">Sponsored</div>
-              <p className="mt-1 text-sm leading-5 text-[#60451f]">
-                Toolmart: 10% off pipe cutters and fittings this week.
-              </p>
-            </div>
           </div>
+
+          <AdBanner
+            className="mt-4"
+            placement="artisan-dashboard"
+            slot={process.env.NEXT_PUBLIC_ADSENSE_ARTISAN_SLOT}
+            fallbackTitle="Partner offers for working artisans"
+            fallbackCopy="A separated ad space for tools, insurance, mobile plans, and trade supplies."
+            compact
+          />
         </aside>
       </div>
 

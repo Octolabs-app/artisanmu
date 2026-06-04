@@ -22,6 +22,22 @@ npm audit --audit-level=moderate
 
 The app uses static export. Cloudflare Pages should deploy the generated `out` directory.
 
+## Advertising
+
+Ad placements use one reusable responsive banner component. Without Google AdSense
+environment variables, the UI shows a clearly labeled direct-partner fallback.
+
+```bash
+NEXT_PUBLIC_ADSENSE_CLIENT_ID=ca-pub-...
+NEXT_PUBLIC_ADSENSE_SEARCH_SLOT=...
+NEXT_PUBLIC_ADSENSE_REQUEST_SLOT=...
+NEXT_PUBLIC_ADSENSE_ARTISAN_SLOT=...
+```
+
+The visible label is `Advertisements`, placements are separated from navigation
+and primary actions, and the component uses responsive `data-ad-format` plus
+`data-full-width-responsive="true"` for Google-style display units.
+
 ## Cloudflare Pages
 
 ```bash

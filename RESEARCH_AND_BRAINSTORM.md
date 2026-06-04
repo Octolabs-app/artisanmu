@@ -47,7 +47,7 @@
 - Jobs should show price, distance, timing, and one primary action.
 - Profile quality should be visual but not gamified too much.
 - Badges should be visible and requestable, but granting remains admin-only.
-- Sponsored offers for artisans can exist, but should sit below work actions.
+- Advertising offers for artisans can exist, but should sit below work actions.
 
 ## Product Rules
 

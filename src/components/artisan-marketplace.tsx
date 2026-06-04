@@ -13,7 +13,6 @@ import {
   MapPin,
   MessageCircle,
   Navigation,
-  Phone,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -21,6 +20,7 @@ import {
   UserCheck,
   Zap,
 } from "lucide-react";
+import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { districts, trades } from "@/lib/mock-data";
 import type { Artisan } from "@/lib/types";
@@ -287,6 +287,15 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
                 <span>Review request after job</span>
               </div>
             </div>
+
+            <AdBanner
+              className="mt-4"
+              placement="public-search"
+              slot={process.env.NEXT_PUBLIC_ADSENSE_SEARCH_SLOT}
+              format="horizontal"
+              fallbackTitle="Advertise to homeowners looking for local help"
+              fallbackCopy="A quiet placement for banks, hardware shops, insurers, and home-service partners."
+            />
           </div>
         </div>
       </section>
@@ -521,16 +530,16 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
               ))}
             </div>
 
-            <div className="mt-4 rounded-lg border border-[#d7c292] bg-[#fff8e8] p-3">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[#78511c]">
-                <Phone className="size-3.5" aria-hidden="true" />
-                Sponsored
-              </div>
-              <p className="mt-1 text-sm leading-5 text-[#60451f]">
-                Small local partner placements can sit here without interrupting search.
-              </p>
-            </div>
           </div>
+
+          <AdBanner
+            className="mt-4"
+            placement="request-sidebar"
+            slot={process.env.NEXT_PUBLIC_ADSENSE_REQUEST_SLOT}
+            fallbackTitle="Reach people ready to book a repair"
+            fallbackCopy="This placement stays outside the request form so it does not interrupt job submission."
+            compact
+          />
         </aside>
       </section>
 
@@ -542,7 +551,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
               hello@octolabs.app
             </a>
             <span>Mauritius</span>
-            <span>Self-running marketplace prototype</span>
+            <span>Built for local service discovery</span>
           </div>
         </div>
       </footer>

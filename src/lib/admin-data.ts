@@ -18,7 +18,9 @@ export type AdPlacement = {
   surface: "Search results" | "Request panel" | "Artisan dashboard";
   sponsor: string;
   status: "Live" | "Draft" | "Paused";
-  format: "Native card" | "Banner link" | "Embed code";
+  format: "AdSense responsive" | "Direct banner" | "Direct link";
+  adsenseSlot: string;
+  adsenseFormat: "auto" | "horizontal" | "rectangle" | "vertical";
   budget: string;
   period: string;
   clicks: number;
@@ -128,46 +130,52 @@ export const adPlacements: AdPlacement[] = [
     id: "ad-1",
     name: "Search card after 2 results",
     surface: "Search results",
-    sponsor: "MauBank SME",
+    sponsor: "Finance partner",
     status: "Live",
-    format: "Native card",
+    format: "AdSense responsive",
+    adsenseSlot: "",
+    adsenseFormat: "horizontal",
     budget: "Rs 4,500",
     period: "Jun 3 - Jun 17",
     clicks: 68,
     impressions: 2240,
-    copy: "SME loan support for tools, vehicles and stock.",
-    destinationUrl: "https://octolabs.app/partners/maubank-sme",
+    copy: "Tool and vehicle finance for registered trades.",
+    destinationUrl: "https://octolabs.app/advertise",
     embedCode: "",
   },
   {
     id: "ad-2",
     name: "Request panel sponsor",
     surface: "Request panel",
-    sponsor: "Phoenix Insurance",
+    sponsor: "Home cover partner",
     status: "Draft",
-    format: "Banner link",
+    format: "Direct banner",
+    adsenseSlot: "",
+    adsenseFormat: "auto",
     budget: "Rs 2,000",
     period: "Starts Jun 10",
     clicks: 0,
     impressions: 0,
     copy: "Protect your next home repair with quick cover.",
-    destinationUrl: "https://octolabs.app/partners/phoenix",
+    destinationUrl: "https://octolabs.app/advertise",
     embedCode: "",
   },
   {
     id: "ad-3",
     name: "Artisan dashboard tip",
     surface: "Artisan dashboard",
-    sponsor: "Toolmart",
+    sponsor: "Trade supply partner",
     status: "Paused",
-    format: "Embed code",
+    format: "Direct link",
+    adsenseSlot: "",
+    adsenseFormat: "rectangle",
     budget: "Rs 1,800",
     period: "Paused",
     clicks: 31,
     impressions: 940,
     copy: "Discounted drill bits and ladders this week.",
-    destinationUrl: "https://octolabs.app/partners/toolmart",
-    embedCode: "<ins data-ad-slot=\"artisan-dashboard-toolmart\"></ins>",
+    destinationUrl: "https://octolabs.app/advertise",
+    embedCode: "",
   },
 ];
 
