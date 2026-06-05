@@ -85,6 +85,11 @@ Functions for server-owned writes.
 
 See `HANDOFF_PROMPT.md` for the next-chat prompt and remaining production tasks.
 
+## License
+
+ArtisanMu is proprietary software. See `LICENSE` for usage terms. Third-party
+dependencies remain subject to their own license terms.
+
 ## Android APK
 
 The Android wrapper uses Capacitor and bundles the static `out` export.
