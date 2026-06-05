@@ -1,6 +1,7 @@
 # ArtisanMU Handoff Prompt
 
-Use this prompt to continue in a fresh Codex chat:
+Use this prompt to continue in a fresh Codex chat. This work stays with Codex;
+do not route it to Claude or another assistant.
 
 ```text
 You are continuing work on ArtisanMU in:
