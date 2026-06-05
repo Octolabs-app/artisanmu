@@ -2,6 +2,7 @@ import {
   allowedDistricts,
   allowedTrades,
   allowedUrgency,
+  canonicalDistrict,
   customerDisplayName,
   encryptPhone,
   errorResponse,
@@ -46,7 +47,7 @@ Deno.serve(async (request: Request) => {
     const urgency = requireString(body.urgency, "urgency");
     const description = requireString(body.description, "description");
     const trade = requireString(body.trade, "trade");
-    const district = requireString(body.district, "district");
+    const district = canonicalDistrict(requireString(body.district, "district"));
 
     if (!allowedUrgency.includes(urgency)) {
       throw new HttpError(400, "invalid_urgency", "Urgency must be urgent or planned.");
@@ -58,7 +59,7 @@ Deno.serve(async (request: Request) => {
       throw new HttpError(400, "invalid_trade", "Choose a supported trade.");
     }
     if (!allowedDistricts.includes(district)) {
-      throw new HttpError(400, "invalid_district", "Choose a supported location.");
+      throw new HttpError(400, "invalid_district", "Choose a supported district or island.");
     }
 
     const supabase = getAdminSupabase();
@@ -78,6 +79,7 @@ Deno.serve(async (request: Request) => {
       .from("artisans")
       .select("id,auth_user_id,district,ville,metier")
       .eq("is_verified", true)
+      .eq("verification_status", "approved")
       .not("auth_user_id", "is", null);
 
     if (targetError) {

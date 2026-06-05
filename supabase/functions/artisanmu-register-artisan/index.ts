@@ -1,11 +1,13 @@
 import {
   allowedDistricts,
   allowedTrades,
+  canonicalDistrict,
   errorResponse,
   getAdminSupabase,
   HttpError,
   jsonResponse,
   normalizeMauritiusWhatsapp,
+  normalizeServiceTags,
   optionsResponse,
   readJsonBody,
   requireString,
@@ -22,6 +24,7 @@ type RegisterArtisanBody = {
   town?: string;
   bio?: string;
   specialties?: string[] | string;
+  service_tags?: string[] | string;
   portfolio_paths?: string[];
 };
 
@@ -91,7 +94,7 @@ function normalizeSpecialties(value: RegisterArtisanBody["specialties"]) {
 
 function normalizePortfolioPaths(value: unknown) {
   if (!Array.isArray(value)) {
-    throw new HttpError(400, "missing_portfolio_images", "Upload at least one work photo.");
+    return [];
   }
 
   const paths = Array.from(
@@ -103,7 +106,7 @@ function normalizePortfolioPaths(value: unknown) {
   );
 
   if (!paths.length) {
-    throw new HttpError(400, "missing_portfolio_images", "Upload at least one work photo.");
+    return [];
   }
   if (paths.length > 6) {
     throw new HttpError(400, "too_many_portfolio_images", "Upload up to 6 work photos for review.");
@@ -143,10 +146,11 @@ Deno.serve(async (request: Request) => {
     const password = normalizePassword(body.password);
     const whatsapp = normalizeMauritiusWhatsapp(body.whatsapp);
     const trade = requireString(body.trade, "trade");
-    const district = requireString(body.district, "district");
+    const district = canonicalDistrict(requireString(body.district, "district"));
     const town = normalizeTown(body.town);
     const bio = normalizeBio(body.bio);
     const specialties = normalizeSpecialties(body.specialties);
+    const serviceTags = normalizeServiceTags(body.service_tags, true);
     const portfolioPaths = normalizePortfolioPaths(body.portfolio_paths);
 
     if (!allowedTrades.includes(trade)) {
@@ -200,12 +204,14 @@ Deno.serve(async (request: Request) => {
         ville: town,
         district,
         expertise: specialties.join(", "),
+        service_tags: serviceTags,
         bio,
         avatar: photoUrls[0] || null,
         photos: JSON.stringify(photoUrls),
         initiales: initialsForName(name),
         auth_user_id: createdUserId,
         application_email: email,
+        verification_notes: portfolioPaths.length ? null : "Application created before work photos finished uploading.",
         is_verified: false,
         verification_status: "pending",
         is_available_today: false,
@@ -228,6 +234,7 @@ Deno.serve(async (request: Request) => {
         auth_user: createdUserId,
         application_email: email,
         portfolio_count: photoUrls.length,
+        service_tags: serviceTags,
       },
     });
 
@@ -235,7 +242,9 @@ Deno.serve(async (request: Request) => {
       success: true,
       artisan_id: artisan.id,
       status: artisan.verification_status,
-      message: "Application received. You can log in, but the full dashboard opens after admin approval.",
+      message: portfolioPaths.length
+        ? "Application received. You can log in, but the full dashboard opens after admin approval."
+        : "Application received. Work photos can keep uploading while your account waits for admin approval.",
     });
   } catch (error) {
     if (createdUserId) {

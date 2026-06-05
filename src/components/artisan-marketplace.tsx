@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarCheck,
   ChevronRight,
@@ -25,15 +25,23 @@ import {
 import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { JobRequestForm } from "@/components/JobRequestForm";
+import {
+  mapSupabaseArtisan,
+  publicArtisanSelect,
+  type SupabaseArtisanProfile,
+} from "@/lib/artisan-profile";
 import { districts, trades } from "@/lib/mock-data";
+import { districtMatchesSelection, serviceTagOptions, tradeMatchesSelection } from "@/lib/service-options";
+import { getBrowserSupabase } from "@/lib/supabase-browser";
 import type { Artisan } from "@/lib/types";
 
 type ArtisanMarketplaceProps = {
   artisans: Artisan[];
 };
 
-const allTradesLabel = "Tout metier";
-const allDistrictsLabel = "Toute l'ile";
+const allTradesLabel = "All trades";
+const allDistrictsLabel = "All districts";
+const allTagsLabel = "All tags";
 const marketplaceCopy = {
   en: {
     eyebrow: "Same-day matching in Mauritius",
@@ -99,22 +107,31 @@ const marketplaceCopy = {
 
 type Language = keyof typeof marketplaceCopy;
 const tradeAliases: Record<string, string[]> = {
+  Plumber: ["plumber", "plombier", "leak", "fuite", "water", "pipe", "sink", "drain", "robinet"],
   Plombier: ["leak", "fuite", "water", "pipe", "sink", "drain", "robinet"],
+  Electrician: ["electrician", "electricien", "wiring", "electric", "power", "light", "prise", "breaker", "circuit"],
   Electricien: ["wiring", "electric", "power", "light", "prise", "breaker", "circuit"],
+  Mason: ["mason", "macon", "wall", "concrete", "block", "tiles", "renovation", "repair"],
   Macon: ["wall", "concrete", "block", "tiles", "renovation", "repair"],
+  Carpenter: ["carpenter", "menuisier", "cabinet", "cupboard", "door", "wood", "kitchen", "shelf"],
   Menuisier: ["cabinet", "cupboard", "door", "wood", "kitchen", "shelf"],
+  "AC technician": ["ac", "aircon", "clim", "split", "cooling", "maintenance"],
   Climatisation: ["ac", "aircon", "clim", "split", "cooling", "maintenance"],
+  Painter: ["painter", "peintre", "paint", "painting", "repaint", "wall finish", "color"],
   Peintre: ["paint", "painting", "repaint", "wall finish", "color"],
+  Gardener: ["gardener", "jardinier", "garden", "grass", "yard", "tree", "plants", "trim"],
   Jardinier: ["garden", "grass", "yard", "tree", "plants", "trim"],
+  Locksmith: ["locksmith", "serrurier", "lock", "key", "door lock", "locked", "security"],
   Serrurier: ["lock", "key", "door lock", "locked", "security"],
 };
 
 const quickFilters = [
-  { label: "Pipe leak", query: "leak", trade: "Plombier" },
-  { label: "No power", query: "wiring", trade: "Electricien" },
-  { label: "AC service", query: "ac service", trade: "Climatisation" },
-  { label: "Door lock", query: "door lock", trade: "Serrurier" },
-  { label: "Paint room", query: "paint", trade: "Peintre" },
+  { label: "Pipe leak", query: "leak", trade: "Plumber", tag: "Leak repair" },
+  { label: "No power", query: "wiring", trade: "Electrician", tag: "No power" },
+  { label: "Emergency repair", query: "urgent repair", trade: allTradesLabel, tag: "Emergency repair" },
+  { label: "AC service", query: "ac service", trade: "AC technician", tag: "AC service" },
+  { label: "Door lock", query: "door lock", trade: "Locksmith", tag: allTagsLabel },
+  { label: "Paint room", query: "paint", trade: "Painter", tag: "Renovation" },
 ];
 
 function buildWhatsAppLink(artisan: Artisan | null, note: string, clientPhone: string) {
@@ -139,16 +156,18 @@ function scoreArtisan(
 
   if (artisan.available) score += urgent ? 44 : 16;
   if (artisan.verified) score += 12;
-  if (selectedTrade !== allTradesLabel && artisan.trade === selectedTrade) score += 26;
-  if (selectedDistrict !== allDistrictsLabel && artisan.district === selectedDistrict) score += 18;
+  if (selectedTrade !== allTradesLabel && tradeMatchesSelection(artisan.trade, selectedTrade)) score += 26;
+  if (selectedDistrict !== allDistrictsLabel && districtMatchesSelection(artisan.district, selectedDistrict)) score += 18;
 
   return score;
 }
 
 export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
+  const [refreshedArtisans, setRefreshedArtisans] = useState<Artisan[] | null>(null);
   const [query, setQuery] = useState("");
   const [selectedTrade, setSelectedTrade] = useState(allTradesLabel);
   const [selectedDistrict, setSelectedDistrict] = useState(allDistrictsLabel);
+  const [selectedTag, setSelectedTag] = useState(allTagsLabel);
   const [urgent, setUrgent] = useState(true);
   const [selectedArtisanId, setSelectedArtisanId] = useState(artisans[0]?.id || "");
   const [expandedArtisanId, setExpandedArtisanId] = useState("");
@@ -157,11 +176,51 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
   const copy = marketplaceCopy[language];
   const jobNote = "";
   const clientPhone = "";
+  const displayArtisans = refreshedArtisans || artisans;
+
+  useEffect(() => {
+    const supabase = getBrowserSupabase();
+    if (!supabase) return;
+    const client = supabase;
+
+    let cancelled = false;
+
+    async function loadLiveArtisans() {
+      const { data, error } = await client
+        .from("artisans")
+        .select(publicArtisanSelect)
+        .eq("is_verified", true)
+        .eq("verification_status", "approved")
+        .order("created_at", { ascending: false });
+
+      if (!cancelled && !error && data) {
+        setRefreshedArtisans((data as SupabaseArtisanProfile[]).map(mapSupabaseArtisan));
+      }
+    }
+
+    void loadLiveArtisans();
+    const interval = window.setInterval(loadLiveArtisans, 15000);
+    const onFocus = () => void loadLiveArtisans();
+    window.addEventListener("focus", onFocus);
+    const channel = client
+      .channel("public-approved-artisans")
+      .on("postgres_changes", { event: "*", schema: "public", table: "artisans" }, () => {
+        void loadLiveArtisans();
+      })
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      void client.removeChannel(channel);
+    };
+  }, []);
 
   const filteredArtisans = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return [...artisans]
+    return [...displayArtisans]
       .filter((artisan) => {
         const searchText = [
           artisan.name,
@@ -171,24 +230,27 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
           artisan.bio,
           ...(tradeAliases[artisan.trade] || []),
           ...artisan.specialties,
+          ...artisan.serviceTags,
         ]
           .join(" ")
           .toLowerCase();
 
         const matchesQuery = !normalizedQuery || searchText.includes(normalizedQuery);
         const matchesTrade =
-          selectedTrade === allTradesLabel || artisan.trade === selectedTrade;
+          selectedTrade === allTradesLabel || tradeMatchesSelection(artisan.trade, selectedTrade);
         const matchesDistrict =
-          selectedDistrict === allDistrictsLabel || artisan.district === selectedDistrict;
+          selectedDistrict === allDistrictsLabel || districtMatchesSelection(artisan.district, selectedDistrict);
+        const matchesTag =
+          selectedTag === allTagsLabel || artisan.serviceTags.includes(selectedTag);
 
-        return matchesQuery && matchesTrade && matchesDistrict;
+        return matchesQuery && matchesTrade && matchesDistrict && matchesTag;
       })
       .sort(
         (a, b) =>
           scoreArtisan(b, selectedTrade, selectedDistrict, urgent) -
           scoreArtisan(a, selectedTrade, selectedDistrict, urgent),
       );
-  }, [artisans, query, selectedDistrict, selectedTrade, urgent]);
+  }, [displayArtisans, query, selectedDistrict, selectedTag, selectedTrade, urgent]);
 
   const selectedArtisan =
     filteredArtisans.find((artisan) => artisan.id === selectedArtisanId) ||
@@ -202,12 +264,14 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
   const activeFilterCount =
     (query.trim() ? 1 : 0) +
     (selectedTrade !== allTradesLabel ? 1 : 0) +
-    (selectedDistrict !== allDistrictsLabel ? 1 : 0);
+    (selectedDistrict !== allDistrictsLabel ? 1 : 0) +
+    (selectedTag !== allTagsLabel ? 1 : 0);
   const filterSummary = activeFilterCount
     ? [
         query.trim() ? `"${query.trim()}"` : "",
         selectedTrade !== allTradesLabel ? selectedTrade : "",
         selectedDistrict !== allDistrictsLabel ? selectedDistrict : "",
+        selectedTag !== allTagsLabel ? selectedTag : "",
       ]
         .filter(Boolean)
         .join(" - ")
@@ -222,6 +286,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
     setQuery(preset.query);
     setSelectedTrade(preset.trade);
     setSelectedDistrict(allDistrictsLabel);
+    setSelectedTag(preset.tag);
     setUrgent(true);
     setExpandedArtisanId("");
     document.getElementById("matches")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -231,9 +296,10 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
     setQuery("");
     setSelectedTrade(allTradesLabel);
     setSelectedDistrict(allDistrictsLabel);
+    setSelectedTag(allTagsLabel);
     setUrgent(true);
     setExpandedArtisanId("");
-    setSelectedArtisanId(artisans[0]?.id || "");
+    setSelectedArtisanId(displayArtisans[0]?.id || "");
   }
 
   function applyFilters() {
@@ -372,7 +438,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
               </div>
             </div>
 
-            <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_170px_170px_120px_130px_auto]">
+            <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.1fr)_150px_170px_170px_120px_130px_auto]">
               <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
                 <Search className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
                 <input
@@ -416,6 +482,24 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
                   <option>{allDistrictsLabel}</option>
                   {districts.map((district) => (
                     <option key={district}>{district}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3">
+                <Sparkles className="size-4 shrink-0 text-[#78511c]" aria-hidden="true" />
+                <select
+                  value={selectedTag}
+                  onChange={(event) => {
+                    setSelectedTag(event.target.value);
+                    setExpandedArtisanId("");
+                  }}
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  aria-label="Filter by service tag"
+                >
+                  <option>{allTagsLabel}</option>
+                  {serviceTagOptions.map((tag) => (
+                    <option key={tag}>{tag}</option>
                   ))}
                 </select>
               </label>
@@ -509,6 +593,8 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
               const artisanWhatsappLink = buildWhatsAppLink(artisan, jobNote, clientPhone);
               const hasPortfolio = artisan.portfolioImages.length > 0;
               const detailsId = `artisan-${artisan.id}-details`;
+              const visibleTags = artisan.serviceTags.slice(0, 3);
+              const hiddenTagCount = Math.max(0, artisan.serviceTags.length - visibleTags.length);
 
               return (
                 <article
@@ -567,7 +653,20 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
                     <p className="mt-3 text-sm leading-6 text-[#5f6a64]">{artisan.bio}</p>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {artisan.specialties.map((specialty) => (
+                      {visibleTags.map((tag) => (
+                        <span
+                          key={`${artisan.id}-${tag}`}
+                          className="rounded-md bg-[#e8f6f1] px-2.5 py-1 text-xs font-semibold text-[#0d7c5c]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {hiddenTagCount ? (
+                        <span className="rounded-md bg-[#f2eee4] px-2.5 py-1 text-xs font-semibold text-[#4d5651]">
+                          +{hiddenTagCount}
+                        </span>
+                      ) : null}
+                      {artisan.specialties.slice(0, 3).map((specialty) => (
                         <span
                           key={specialty}
                           className="rounded-md border border-[#ddd8cd] bg-white px-2.5 py-1 text-xs text-[#4d5651]"

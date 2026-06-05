@@ -61,6 +61,32 @@ async function verifiedArtisanId(request: Request) {
   return Number(artisan.id);
 }
 
+async function applicationArtisanId(request: Request) {
+  const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+
+  const supabase = getAdminSupabase();
+  const { data: userData, error: userError } = await supabase.auth.getUser(token);
+  if (userError || !userData.user) {
+    throw new HttpError(401, "invalid_session", "A valid artisan session is required.");
+  }
+
+  const { data: artisan, error: artisanError } = await supabase
+    .from("artisans")
+    .select("id,verification_status")
+    .eq("auth_user_id", userData.user.id)
+    .maybeSingle();
+
+  if (artisanError || !artisan) {
+    throw new HttpError(403, "artisan_profile_missing", "Create an artisan application before uploading work photos.");
+  }
+  if (["rejected", "removed"].includes(String(artisan.verification_status))) {
+    throw new HttpError(403, "artisan_not_active", "This artisan application cannot receive new photos.");
+  }
+
+  return Number(artisan.id);
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return optionsResponse();
   if (request.method !== "POST") {
@@ -88,8 +114,11 @@ Deno.serve(async (request: Request) => {
       if (!allowedPortfolioTypes.includes(contentType)) {
         throw new HttpError(400, "invalid_file_type", "Upload a JPG, PNG, WebP, or GIF image.");
       }
+      const artisanId = await applicationArtisanId(request);
       bucket = "portfolios";
-      path = `artisan-applications/${safeUuid(body.application_id)}/${Date.now()}-${filename}`;
+      path = artisanId
+        ? `artisan-applications/${artisanId}/${crypto.randomUUID()}-${Date.now()}-${filename}`
+        : `artisan-applications/${safeUuid(body.application_id)}/${Date.now()}-${filename}`;
     } else if (purpose === "artisan-portfolio") {
       if (!allowedPortfolioTypes.includes(contentType)) {
         throw new HttpError(400, "invalid_file_type", "Upload a JPG, PNG, WebP, or GIF image.");

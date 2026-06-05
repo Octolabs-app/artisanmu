@@ -12,7 +12,8 @@ import {
   ShieldCheck,
   UserRoundPlus,
 } from "lucide-react";
-import { invokePublicFunction } from "@/lib/artisanmu-functions";
+import { invokePublicFunction, invokeUserFunction } from "@/lib/artisanmu-functions";
+import { districtOptions, serviceTagOptions, tradeOptions } from "@/lib/service-options";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
 
 type RegistrationState = {
@@ -25,33 +26,9 @@ type RegistrationState = {
   town: string;
   bio: string;
   specialties: string;
+  serviceTags: string[];
   files: File[];
 };
-
-const tradeOptions = [
-  "Plumber",
-  "Electrician",
-  "Painter",
-  "Carpenter",
-  "AC technician",
-  "Locksmith",
-  "Other",
-];
-
-const districtOptions = [
-  "Port Louis",
-  "Curepipe",
-  "Quatre Bornes",
-  "Rose Hill",
-  "Mahébourg",
-  "Flacq",
-  "Rivière du Rempart",
-  "Vacoas",
-  "Phoenix",
-  "Beau Bassin",
-  "Grand Baie",
-  "Souillac",
-];
 
 const initialForm: RegistrationState = {
   name: "",
@@ -63,6 +40,7 @@ const initialForm: RegistrationState = {
   town: "",
   bio: "",
   specialties: "",
+  serviceTags: [],
   files: [],
 };
 
@@ -72,14 +50,6 @@ const maxBytes = 5 * 1024 * 1024;
 function localWhatsapp(value: string) {
   const digits = value.replace(/\D/g, "");
   return digits.startsWith("230") ? digits.slice(3) : digits;
-}
-
-function applicationId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `${Date.now()}-application`.padEnd(36, "0").slice(0, 36);
 }
 
 function validateFiles(files: File[]) {
@@ -92,13 +62,13 @@ function validateFiles(files: File[]) {
   return "";
 }
 
-async function uploadApplicationPhoto(file: File, id: string) {
+async function uploadApplicationPhoto(file: File) {
   const supabase = getBrowserSupabase();
   if (!supabase) {
     throw new Error("Photo upload is not configured for this build.");
   }
 
-  const signPayload = await invokePublicFunction<{
+  const signPayload = await invokeUserFunction<{
     signedUrl?: string;
     token?: string;
     path?: string;
@@ -106,7 +76,6 @@ async function uploadApplicationPhoto(file: File, id: string) {
     message?: string;
   }>("artisanmu-sign-upload", {
     purpose: "artisan-application",
-    application_id: id,
     filename: file.name,
     content_type: file.type,
     size: file.size,
@@ -128,8 +97,9 @@ export function ArtisanRegistrationForm() {
   const [form, setForm] = useState<RegistrationState>(initialForm);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [success, setSuccess] = useState("");
-  const [batchId, setBatchId] = useState(applicationId);
+  const [photoStatus, setPhotoStatus] = useState("");
 
   const localPhone = localWhatsapp(form.whatsapp);
   const fileSummary = useMemo(() => {
@@ -140,6 +110,17 @@ export function ArtisanRegistrationForm() {
 
   function updateForm(next: Partial<RegistrationState>) {
     setForm((current) => ({ ...current, ...next }));
+    setError("");
+  }
+
+  function toggleServiceTag(tag: string) {
+    setForm((current) => {
+      const selected = current.serviceTags.includes(tag);
+      const nextTags = selected
+        ? current.serviceTags.filter((item) => item !== tag)
+        : [...current.serviceTags, tag].slice(0, 8);
+      return { ...current, serviceTags: nextTags };
+    });
     setError("");
   }
 
@@ -154,6 +135,7 @@ export function ArtisanRegistrationForm() {
     if (!form.specialties.split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean).length) {
       return "Add at least one specialty.";
     }
+    if (!form.serviceTags.length) return "Choose at least one service tag.";
 
     return validateFiles(form.files);
   }
@@ -168,33 +150,67 @@ export function ArtisanRegistrationForm() {
 
     setSubmitting(true);
     setError("");
+    setPhotoStatus("");
+    let applicationCreated = false;
 
     try {
-      const portfolioPaths = await Promise.all(form.files.map((file) => uploadApplicationPhoto(file, batchId)));
+      const filesToUpload = form.files;
+      const email = form.email.trim();
+      const password = form.password;
       const payload = await invokePublicFunction<{ success?: boolean; message?: string }>("artisanmu-register-artisan", {
         name: form.name.trim(),
-        email: form.email.trim(),
-        password: form.password,
+        email,
+        password,
         whatsapp: `+230${localPhone}`,
         trade: form.trade,
         district: form.district,
         town: form.town.trim(),
         bio: form.bio.trim(),
         specialties: form.specialties,
-        portfolio_paths: portfolioPaths,
+        service_tags: form.serviceTags,
       });
 
       if (!payload.success) {
         throw new Error(payload.message || "Application could not be submitted.");
       }
 
-      setSuccess(payload.message || "Application received. You can log in after approval.");
+      setSubmitting(false);
+      setUploadingPhotos(true);
+      applicationCreated = true;
+      setSuccess(payload.message || "Application received. Uploading work photos for admin review.");
+
+      const supabase = getBrowserSupabase();
+      if (!supabase) {
+        throw new Error("Application was created, but photo upload is not configured for this build.");
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        throw new Error(`Application was created, but photos could not attach yet: ${signInError.message}`);
+      }
+
+      const portfolioPaths = await Promise.all(filesToUpload.map((file) => uploadApplicationPhoto(file)));
+      const attachPayload = await invokeUserFunction<{ success?: boolean; message?: string }>("artisanmu-artisan-profile", {
+        action: "add_application_photos",
+        paths: portfolioPaths,
+      });
+
+      if (!attachPayload.success) {
+        throw new Error(attachPayload.message || "Application was created, but photos could not attach yet.");
+      }
+
+      setSuccess("Application received with work photos. You can open the status dashboard while admin reviews it.");
+      setPhotoStatus("Work photos uploaded for review.");
       setForm(initialForm);
-      setBatchId(applicationId());
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Application failed. Try again.");
+      if (applicationCreated) {
+        setPhotoStatus(submitError instanceof Error ? submitError.message : "Application was created, but photo upload needs retry.");
+      } else {
+        setError(submitError instanceof Error ? submitError.message : "Application failed. Try again.");
+      }
     } finally {
       setSubmitting(false);
+      setUploadingPhotos(false);
     }
   }
 
@@ -219,6 +235,12 @@ export function ArtisanRegistrationForm() {
             {success}
           </div>
         </div>
+      ) : null}
+
+      {photoStatus ? (
+        <p className="mt-3 rounded-md border border-[#d7c292] bg-[#fff8e8] px-3 py-2 text-sm font-medium text-[#78511c]">
+          {photoStatus}
+        </p>
       ) : null}
 
       <form onSubmit={handleSubmit} className="mt-4 grid gap-3" noValidate>
@@ -343,6 +365,33 @@ export function ArtisanRegistrationForm() {
           />
         </label>
 
+        <fieldset className="grid gap-2 rounded-lg border border-[#ddd8cd] bg-white p-3">
+          <legend className="px-1 text-sm font-medium text-[#101410]">Service tags</legend>
+          <p className="text-xs leading-5 text-[#5f6a64]">
+            Tags help clients filter by the kind of help they need.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {serviceTagOptions.map((tag) => {
+              const selected = form.serviceTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleServiceTag(tag)}
+                  aria-pressed={selected}
+                  className={`inline-flex min-h-10 items-center rounded-md px-3 text-xs font-semibold transition ${
+                    selected
+                      ? "bg-[#0d8b66] text-white"
+                      : "border border-[#ddd8cd] bg-[#f8f4ea] text-[#4d5651] hover:border-[#0d8b66]"
+                  }`}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
         <label className="block cursor-pointer rounded-lg border border-dashed border-[#c9c2b6] bg-[#f8f4ea] p-4 text-center text-sm text-[#4d5651] hover:border-[#0d8b66]">
           <ImagePlus className="mx-auto size-6 text-[#0d8b66]" aria-hidden="true" />
           <span className="mt-2 block font-semibold text-[#101410]">{fileSummary}</span>
@@ -364,15 +413,15 @@ export function ArtisanRegistrationForm() {
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || uploadingPhotos}
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white hover:bg-[#0b7758] disabled:cursor-wait disabled:opacity-75"
         >
-          {submitting ? (
+          {submitting || uploadingPhotos ? (
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           ) : (
             <ShieldCheck className="size-4" aria-hidden="true" />
           )}
-          {submitting ? "Submitting..." : "Submit application"}
+          {submitting ? "Creating account..." : uploadingPhotos ? "Uploading photos..." : "Submit application"}
         </button>
 
         <p className="flex gap-2 rounded-md border border-[#c8d9f2] bg-[#eef5ff] px-3 py-2 text-xs leading-5 text-[#234f7a]">

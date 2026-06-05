@@ -219,50 +219,149 @@ export const allowedTrades = [
   "Electrician",
   "Painter",
   "Carpenter",
+  "Mason",
   "AC technician",
   "Locksmith",
+  "Gardener",
+  "Plombier",
+  "Electricien",
+  "Électricien",
+  "Peintre",
+  "Menuisier",
+  "Macon",
+  "Maçon",
+  "Climatisation",
+  "Serrurier",
+  "Jardinier",
   "Other",
 ];
-export const allowedDistricts = [
+
+export const canonicalDistricts = [
   "Port Louis",
-  "Curepipe",
-  "Quatre Bornes",
-  "Rose Hill",
-  "Mahebourg",
-  "Mahébourg",
-  "Flacq",
+  "Pamplemousses",
   "Riviere du Rempart",
-  "Rivière du Rempart",
-  "Vacoas",
-  "Phoenix",
-  "Beau Bassin",
-  "Grand Baie",
-  "Souillac",
+  "Flacq",
+  "Grand Port",
+  "Savanne",
+  "Plaines Wilhems",
+  "Moka",
+  "Black River",
+  "Rodrigues",
+];
+
+const districtAliases: Record<string, string[]> = {
+  "Port Louis": ["Port Louis", "Port-Louis"],
+  Pamplemousses: ["Pamplemousses"],
+  "Riviere du Rempart": ["Riviere du Rempart", "Rivière du Rempart", "Grand Baie"],
+  Flacq: ["Flacq"],
+  "Grand Port": ["Grand Port", "Mahebourg", "Mahébourg"],
+  Savanne: ["Savanne", "Souillac"],
+  "Plaines Wilhems": [
+    "Plaines Wilhems",
+    "Plaine Wilhems",
+    "Curepipe",
+    "Quatre Bornes",
+    "Rose Hill",
+    "Vacoas",
+    "Phoenix",
+    "Beau Bassin",
+  ],
+  Moka: ["Moka"],
+  "Black River": ["Black River", "Riviere Noire", "Rivière Noire"],
+  Rodrigues: ["Rodrigues", "Port Mathurin"],
+};
+
+export const allowedDistricts = Array.from(
+  new Set([...canonicalDistricts, ...Object.values(districtAliases).flat()]),
+);
+
+export const allowedServiceTags = [
+  "Emergency repair",
+  "Same-day service",
+  "Leak repair",
+  "No power",
+  "AC service",
+  "Installation",
+  "Maintenance",
+  "Renovation",
+  "Inspection",
+  "After-hours",
+  "Weekend jobs",
+  "Small jobs",
+  "Commercial work",
+  "Home repairs",
 ];
 
 export function tradeAliases(trade: string) {
   const aliases: Record<string, string[]> = {
     Plumber: ["Plumber", "Plombier"],
+    Plombier: ["Plumber", "Plombier"],
     Electrician: ["Electrician", "Electricien", "Électricien"],
+    Electricien: ["Electrician", "Electricien", "Électricien"],
+    "Électricien": ["Electrician", "Electricien", "Électricien"],
     Painter: ["Painter", "Peintre"],
+    Peintre: ["Painter", "Peintre"],
     Carpenter: ["Carpenter", "Menuisier"],
+    Menuisier: ["Carpenter", "Menuisier"],
+    Mason: ["Mason", "Macon", "Maçon"],
+    Macon: ["Mason", "Macon", "Maçon"],
+    "Maçon": ["Mason", "Macon", "Maçon"],
     "AC technician": ["AC technician", "Climatisation", "Technicien clim", "Aircon"],
+    Climatisation: ["AC technician", "Climatisation", "Technicien clim", "Aircon"],
     Locksmith: ["Locksmith", "Serrurier"],
+    Serrurier: ["Locksmith", "Serrurier"],
+    Gardener: ["Gardener", "Jardinier"],
+    Jardinier: ["Gardener", "Jardinier"],
     Other: [],
   };
 
   return aliases[trade] || [trade];
 }
 
-export function matchingDistricts(district: string) {
-  const aliases: Record<string, string[]> = {
-    Mahebourg: ["Mahebourg", "Mahébourg"],
-    "Mahébourg": ["Mahebourg", "Mahébourg"],
-    "Riviere du Rempart": ["Riviere du Rempart", "Rivière du Rempart"],
-    "Rivière du Rempart": ["Riviere du Rempart", "Rivière du Rempart"],
-  };
+function keyFor(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
 
-  return aliases[district] || [district];
+export function canonicalDistrict(value: string) {
+  const candidateKey = keyFor(value);
+  for (const [district, aliases] of Object.entries(districtAliases)) {
+    if (aliases.some((alias) => keyFor(alias) === candidateKey)) return district;
+  }
+
+  return value;
+}
+
+export function matchingDistricts(district: string) {
+  const canonical = canonicalDistrict(district);
+  return districtAliases[canonical] || [canonical];
+}
+
+export function normalizeServiceTags(value: unknown, requireOne = false) {
+  const rawItems = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/[\n,;]+/)
+      : [];
+  const allowedByKey = new Map(allowedServiceTags.map((tag) => [keyFor(tag), tag]));
+  const tags = Array.from(
+    new Set(
+      rawItems
+        .map((item) => String(item).trim().replace(/\s+/g, " "))
+        .map((item) => allowedByKey.get(keyFor(item)) || item)
+        .filter((item) => item.length >= 2 && item.length <= 34),
+    ),
+  ).slice(0, 8);
+
+  if (requireOne && !tags.length) {
+    throw new HttpError(400, "missing_service_tags", "Choose at least one service tag.");
+  }
+
+  return tags;
 }
 
 export function safePhotoPath(value: unknown) {

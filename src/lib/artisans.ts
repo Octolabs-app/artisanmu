@@ -4,7 +4,10 @@ import type { Artisan } from "./types";
 
 export async function getArtisans(): Promise<Artisan[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY;
 
   if (!url || !key) return [];
 
@@ -13,6 +16,7 @@ export async function getArtisans(): Promise<Artisan[]> {
     .from("artisans")
     .select(publicArtisanSelect)
     .eq("is_verified", true)
+    .eq("verification_status", "approved")
     .order("created_at", { ascending: false });
 
   if (error || !data?.length) return [];

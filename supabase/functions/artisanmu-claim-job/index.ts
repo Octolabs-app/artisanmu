@@ -37,9 +37,10 @@ Deno.serve(async (request: Request) => {
 
     const { data: artisan, error: artisanError } = await supabase
       .from("artisans")
-      .select("id,nom,is_verified,auth_user_id")
+      .select("id,nom,is_verified,auth_user_id,verification_status")
       .eq("auth_user_id", userData.user.id)
       .eq("is_verified", true)
+      .eq("verification_status", "approved")
       .maybeSingle();
 
     if (artisanError || !artisan) {

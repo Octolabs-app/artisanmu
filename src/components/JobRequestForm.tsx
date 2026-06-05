@@ -16,6 +16,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { invokePublicFunction } from "@/lib/artisanmu-functions";
+import { districtOptions, tradeOptions } from "@/lib/service-options";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
 
 type Urgency = "urgent" | "planned";
@@ -36,31 +37,6 @@ type Confirmation = {
   responseMinutes: number;
   urgency: Urgency;
 };
-
-const tradeOptions = [
-  "Plumber",
-  "Electrician",
-  "Painter",
-  "Carpenter",
-  "AC technician",
-  "Locksmith",
-  "Other",
-];
-
-const districtOptions = [
-  "Port Louis",
-  "Curepipe",
-  "Quatre Bornes",
-  "Rose Hill",
-  "Mahébourg",
-  "Flacq",
-  "Rivière du Rempart",
-  "Vacoas",
-  "Phoenix",
-  "Beau Bassin",
-  "Grand Baie",
-  "Souillac",
-];
 
 const stepLabels = ["Urgency", "Problem", "Location", "Contact"];
 

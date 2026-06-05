@@ -24,6 +24,7 @@ type AdminArtisanRow = {
   ville: string;
   district: string | null;
   expertise: string | null;
+  service_tags: string[] | null;
   bio: string | null;
   avatar: string | null;
   photos: string | null;
@@ -50,6 +51,7 @@ const selectColumns = [
   "ville",
   "district",
   "expertise",
+  "service_tags",
   "bio",
   "avatar",
   "photos",
@@ -117,6 +119,7 @@ function formatRow(row: AdminArtisanRow) {
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean),
+    serviceTags: Array.isArray(row.service_tags) ? row.service_tags.filter(Boolean) : [],
     bio: row.bio || "",
     photos,
     photoCount: photos.length,

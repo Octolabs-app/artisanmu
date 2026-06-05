@@ -56,6 +56,7 @@ type LiveAdminArtisan = {
   town: string;
   district: string;
   specialties: string[];
+  serviceTags: string[];
   bio: string;
   photos: string[];
   photoCount: number;
@@ -191,7 +192,7 @@ function ReviewCard({
       <p className="mt-3 text-sm leading-6 text-[#4d5651]">{artisan.bio}</p>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {[artisan.email || "No email", artisan.phone, `${artisan.photoCount} photos`, ...artisan.specialties].map((check) => (
+        {[artisan.email || "No email", artisan.phone, `${artisan.photoCount} photos`, ...artisan.serviceTags, ...artisan.specialties].map((check) => (
           <span key={check} className="rounded-md border border-[#ddd8cd] bg-white px-2.5 py-1 text-xs text-[#4d5651]">
             {check}
           </span>
@@ -246,6 +247,7 @@ function AdEditor({ placement }: { placement: AdPlacement }) {
   const [status, setStatus] = useState(placement.status);
   const [format, setFormat] = useState(placement.format);
   const [adsenseFormat, setAdsenseFormat] = useState(placement.adsenseFormat);
+  const [notice, setNotice] = useState("");
   const clickRate = placement.impressions
     ? `${((placement.clicks / placement.impressions) * 100).toFixed(1)}%`
     : "0.0%";
@@ -302,12 +304,22 @@ function AdEditor({ placement }: { placement: AdPlacement }) {
               <option>Paused</option>
             </select>
           </label>
-          <button className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white hover:bg-[#0b7758]">
+          <button
+            type="button"
+            onClick={() => setNotice(`Preview refreshed for ${placement.name}.`)}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white hover:bg-[#0b7758]"
+          >
             <Eye className="size-4" aria-hidden="true" />
             Preview
           </button>
         </div>
       </div>
+
+      {notice ? (
+        <p className="mt-3 rounded-md border border-[#d7c292] bg-[#fff8e8] px-3 py-2 text-sm font-medium text-[#78511c]">
+          {notice}
+        </p>
+      ) : null}
 
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <label className="block text-sm font-medium text-[#101410]">
@@ -391,14 +403,15 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
   const [mutatingArtisanId, setMutatingArtisanId] = useState("");
   const [hiddenReviewIds, setHiddenReviewIds] = useState<string[]>([]);
   const [deletedJobIds, setDeletedJobIds] = useState<string[]>([]);
+  const [adminNotice, setAdminNotice] = useState("");
   const activeArtisanCount = artisanMetrics.active;
   const livePlacementCount = adPlacements.filter((placement) => placement.status === "Live").length;
   const visibleJobRequests = jobRequests.filter((job) => !deletedJobIds.includes(job.id));
   const cleanupQueueCount = visibleJobRequests.filter((job) => job.cleanupEligible).length;
 
   const applyPayload = useCallback((payload: AdminArtisanPayload) => {
-    setPendingArtisans(payload.pending || []);
-    setManagedArtisans(payload.artisans || []);
+    setPendingArtisans((payload.pending || []).map((artisan) => ({ ...artisan, serviceTags: artisan.serviceTags || [] })));
+    setManagedArtisans((payload.artisans || []).map((artisan) => ({ ...artisan, serviceTags: artisan.serviceTags || [] })));
     setArtisanMetrics(payload.metrics || { pending: 0, active: 0, removed: 0, rejected: 0 });
   }, []);
 
@@ -458,7 +471,7 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
     if (!normalized) return pendingArtisans;
 
     return pendingArtisans.filter((artisan) =>
-      [artisan.name, artisan.trade, artisan.town, artisan.district, artisan.phone]
+      [artisan.name, artisan.trade, artisan.town, artisan.district, artisan.phone, ...artisan.serviceTags]
         .join(" ")
         .toLowerCase()
         .includes(normalized),
@@ -470,7 +483,7 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
     if (!normalized) return managedArtisans;
 
     return managedArtisans.filter((artisan) =>
-      [artisan.name, artisan.trade, artisan.town, artisan.district, artisan.phone, artisan.email]
+      [artisan.name, artisan.trade, artisan.town, artisan.district, artisan.phone, artisan.email, ...artisan.serviceTags]
         .join(" ")
         .toLowerCase()
         .includes(normalized),
@@ -814,11 +827,20 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
                   </select>
                   <input className="h-11 rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none" inputMode="numeric" placeholder="AdSense slot ID" />
                   <input className="h-11 rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none" placeholder="https://destination" />
-                  <button className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white">
+                  <button
+                    type="button"
+                    onClick={() => setAdminNotice("Ad draft saved locally for this admin session. Live ad storage is not connected yet.")}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white"
+                  >
                     <CircleDollarSign className="size-4" aria-hidden="true" />
                     Save draft
                   </button>
                 </div>
+                {adminNotice ? (
+                  <p className="mt-3 rounded-md border border-[#d7c292] bg-white px-3 py-2 text-sm font-medium text-[#78511c]">
+                    {adminNotice}
+                  </p>
+                ) : null}
                 <div className="mt-3 grid gap-2 text-xs text-[#60451f] sm:grid-cols-3">
                   <span className="rounded-md bg-white px-3 py-2">Keep away from navigation and primary CTAs</span>
                   <span className="rounded-md bg-white px-3 py-2">No popups, overlays, or auto-refresh</span>

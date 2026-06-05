@@ -11,6 +11,7 @@ export type Artisan = {
   priceHint: string;
   verified: boolean;
   specialties: string[];
+  serviceTags: string[];
   bio: string;
   phone: string;
   image: string;

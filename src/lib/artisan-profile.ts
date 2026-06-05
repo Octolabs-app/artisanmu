@@ -2,10 +2,10 @@ import { tradeImages } from "./mock-data";
 import type { Artisan } from "./types";
 
 export const publicArtisanSelect =
-  "id,nom,metier,ville,district,tel,expertise,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,has_fast_response_badge,has_top_rated_badge,created_at";
+  "id,nom,metier,ville,district,tel,expertise,service_tags,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,has_fast_response_badge,has_top_rated_badge,verification_status,created_at";
 
 export const ownArtisanProfileSelect =
-  "id,nom,metier,ville,district,tel,lien,gps,expertise,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,has_fast_response_badge,has_top_rated_badge,verification_status,application_email,created_at,auth_user_id";
+  "id,nom,metier,ville,district,tel,lien,gps,expertise,service_tags,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,has_fast_response_badge,has_top_rated_badge,verification_status,application_email,created_at,auth_user_id";
 
 export type SupabaseArtisanProfile = {
   id: number;
@@ -17,6 +17,7 @@ export type SupabaseArtisanProfile = {
   lien?: string | null;
   gps?: string | null;
   expertise: string | null;
+  service_tags?: string[] | null;
   bio: string | null;
   note_total: number | null;
   nombre_avis: number | null;
@@ -87,7 +88,8 @@ export function mapSupabaseArtisan(row: SupabaseArtisanProfile): Artisan {
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean)
-      .slice(0, 3),
+      .slice(0, 8),
+    serviceTags: Array.isArray(row.service_tags) ? row.service_tags.filter(Boolean).slice(0, 8) : [],
     bio: row.bio || "Profil verifie par ArtisanMu.",
     phone: row.tel || "",
     image: profileImage,
