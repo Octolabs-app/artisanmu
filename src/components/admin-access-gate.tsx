@@ -21,6 +21,7 @@ async function sha256Hex(value: string) {
 
 export function AdminAccessGate() {
   const [unlocked, setUnlocked] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
@@ -39,6 +40,7 @@ export function AdminAccessGate() {
     const candidateHash = await sha256Hex(password.trim());
 
     if (candidateHash === ADMIN_PASSWORD_HASH) {
+      setAdminPassword(password.trim());
       setUnlocked(true);
       setPassword("");
       setChecking(false);
@@ -50,7 +52,7 @@ export function AdminAccessGate() {
   }
 
   if (unlocked) {
-    return <AdminConsole />;
+    return <AdminConsole adminPassword={adminPassword} />;
   }
 
   return (

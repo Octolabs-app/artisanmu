@@ -22,4 +22,6 @@ export type Artisan = {
   authUserId?: string;
   createdAt?: string;
   badges?: string[];
+  verificationStatus?: "pending" | "approved" | "rejected" | "removed";
+  applicationEmail?: string;
 };

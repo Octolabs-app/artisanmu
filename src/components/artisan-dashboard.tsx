@@ -20,6 +20,7 @@ import {
   Sparkles,
   Star,
   TimerReset,
+  Trash2,
   UserRound,
   Wrench,
   type LucideIcon,
@@ -28,6 +29,7 @@ import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { UrgentJobCard } from "@/components/UrgentJobCard";
 import { commentThreads, reviewItems } from "@/lib/admin-data";
+import { invokeUserFunction } from "@/lib/artisanmu-functions";
 import {
   mapSupabaseArtisan,
   ownArtisanProfileSelect,
@@ -78,8 +80,51 @@ type DashboardNotification = {
   job: DashboardJobRow;
 };
 
+const allowedPortfolioTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const maxPortfolioBytes = 5 * 1024 * 1024;
+
 function joinedJob(value: DashboardNotificationRow["job"]) {
   return Array.isArray(value) ? value[0] || null : value;
+}
+
+function validatePortfolioFiles(files: File[]) {
+  if (!files.length) return "Choose at least one photo.";
+  if (files.length > 6) return "Upload up to 6 photos at once.";
+
+  const invalid = files.find((file) => !allowedPortfolioTypes.includes(file.type) || file.size <= 0 || file.size > maxPortfolioBytes);
+  if (invalid) return "Use JPG, PNG, WebP, or GIF images under 5 MB.";
+
+  return "";
+}
+
+async function uploadPortfolioPhoto(file: File) {
+  const supabase = getBrowserSupabase();
+  if (!supabase) {
+    throw new Error("Portfolio uploads are not configured for this build.");
+  }
+
+  const signPayload = await invokeUserFunction<{
+    token?: string;
+    path?: string;
+    bucket?: string;
+    message?: string;
+  }>("artisanmu-sign-upload", {
+    purpose: "artisan-portfolio",
+    filename: file.name,
+    content_type: file.type,
+    size: file.size,
+  });
+
+  if (!signPayload.token || !signPayload.path || signPayload.bucket !== "portfolios") {
+    throw new Error(signPayload.message || "Portfolio upload could not start.");
+  }
+
+  const { error } = await supabase.storage
+    .from("portfolios")
+    .uploadToSignedUrl(signPayload.path, signPayload.token, file);
+
+  if (error) throw new Error(error.message || "Portfolio upload failed.");
+  return signPayload.path;
 }
 
 function profileCompletion(artisan: Artisan) {
@@ -155,6 +200,80 @@ function EmptyDashboard({
   );
 }
 
+function PendingArtisanDashboard({
+  artisan,
+  onSignOut,
+}: {
+  artisan: Artisan;
+  onSignOut: () => void;
+}) {
+  const statusCopy =
+    artisan.verificationStatus === "rejected"
+      ? "Your application was not approved. Contact Octolabs if you need the review details reopened."
+      : artisan.verificationStatus === "removed"
+        ? "This artisan profile has been removed from active matching."
+        : "Your application is waiting for admin validation. Job notifications and the full dashboard stay locked until approval.";
+
+  return (
+    <main className="min-h-screen bg-[#f6f4ef] text-[#101410]">
+      <header className="border-b border-[#ddd8cd] bg-[#fffdf8]">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <Link href="/" aria-label="ArtisanMU home">
+            <ArtisanMuLogo subtitle="Application status" />
+          </Link>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-3 text-sm font-semibold text-[#0d1612]"
+          >
+            <LogOut className="size-4" aria-hidden="true" />
+            Sign out
+          </button>
+        </div>
+      </header>
+
+      <section className="mx-auto grid min-h-[calc(100vh-73px)] max-w-5xl place-items-center px-4 py-6 sm:px-6">
+        <div className="grid w-full gap-4 rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 shadow-sm sm:grid-cols-[120px_minmax(0,1fr)] sm:p-6">
+          <div className="relative size-28 overflow-hidden rounded-lg bg-[#ddd8cd]">
+            <Image
+              src={artisan.image}
+              alt={artisan.name}
+              fill
+              sizes="112px"
+              className="object-cover"
+            />
+          </div>
+          <div className="min-w-0">
+            <span className="inline-flex items-center gap-2 rounded-md bg-[#fff7e7] px-2.5 py-1.5 text-xs font-semibold text-[#78511c]">
+              <ShieldCheck className="size-3.5" aria-hidden="true" />
+              {artisan.verificationStatus === "pending" ? "Pending review" : artisan.verificationStatus || "Pending review"}
+            </span>
+            <h1 className="mt-3 text-2xl font-semibold text-[#101410]">{artisan.name}</h1>
+            <p className="mt-1 text-sm text-[#5f6a64]">
+              {artisan.trade} - {artisan.town}, {artisan.district}
+            </p>
+            <p className="mt-3 text-sm leading-6 text-[#4d5651]">{statusCopy}</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <Link
+                href="/"
+                className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]"
+              >
+                Back to marketplace
+              </Link>
+              <Link
+                href="mailto:hello@octolabs.app?subject=ArtisanMU%20application%20review"
+                className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white"
+              >
+                Contact Octolabs
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 export function ArtisanDashboard() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("jobs");
   const [artisan, setArtisan] = useState<Artisan | null>(null);
@@ -165,6 +284,9 @@ export function ArtisanDashboard() {
   const [jobNotifications, setJobNotifications] = useState<DashboardNotification[]>([]);
   const [jobsLoading, setJobsLoading] = useState(false);
   const [jobsError, setJobsError] = useState("");
+  const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
+  const [portfolioSaving, setPortfolioSaving] = useState(false);
+  const [portfolioMessage, setPortfolioMessage] = useState("");
 
   const supabase = useMemo(() => getBrowserSupabase(), []);
 
@@ -343,7 +465,11 @@ export function ArtisanDashboard() {
       setArtisan(mappedArtisan);
       setAvailable(mappedArtisan.available);
       setStatus("ready");
-      void loadTargetedJobs();
+      if (mappedArtisan.verified && mappedArtisan.verificationStatus === "approved") {
+        void loadTargetedJobs();
+      } else {
+        setJobNotifications([]);
+      }
     }
 
     loadProfile();
@@ -396,6 +522,82 @@ export function ArtisanDashboard() {
     setSavingAvailability(false);
   }
 
+  async function handlePortfolioUpload() {
+    if (!artisan || portfolioSaving) return;
+
+    const fileError = validatePortfolioFiles(portfolioFiles);
+    if (fileError) {
+      setPortfolioMessage(fileError);
+      return;
+    }
+
+    setPortfolioSaving(true);
+    setPortfolioMessage("");
+
+    try {
+      const paths = await Promise.all(portfolioFiles.map(uploadPortfolioPhoto));
+      const payload = await invokeUserFunction<{
+        success?: boolean;
+        photos?: string[];
+        avatar?: string | null;
+        message?: string;
+      }>("artisanmu-artisan-portfolio", {
+        action: "add",
+        paths,
+      });
+
+      if (!payload.success || !payload.photos) {
+        throw new Error(payload.message || "Portfolio photos could not be saved.");
+      }
+
+      setArtisan({
+        ...artisan,
+        portfolioImages: payload.photos,
+        image: payload.avatar || artisan.image,
+      });
+      setPortfolioFiles([]);
+      setPortfolioMessage("Portfolio photos added.");
+    } catch (portfolioError) {
+      setPortfolioMessage(portfolioError instanceof Error ? portfolioError.message : "Portfolio upload failed.");
+    } finally {
+      setPortfolioSaving(false);
+    }
+  }
+
+  async function handlePortfolioRemove(photoUrl: string) {
+    if (!artisan || portfolioSaving) return;
+
+    setPortfolioSaving(true);
+    setPortfolioMessage("");
+
+    try {
+      const payload = await invokeUserFunction<{
+        success?: boolean;
+        photos?: string[];
+        avatar?: string | null;
+        message?: string;
+      }>("artisanmu-artisan-portfolio", {
+        action: "remove",
+        photo_url: photoUrl,
+      });
+
+      if (!payload.success || !payload.photos) {
+        throw new Error(payload.message || "Portfolio photo could not be removed.");
+      }
+
+      setArtisan({
+        ...artisan,
+        portfolioImages: payload.photos,
+        image: payload.avatar || artisan.image,
+      });
+      setPortfolioMessage("Portfolio photo removed.");
+    } catch (portfolioError) {
+      setPortfolioMessage(portfolioError instanceof Error ? portfolioError.message : "Could not remove photo.");
+    } finally {
+      setPortfolioSaving(false);
+    }
+  }
+
   async function handleSignOut() {
     if (!supabase) return;
 
@@ -432,13 +634,17 @@ export function ArtisanDashboard() {
         title={status === "signed-out" ? "Log in to continue" : "No artisan profile connected"}
         copy={
           status === "signed-out"
-            ? "Use your approved artisan account to open leads, profile settings, reviews, and comments."
+            ? "Use your artisan account to continue. Pending profiles will see application status only."
             : errorMessage ||
-              "This account is not linked to an ArtisanMu artisan profile yet. Ask the admin to approve and link it first."
+              "This account is not linked to an ArtisanMu artisan profile yet. Submit the artisan application first."
         }
         actionLabel="Artisan login"
       />
     );
+  }
+
+  if (!artisan.verified || artisan.verificationStatus !== "approved") {
+    return <PendingArtisanDashboard artisan={artisan} onSignOut={handleSignOut} />;
   }
 
   return (
@@ -648,6 +854,87 @@ export function ArtisanDashboard() {
 
           {activeTab === "profile" ? (
             <div className="mt-0 grid gap-3 md:mt-4 md:grid-cols-2">
+              <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm md:col-span-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="font-semibold text-[#101410]">Portfolio showcase</h2>
+                    <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                      Add recent work photos that clients can view on your public profile.
+                    </p>
+                  </div>
+                  <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]">
+                    <ImagePlus className="size-4 text-[#0d8b66]" aria-hidden="true" />
+                    Choose photos
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      multiple
+                      className="sr-only"
+                      onChange={(event) => {
+                        setPortfolioFiles(Array.from(event.target.files || []).slice(0, 6));
+                        setPortfolioMessage("");
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <p className="rounded-md bg-[#f8f4ea] px-3 py-2 text-sm text-[#4d5651]">
+                    {portfolioFiles.length
+                      ? `${portfolioFiles.length} selected: ${portfolioFiles.map((file) => file.name).join(", ")}`
+                      : `${artisan.portfolioImages.length} portfolio photos live`}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handlePortfolioUpload}
+                    disabled={portfolioSaving || !portfolioFiles.length}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#93a198]"
+                  >
+                    {portfolioSaving ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <ImagePlus className="size-4" aria-hidden="true" />
+                    )}
+                    Upload
+                  </button>
+                </div>
+
+                {portfolioMessage ? (
+                  <p className="mt-3 rounded-md border border-[#d7c292] bg-[#fff8e8] px-3 py-2 text-sm font-medium text-[#78511c]">
+                    {portfolioMessage}
+                  </p>
+                ) : null}
+
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                  {artisan.portfolioImages.length ? (
+                    artisan.portfolioImages.map((photo, index) => (
+                      <div key={photo} className="group relative aspect-square overflow-hidden rounded-lg border border-[#ddd8cd] bg-[#f8f4ea]">
+                        <Image
+                          src={photo}
+                          alt={`${artisan.name} portfolio ${index + 1}`}
+                          fill
+                          sizes="(max-width: 768px) 50vw, 220px"
+                          className="object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handlePortfolioRemove(photo)}
+                          disabled={portfolioSaving}
+                          className="absolute right-2 top-2 inline-flex size-9 items-center justify-center rounded-md bg-[#0d1612]/85 text-white opacity-100 shadow-sm sm:opacity-0 sm:transition sm:group-hover:opacity-100"
+                          aria-label={`Remove portfolio photo ${index + 1}`}
+                        >
+                          <Trash2 className="size-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full rounded-lg border border-dashed border-[#cfc6b6] bg-[#f8f4ea] p-5 text-sm leading-6 text-[#5f6a64]">
+                      Your approved work photos will appear here.
+                    </div>
+                  )}
+                </div>
+              </article>
+
               {profileCards.map(([title, value, Icon, action]) => (
                 <article key={title as string} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">

@@ -9,8 +9,8 @@ import {
   Mail,
   MessageCircle,
   ShieldCheck,
-  UserRoundPlus,
 } from "lucide-react";
+import { ArtisanRegistrationForm } from "@/components/artisan-registration-form";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { getBrowserSupabase, getMissingBrowserSupabaseEnv } from "@/lib/supabase-browser";
 
@@ -98,7 +98,7 @@ export function LoginAccessPanel() {
     if (!linked) {
       await supabase.auth.signOut();
       setNotice(
-        "This account is not linked to an ArtisanMu artisan profile yet. Ask the admin to approve and link it first.",
+        "This account is not linked to an ArtisanMu artisan profile yet. Submit the artisan application first.",
       );
       setPassword("");
       setSubmitting(false);
@@ -133,7 +133,7 @@ export function LoginAccessPanel() {
             Log in to manage your ArtisanMu profile.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f6a64]">
-            Use the email and password linked to your approved artisan profile. Admin access stays on the private admin page.
+            Use the email and password linked to your ArtisanMu artisan profile. Admin access stays on the private admin page.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-5 grid gap-4" noValidate>
@@ -187,21 +187,7 @@ export function LoginAccessPanel() {
         </div>
 
         <aside className="grid gap-3">
-          <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
-            <div className="flex items-center gap-2 font-semibold text-[#101410]">
-              <UserRoundPlus className="size-4 text-[#0d8b66]" aria-hidden="true" />
-              New artisan
-            </div>
-            <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
-              Submit your trade, district, WhatsApp, documents, and portfolio photos for Octolabs validation.
-            </p>
-            <a
-              href="mailto:hello@octolabs.app?subject=ArtisanMU%20artisan%20application"
-              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-md border border-[#ddd8cd] bg-white text-sm font-semibold text-[#0d1612]"
-            >
-              Request onboarding
-            </a>
-          </article>
+          <ArtisanRegistrationForm />
 
           <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
             <div className="flex items-center gap-2 font-semibold text-[#101410]">

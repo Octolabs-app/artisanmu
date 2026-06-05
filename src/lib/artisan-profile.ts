@@ -2,10 +2,10 @@ import { tradeImages } from "./mock-data";
 import type { Artisan } from "./types";
 
 export const publicArtisanSelect =
-  "id,nom,metier,ville,district,tel,expertise,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,created_at";
+  "id,nom,metier,ville,district,tel,expertise,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,has_fast_response_badge,has_top_rated_badge,created_at";
 
 export const ownArtisanProfileSelect =
-  "id,nom,metier,ville,district,tel,lien,gps,expertise,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,created_at,auth_user_id";
+  "id,nom,metier,ville,district,tel,lien,gps,expertise,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,has_fast_response_badge,has_top_rated_badge,verification_status,application_email,created_at,auth_user_id";
 
 export type SupabaseArtisanProfile = {
   id: number;
@@ -27,6 +27,10 @@ export type SupabaseArtisanProfile = {
   initiales?: string | null;
   contact_preference?: string | null;
   has_fair_price_badge?: boolean | null;
+  has_fast_response_badge?: boolean | null;
+  has_top_rated_badge?: boolean | null;
+  verification_status?: "pending" | "approved" | "rejected" | "removed" | null;
+  application_email?: string | null;
   created_at?: string | null;
   auth_user_id?: string | null;
 };
@@ -63,6 +67,8 @@ export function mapSupabaseArtisan(row: SupabaseArtisanProfile): Artisan {
   const badges = [
     row.is_verified ? "Verified" : "",
     row.has_fair_price_badge ? "Fair price" : "",
+    row.has_fast_response_badge ? "Fast response" : "",
+    row.has_top_rated_badge ? "Top rated" : "",
   ].filter(Boolean);
 
   return {
@@ -93,5 +99,7 @@ export function mapSupabaseArtisan(row: SupabaseArtisanProfile): Artisan {
     authUserId: row.auth_user_id || undefined,
     createdAt: row.created_at || undefined,
     badges,
+    verificationStatus: row.verification_status || (row.is_verified ? "approved" : "pending"),
+    applicationEmail: row.application_email || undefined,
   };
 }

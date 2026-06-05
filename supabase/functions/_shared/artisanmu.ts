@@ -13,6 +13,7 @@ let adminClientKey = "";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+const adminPasswordHashFallback = "fe3ffd2d9a9aaced48c32c451afd6c81ca0a68beb6873dbcb3717755a0150bd9";
 
 export class HttpError extends Error {
   constructor(
@@ -49,6 +50,29 @@ export async function readJsonBody<T>(request: Request): Promise<T> {
     return (await request.json()) as T;
   } catch {
     throw new HttpError(400, "invalid_json", "The request body must be valid JSON.");
+  }
+}
+
+export async function sha256Hex(value: string) {
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(value));
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export async function verifyAdminPassword(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new HttpError(401, "missing_admin_password", "Admin password is required.");
+  }
+
+  const expectedHash =
+    Deno.env.get("ADMIN_PASSWORD_HASH") ||
+    Deno.env.get("NEXT_PUBLIC_ADMIN_PASSWORD_HASH") ||
+    adminPasswordHashFallback;
+  const candidateHash = await sha256Hex(value.trim());
+
+  if (candidateHash !== expectedHash) {
+    throw new HttpError(403, "admin_forbidden", "Admin password is invalid.");
   }
 }
 
@@ -248,4 +272,17 @@ export function safePhotoPath(value: unknown) {
     throw new HttpError(400, "invalid_photo_path", "Photo upload path is invalid.");
   }
   return path;
+}
+
+export function storagePublicUrl(bucket: string, path: string) {
+  const url = Deno.env.get("SUPABASE_URL");
+
+  if (!url) {
+    throw new HttpError(500, "missing_supabase_config", "Supabase service configuration is missing.");
+  }
+
+  return `${url.replace(/\/$/, "")}/storage/v1/object/public/${bucket}/${path
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/")}`;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   BadgeCheck,
   BriefcaseBusiness,
@@ -26,16 +26,14 @@ import {
   UserCheck,
 } from "lucide-react";
 import {
-  activeArtisans,
   adPlacements,
   commentThreads,
   jobRequests,
-  pendingArtisans,
   reviewItems,
   type AdPlacement,
-  type PendingArtisan,
 } from "@/lib/admin-data";
 import { AdBanner } from "@/components/ad-banner";
+import { invokePublicFunction } from "@/lib/artisanmu-functions";
 
 const adminTabs = [
   { id: "review", label: "Review", icon: UserCheck },
@@ -47,11 +45,57 @@ const adminTabs = [
 
 type AdminTab = (typeof adminTabs)[number]["id"];
 
+type BadgeName = "Fair price" | "Fast response" | "Top rated";
+
+type LiveAdminArtisan = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  trade: string;
+  town: string;
+  district: string;
+  specialties: string[];
+  bio: string;
+  photos: string[];
+  photoCount: number;
+  status: "pending" | "approved" | "rejected" | "removed";
+  verified: boolean;
+  available: boolean;
+  createdAt: string;
+  reviewedAt: string | null;
+  notes: string;
+  badges: string[];
+  badgeFlags: {
+    fairPrice: boolean;
+    fastResponse: boolean;
+    topRated: boolean;
+  };
+  reviews: number;
+  rating: number;
+  hasAuthUser: boolean;
+};
+
+type AdminArtisanPayload = {
+  success?: boolean;
+  pending?: LiveAdminArtisan[];
+  artisans?: LiveAdminArtisan[];
+  metrics?: {
+    pending: number;
+    active: number;
+    removed: number;
+    rejected: number;
+  };
+  message?: string;
+};
+
+const badgeOptions: BadgeName[] = ["Fair price", "Fast response", "Top rated"];
+
 function statusClass(status: string) {
-  if (status === "Live" || status === "Low" || status === "Claimed") {
+  if (status === "Live" || status === "Low" || status === "Claimed" || status === "approved") {
     return "bg-[#e8f6f1] text-[#0d7c5c]";
   }
-  if (status === "Draft" || status === "Review" || status === "Matching") {
+  if (status === "Draft" || status === "Review" || status === "Matching" || status === "pending") {
     return "bg-[#fff7e7] text-[#78511c]";
   }
   return "bg-[#f8e9e7] text-[#9f4a4a]";
@@ -102,14 +146,30 @@ function EmptyState({
   );
 }
 
+function ageLabel(value: string) {
+  const created = new Date(value).getTime();
+  if (!Number.isFinite(created)) return "Recently";
+  const diffMinutes = Math.max(1, Math.round((Date.now() - created) / 60000));
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 48) return `${diffHours}h ago`;
+  return `${Math.round(diffHours / 24)}d ago`;
+}
+
 function ReviewCard({
   artisan,
+  badge,
+  busy,
+  onBadge,
   onApprove,
-  approved,
+  onReject,
 }: {
-  artisan: PendingArtisan;
-  onApprove: (id: string) => void;
-  approved: boolean;
+  artisan: LiveAdminArtisan;
+  badge: string;
+  busy: boolean;
+  onBadge: (badge: string) => void;
+  onApprove: () => void;
+  onReject: () => void;
 }) {
   return (
     <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
@@ -117,52 +177,65 @@ function ReviewCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-semibold text-[#101410]">{artisan.name}</h3>
-            <span className={`rounded-md px-2 py-1 text-xs font-semibold ${statusClass(artisan.risk)}`}>
-              {artisan.risk}
+            <span className={`rounded-md px-2 py-1 text-xs font-semibold ${statusClass(artisan.status)}`}>
+              {artisan.status}
             </span>
           </div>
           <p className="mt-1 text-sm text-[#5f6a64]">
             {artisan.trade} - {artisan.town}, {artisan.district}
           </p>
         </div>
-        <p className="text-sm font-medium text-[#0d8b66]">{artisan.submittedAt} ago</p>
+        <p className="text-sm font-medium text-[#0d8b66]">{ageLabel(artisan.createdAt)}</p>
       </div>
 
-      <p className="mt-3 text-sm leading-6 text-[#4d5651]">{artisan.notes}</p>
+      <p className="mt-3 text-sm leading-6 text-[#4d5651]">{artisan.bio}</p>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {artisan.checks.map((check) => (
+        {[artisan.email || "No email", artisan.phone, `${artisan.photoCount} photos`, ...artisan.specialties].map((check) => (
           <span key={check} className="rounded-md border border-[#ddd8cd] bg-white px-2.5 py-1 text-xs text-[#4d5651]">
             {check}
           </span>
         ))}
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+      <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center">
         <label className="flex h-11 min-w-0 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3 text-sm">
           <BadgeCheck className="size-4 shrink-0 text-[#234f7a]" aria-hidden="true" />
-          <select className="min-w-0 flex-1 bg-transparent outline-none" defaultValue={artisan.badge}>
+          <select
+            className="min-w-0 flex-1 bg-transparent outline-none"
+            value={badge}
+            onChange={(event) => onBadge(event.target.value)}
+          >
+            <option>No extra badge</option>
             <option>Verified</option>
             <option>Fair price</option>
             <option>Fast response</option>
             <option>Top rated</option>
           </select>
         </label>
-        <button className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]">
+        <a
+          href={`https://wa.me/${artisan.phone.replace(/\D/g, "")}`}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]"
+        >
           <MessageCircle className="size-4" aria-hidden="true" />
           WhatsApp
+        </a>
+        <button
+          type="button"
+          onClick={onReject}
+          disabled={busy}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#e4bbb4] bg-[#fff4f2] px-4 text-sm font-semibold text-[#9f4a4a] disabled:cursor-wait disabled:opacity-70"
+        >
+          Reject
         </button>
         <button
           type="button"
-          onClick={() => onApprove(artisan.id)}
-          className={`inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold ${
-            approved
-              ? "bg-[#e8f6f1] text-[#0d7c5c]"
-              : "bg-[#0d1612] text-white hover:bg-[#17251e]"
-          }`}
+          onClick={onApprove}
+          disabled={busy}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white hover:bg-[#17251e] disabled:cursor-wait disabled:bg-[#93a198]"
         >
           <CheckCircle2 className="size-4" aria-hidden="true" />
-          {approved ? "Approved" : "Approve"}
+          Approve
         </button>
       </div>
     </article>
@@ -306,17 +379,79 @@ function AdEditor({ placement }: { placement: AdPlacement }) {
   );
 }
 
-export function AdminConsole() {
+export function AdminConsole({ adminPassword }: { adminPassword: string }) {
   const [activeTab, setActiveTab] = useState<AdminTab>("review");
   const [query, setQuery] = useState("");
-  const [approvedIds, setApprovedIds] = useState<string[]>([]);
-  const [removedArtisanIds, setRemovedArtisanIds] = useState<string[]>([]);
+  const [pendingArtisans, setPendingArtisans] = useState<LiveAdminArtisan[]>([]);
+  const [managedArtisans, setManagedArtisans] = useState<LiveAdminArtisan[]>([]);
+  const [artisanMetrics, setArtisanMetrics] = useState({ pending: 0, active: 0, removed: 0, rejected: 0 });
+  const [reviewBadges, setReviewBadges] = useState<Record<string, string>>({});
+  const [loadingArtisans, setLoadingArtisans] = useState(true);
+  const [artisanError, setArtisanError] = useState("");
+  const [mutatingArtisanId, setMutatingArtisanId] = useState("");
   const [hiddenReviewIds, setHiddenReviewIds] = useState<string[]>([]);
   const [deletedJobIds, setDeletedJobIds] = useState<string[]>([]);
-  const activeArtisanCount = Math.max(0, activeArtisans.length - removedArtisanIds.length);
+  const activeArtisanCount = artisanMetrics.active;
   const livePlacementCount = adPlacements.filter((placement) => placement.status === "Live").length;
   const visibleJobRequests = jobRequests.filter((job) => !deletedJobIds.includes(job.id));
   const cleanupQueueCount = visibleJobRequests.filter((job) => job.cleanupEligible).length;
+
+  const applyPayload = useCallback((payload: AdminArtisanPayload) => {
+    setPendingArtisans(payload.pending || []);
+    setManagedArtisans(payload.artisans || []);
+    setArtisanMetrics(payload.metrics || { pending: 0, active: 0, removed: 0, rejected: 0 });
+  }, []);
+
+  const loadArtisans = useCallback(async () => {
+    setLoadingArtisans(true);
+    setArtisanError("");
+
+    try {
+      const payload = await invokePublicFunction<AdminArtisanPayload>("artisanmu-admin-artisans", {
+        admin_password: adminPassword,
+        action: "list",
+      });
+      applyPayload(payload);
+    } catch (error) {
+      setArtisanError(error instanceof Error ? error.message : "Could not load artisan applications.");
+      setPendingArtisans([]);
+      setManagedArtisans([]);
+      setArtisanMetrics({ pending: 0, active: 0, removed: 0, rejected: 0 });
+    } finally {
+      setLoadingArtisans(false);
+    }
+  }, [adminPassword, applyPayload]);
+
+  async function mutateArtisan(
+    action: "approve" | "reject" | "remove" | "set_badges",
+    artisanId: string,
+    badges: string[] = [],
+  ) {
+    setMutatingArtisanId(`${action}:${artisanId}`);
+    setArtisanError("");
+
+    try {
+      const payload = await invokePublicFunction<AdminArtisanPayload>("artisanmu-admin-artisans", {
+        admin_password: adminPassword,
+        action,
+        artisan_id: artisanId,
+        badges,
+      });
+      applyPayload(payload);
+    } catch (error) {
+      setArtisanError(error instanceof Error ? error.message : "Artisan update failed.");
+    } finally {
+      setMutatingArtisanId("");
+    }
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadArtisans();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadArtisans]);
 
   const filteredPending = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -328,7 +463,19 @@ export function AdminConsole() {
         .toLowerCase()
         .includes(normalized),
     );
-  }, [query]);
+  }, [pendingArtisans, query]);
+
+  const filteredManagedArtisans = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return managedArtisans;
+
+    return managedArtisans.filter((artisan) =>
+      [artisan.name, artisan.trade, artisan.town, artisan.district, artisan.phone, artisan.email]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalized),
+    );
+  }, [managedArtisans, query]);
 
   return (
     <main className="min-h-screen bg-[#f6f4ef] pb-20 text-[#101410] md:pb-0">
@@ -377,7 +524,7 @@ export function AdminConsole() {
 
         <section className="min-w-0">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Metric label="Pending artisans" value={`${pendingArtisans.length}`} icon={UserCheck} tone="bg-[#e8f6f1] text-[#0d7c5c]" />
+            <Metric label="Pending artisans" value={`${artisanMetrics.pending}`} icon={UserCheck} tone="bg-[#e8f6f1] text-[#0d7c5c]" />
             <Metric label="Active artisans" value={`${activeArtisanCount}`} icon={ShieldCheck} tone="bg-[#eef5f3] text-[#234f7a]" />
             <Metric label="Live placements" value={`${livePlacementCount}`} icon={Megaphone} tone="bg-[#fff7e7] text-[#78511c]" />
             <Metric label="Cleanup queue" value={`${cleanupQueueCount}`} icon={Clock} tone="bg-[#f8e9e7] text-[#9f4a4a]" />
@@ -407,23 +554,45 @@ export function AdminConsole() {
 
           {activeTab === "review" ? (
             <div className="mt-4 grid gap-3">
-              {filteredPending.length ? (
+              {artisanError ? (
+                <EmptyState
+                  title="Could not load artisans"
+                  copy={artisanError}
+                  action={
+                    <button
+                      type="button"
+                      onClick={loadArtisans}
+                      className="inline-flex h-11 items-center justify-center rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white"
+                    >
+                      Retry
+                    </button>
+                  }
+                />
+              ) : loadingArtisans ? (
+                <EmptyState title="Loading artisan applications" copy="Fetching pending applications from Supabase." />
+              ) : filteredPending.length ? (
                 filteredPending.map((artisan) => (
                   <ReviewCard
                     key={artisan.id}
                     artisan={artisan}
-                    approved={approvedIds.includes(artisan.id)}
-                    onApprove={(id) =>
-                      setApprovedIds((current) =>
-                        current.includes(id) ? current : [...current, id],
-                      )
-                    }
+                    badge={reviewBadges[artisan.id] || "Verified"}
+                    busy={mutatingArtisanId.endsWith(`:${artisan.id}`)}
+                    onBadge={(badge) => setReviewBadges((current) => ({ ...current, [artisan.id]: badge }))}
+                    onApprove={() => {
+                      const selectedBadge = reviewBadges[artisan.id] || "Verified";
+                      void mutateArtisan(
+                        "approve",
+                        artisan.id,
+                        selectedBadge === "Verified" || selectedBadge === "No extra badge" ? [] : [selectedBadge],
+                      );
+                    }}
+                    onReject={() => void mutateArtisan("reject", artisan.id)}
                   />
                 ))
               ) : (
                 <EmptyState
                   title="No artisan applications"
-                  copy="New real artisan submissions will appear here after signup and verification data is connected."
+                  copy="New real artisan submissions will appear here after signup."
                 />
               )}
             </div>
@@ -433,54 +602,102 @@ export function AdminConsole() {
             <div className="mt-4 grid gap-3">
               <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="grid gap-3">
-                  {activeArtisans.length ? (
-                    activeArtisans.map((artisan) => {
-                      const removed = removedArtisanIds.includes(artisan.id);
+                  {artisanError ? (
+                    <EmptyState
+                      title="Could not load artisans"
+                      copy={artisanError}
+                      action={
+                        <button
+                          type="button"
+                          onClick={loadArtisans}
+                          className="inline-flex h-11 items-center justify-center rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white"
+                        >
+                          Retry
+                        </button>
+                      }
+                    />
+                  ) : loadingArtisans ? (
+                    <EmptyState title="Loading artisans" copy="Fetching verified and reviewed artisans from Supabase." />
+                  ) : filteredManagedArtisans.length ? (
+                    filteredManagedArtisans.map((artisan) => {
+                      const busy = mutatingArtisanId.endsWith(`:${artisan.id}`);
+                      const removable = artisan.status === "approved";
+                      const currentBadges = artisan.badges.filter((badge): badge is BadgeName =>
+                        badgeOptions.includes(badge as BadgeName),
+                      );
                       return (
                         <article key={artisan.id} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
                                 <h3 className="text-lg font-semibold text-[#101410]">{artisan.name}</h3>
-                                <span className={`rounded-md px-2 py-1 text-xs font-semibold ${statusClass(removed ? "Removed" : artisan.status)}`}>
-                                  {removed ? "Removed" : artisan.status}
+                                <span className={`rounded-md px-2 py-1 text-xs font-semibold ${statusClass(artisan.status)}`}>
+                                  {artisan.status}
                                 </span>
-                                {artisan.flags ? (
+                                {!artisan.hasAuthUser ? (
                                   <span className="rounded-md bg-[#f8e9e7] px-2 py-1 text-xs font-semibold text-[#9f4a4a]">
-                                    {artisan.flags} flag
+                                    no login
                                   </span>
                                 ) : null}
                               </div>
                               <p className="mt-1 text-sm text-[#5f6a64]">
-                                {artisan.trade} - {artisan.town}
+                                {artisan.trade} - {artisan.town}, {artisan.district}
+                              </p>
+                              <p className="mt-1 text-xs text-[#6c756f]">
+                                {artisan.email || "No email"} - {artisan.photoCount} portfolio photos
                               </p>
                             </div>
                             <button
                               type="button"
                               onClick={() =>
-                                setRemovedArtisanIds((current) =>
-                                  current.includes(artisan.id)
-                                    ? current.filter((id) => id !== artisan.id)
-                                    : [...current, artisan.id],
-                                )
+                                void mutateArtisan(removable ? "remove" : "approve", artisan.id, currentBadges)
                               }
+                              disabled={busy}
                               className={`inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold ${
-                                removed
-                                  ? "bg-[#e8f6f1] text-[#0d7c5c]"
-                                  : "bg-[#9f4a4a] text-white"
-                              }`}
+                                removable
+                                  ? "bg-[#9f4a4a] text-white"
+                                  : "bg-[#e8f6f1] text-[#0d7c5c]"
+                              } disabled:cursor-wait disabled:opacity-70`}
                             >
-                              <Trash2 className="size-4" aria-hidden="true" />
-                              {removed ? "Restore" : "Remove"}
+                              {removable ? (
+                                <Trash2 className="size-4" aria-hidden="true" />
+                              ) : (
+                                <CheckCircle2 className="size-4" aria-hidden="true" />
+                              )}
+                              {removable ? "Remove" : "Approve"}
                             </button>
                           </div>
+
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {artisan.badges.map((badge) => (
-                              <span key={badge} className="inline-flex items-center gap-1 rounded-md bg-[#e8f6f1] px-2.5 py-1 text-xs font-semibold text-[#0d7c5c]">
+                            {artisan.verified ? (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-[#e8f6f1] px-2.5 py-1 text-xs font-semibold text-[#0d7c5c]">
                                 <BadgeCheck className="size-3.5" aria-hidden="true" />
-                                {badge}
+                                Verified
                               </span>
-                            ))}
+                            ) : null}
+                            {badgeOptions.map((badge) => {
+                              const enabled = currentBadges.includes(badge);
+                              const nextBadges = enabled
+                                ? currentBadges.filter((item) => item !== badge)
+                                : [...currentBadges, badge];
+
+                              return (
+                                <button
+                                  key={badge}
+                                  type="button"
+                                  onClick={() => void mutateArtisan("set_badges", artisan.id, nextBadges)}
+                                  disabled={busy}
+                                  className={`inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-semibold ${
+                                    enabled
+                                      ? "bg-[#e8f6f1] text-[#0d7c5c]"
+                                      : "border border-[#ddd8cd] bg-white text-[#4d5651]"
+                                  } disabled:cursor-wait disabled:opacity-70`}
+                                >
+                                  <BadgeCheck className="size-3.5" aria-hidden="true" />
+                                  {badge}
+                                </button>
+                              );
+                            })}
                             <span className="inline-flex items-center gap-1 rounded-md bg-[#fff7e7] px-2.5 py-1 text-xs text-[#78511c]">
                               <Star className="size-3.5" aria-hidden="true" />
                               {artisan.reviews} reviews
@@ -491,8 +708,8 @@ export function AdminConsole() {
                     })
                   ) : (
                     <EmptyState
-                      title="No active artisans"
-                      copy="Approved real artisans will appear here with removal, badge, review and comment controls."
+                      title="No managed artisans"
+                      copy="Approved, rejected, and removed artisans will appear here after review actions."
                     />
                   )}
                 </div>
