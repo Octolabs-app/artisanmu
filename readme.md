@@ -1,6 +1,7 @@
 # ArtisanMu
 
-Next.js rebuild of the ArtisanMu marketplace for Cloudflare Pages.
+Next.js rebuild of the ArtisanMu marketplace. The frontend is a static export;
+privileged job workflows run through Supabase Edge Functions.
 
 ## Getting Started
 
@@ -20,7 +21,8 @@ npm run build
 npm audit --audit-level=moderate
 ```
 
-The app uses static export. Cloudflare Pages should deploy the generated `out` directory.
+The app uses static export. Cloudflare Pages or Vercel can deploy the generated
+`out` directory.
 
 ## Advertising
 
@@ -46,6 +48,8 @@ npm run deploy:cloudflare
 
 This requires `CLOUDFLARE_API_TOKEN` in non-interactive environments.
 
+## Supabase Edge Functions
+
 Supabase Edge Functions power the production job request flow:
 
 ```bash
@@ -58,28 +62,28 @@ The static app calls those functions with the public Supabase URL and publishabl
 key. Server-only secrets stay inside Supabase Functions; hosted functions receive
 the project service role/secret key from Supabase by default.
 
-Cloudflare Pages Functions and Vercel `/api` routes remain as compatibility
-fallbacks and require these server-only variables if used:
-
 ```bash
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
-CONTACT_ENCRYPTION_KEY=<long random secret, 16+ chars>
-CONTACT_HASH_SALT=<optional separate random salt>
-
-# Browser auth for the static artisan login
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<public Supabase publishable key>
 ```
 
-Keep `SUPABASE_SERVICE_ROLE_KEY` and `CONTACT_ENCRYPTION_KEY` out of
-`NEXT_PUBLIC_*` variables. Browser clients never write directly to the core
-Supabase tables. Job notifications are targeted to verified artisans with a
-linked `auth_user_id`; artisans can only read their own notification rows via
-RLS. Supabase signed upload URLs currently use the platform's fixed upload-token
-lifetime, so the app validates file type/size before issuing one. The artisan
-login page is client-side, so the `NEXT_PUBLIC_SUPABASE_*` values must exist at
-build time.
+Keep service-role and contact encryption secrets out of `NEXT_PUBLIC_*`
+variables. Browser clients never write directly to the core Supabase tables. Job
+notifications are targeted to verified artisans with a linked `auth_user_id`;
+artisans can only read their own notification rows via RLS. Supabase signed
+upload URLs currently use the platform's fixed upload-token lifetime, so the app
+validates file type/size before issuing one. The artisan login page is
+client-side, so the `NEXT_PUBLIC_SUPABASE_*` values must exist at build time.
+
+## Next Build Notes
+
+This repo uses Next.js 16 with static export. Do not add `src/app/api` route
+handlers unless static export is intentionally removed. Use Supabase Edge
+Functions for server-owned writes.
+
+## Next Product Work
+
+See `HANDOFF_PROMPT.md` for the next-chat prompt and remaining production tasks.
 
 ## Android APK
 
