@@ -28,7 +28,6 @@ import {
 import {
   adPlacements,
   commentThreads,
-  jobRequests,
   reviewItems,
   type AdPlacement,
 } from "@/lib/admin-data";
@@ -90,13 +89,51 @@ type AdminArtisanPayload = {
   message?: string;
 };
 
+type LiveAdminJob = {
+  id: string;
+  shortId: string;
+  trade: string;
+  description: string;
+  town: string;
+  district: string;
+  client: string;
+  status: "open" | "claimed" | "completed" | "expired" | string;
+  urgency: "urgent" | "planned" | string;
+  assignedTo: string;
+  assignedArtisanId: number | null;
+  createdAt: string;
+  age: string;
+  expiresAt: string | null;
+  claimedAt: string | null;
+  hasPhoto: boolean;
+  photoStoragePath: string | null;
+  cleanupEligible: boolean;
+  notificationCount: number;
+  pendingNotificationCount: number;
+  claimedNotificationCount: number;
+};
+
+type AdminJobsPayload = {
+  success?: boolean;
+  jobs?: LiveAdminJob[];
+  metrics?: {
+    total: number;
+    open: number;
+    claimed: number;
+    completed: number;
+    expired: number;
+    cleanup: number;
+  };
+  message?: string;
+};
+
 const badgeOptions: BadgeName[] = ["Fair price", "Fast response", "Top rated"];
 
 function statusClass(status: string) {
-  if (status === "Live" || status === "Low" || status === "Claimed" || status === "approved") {
+  if (["Live", "Low", "Claimed", "approved", "claimed", "completed"].includes(status)) {
     return "bg-[#e8f6f1] text-[#0d7c5c]";
   }
-  if (status === "Draft" || status === "Review" || status === "Matching" || status === "pending") {
+  if (["Draft", "Review", "Matching", "pending", "open"].includes(status)) {
     return "bg-[#fff7e7] text-[#78511c]";
   }
   return "bg-[#f8e9e7] text-[#9f4a4a]";
@@ -401,18 +438,33 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
   const [loadingArtisans, setLoadingArtisans] = useState(true);
   const [artisanError, setArtisanError] = useState("");
   const [mutatingArtisanId, setMutatingArtisanId] = useState("");
+  const [liveJobs, setLiveJobs] = useState<LiveAdminJob[]>([]);
+  const [jobMetrics, setJobMetrics] = useState({
+    total: 0,
+    open: 0,
+    claimed: 0,
+    completed: 0,
+    expired: 0,
+    cleanup: 0,
+  });
+  const [loadingJobs, setLoadingJobs] = useState(true);
+  const [jobsError, setJobsError] = useState("");
+  const [mutatingJobId, setMutatingJobId] = useState("");
   const [hiddenReviewIds, setHiddenReviewIds] = useState<string[]>([]);
-  const [deletedJobIds, setDeletedJobIds] = useState<string[]>([]);
   const [adminNotice, setAdminNotice] = useState("");
   const activeArtisanCount = artisanMetrics.active;
   const livePlacementCount = adPlacements.filter((placement) => placement.status === "Live").length;
-  const visibleJobRequests = jobRequests.filter((job) => !deletedJobIds.includes(job.id));
-  const cleanupQueueCount = visibleJobRequests.filter((job) => job.cleanupEligible).length;
+  const cleanupQueueCount = jobMetrics.cleanup;
 
   const applyPayload = useCallback((payload: AdminArtisanPayload) => {
     setPendingArtisans((payload.pending || []).map((artisan) => ({ ...artisan, serviceTags: artisan.serviceTags || [] })));
     setManagedArtisans((payload.artisans || []).map((artisan) => ({ ...artisan, serviceTags: artisan.serviceTags || [] })));
     setArtisanMetrics(payload.metrics || { pending: 0, active: 0, removed: 0, rejected: 0 });
+  }, []);
+
+  const applyJobsPayload = useCallback((payload: AdminJobsPayload) => {
+    setLiveJobs(payload.jobs || []);
+    setJobMetrics(payload.metrics || { total: 0, open: 0, claimed: 0, completed: 0, expired: 0, cleanup: 0 });
   }, []);
 
   const loadArtisans = useCallback(async () => {
@@ -458,13 +510,51 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
     }
   }
 
+  const loadJobs = useCallback(async () => {
+    setLoadingJobs(true);
+    setJobsError("");
+
+    try {
+      const payload = await invokePublicFunction<AdminJobsPayload>("artisanmu-admin-jobs", {
+        admin_password: adminPassword,
+        action: "list",
+      });
+      applyJobsPayload(payload);
+    } catch (error) {
+      setJobsError(error instanceof Error ? error.message : "Could not load job requests.");
+      setLiveJobs([]);
+      setJobMetrics({ total: 0, open: 0, claimed: 0, completed: 0, expired: 0, cleanup: 0 });
+    } finally {
+      setLoadingJobs(false);
+    }
+  }, [adminPassword, applyJobsPayload]);
+
+  async function mutateJob(action: "expire" | "complete" | "delete_photo", jobId: string) {
+    setMutatingJobId(`${action}:${jobId}`);
+    setJobsError("");
+
+    try {
+      const payload = await invokePublicFunction<AdminJobsPayload>("artisanmu-admin-jobs", {
+        admin_password: adminPassword,
+        action,
+        job_id: jobId,
+      });
+      applyJobsPayload(payload);
+    } catch (error) {
+      setJobsError(error instanceof Error ? error.message : "Job update failed.");
+    } finally {
+      setMutatingJobId("");
+    }
+  }
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void loadArtisans();
+      void loadJobs();
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [loadArtisans]);
+  }, [loadArtisans, loadJobs]);
 
   const filteredPending = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -489,6 +579,29 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
         .includes(normalized),
     );
   }, [managedArtisans, query]);
+
+  const filteredJobs = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return liveJobs;
+
+    return liveJobs.filter((job) =>
+      [
+        job.id,
+        job.shortId,
+        job.trade,
+        job.town,
+        job.district,
+        job.client,
+        job.status,
+        job.urgency,
+        job.assignedTo,
+        job.description,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalized),
+    );
+  }, [liveJobs, query]);
 
   return (
     <main className="min-h-screen bg-[#f6f4ef] pb-20 text-[#101410] md:pb-0">
@@ -560,7 +673,7 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#8b928e]"
-                placeholder="Search artisan, phone, trade..."
+                placeholder={activeTab === "requests" ? "Search job, client, status..." : "Search artisan, phone, trade..."}
               />
             </label>
           </div>
@@ -861,52 +974,133 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
           ) : null}
 
           {activeTab === "requests" ? (
-            visibleJobRequests.length ? (
-              <div className="mt-4 overflow-hidden rounded-lg border border-[#ddd8cd] bg-[#fffdf8] shadow-sm">
-                <div className="grid gap-3 border-b border-[#ddd8cd] bg-[#f8f4ea] px-4 py-3 text-xs font-semibold uppercase text-[#6c756f] md:grid-cols-[90px_1fr_150px_130px_130px]">
-                  <span>ID</span>
-                  <span>Request</span>
-                  <span>Status</span>
-                  <span>Assigned</span>
-                  <span>Age</span>
-                </div>
-                {visibleJobRequests.map((job) => (
-                  <article key={job.id} className="grid gap-2 border-b border-[#eee8dc] px-4 py-4 text-sm last:border-b-0 md:grid-cols-[90px_1fr_150px_130px_130px] md:items-center">
-                    <span className="font-mono text-xs text-[#6c756f]">{job.id}</span>
-                    <div>
-                      <p className="font-semibold text-[#101410]">{job.trade}</p>
-                      <p className="text-[#5f6a64]">
-                        {job.client} - {job.town}, {job.district}
-                      </p>
-                    </div>
-                    <span className={`w-fit rounded-md px-2 py-1 text-xs font-semibold ${statusClass(job.status)}`}>
-                      {job.status}
+            <div className="mt-4 grid gap-3">
+              {jobsError ? (
+                <EmptyState
+                  title="Could not load jobs"
+                  copy={jobsError}
+                  action={
+                    <button
+                      type="button"
+                      onClick={loadJobs}
+                      className="inline-flex h-11 items-center justify-center rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white"
+                    >
+                      Retry
+                    </button>
+                  }
+                />
+              ) : loadingJobs ? (
+                <EmptyState title="Loading job requests" copy="Fetching live client requests from Supabase." />
+              ) : filteredJobs.length ? (
+                <div className="grid gap-3">
+                  <div className="grid gap-2 text-sm text-[#4d5651] sm:grid-cols-4">
+                    <span className="rounded-md border border-[#ddd8cd] bg-white px-3 py-2">
+                      {jobMetrics.open} open
                     </span>
-                    <span className="text-[#4d5651]">{job.assignedTo}</span>
-                    <div className="grid gap-2">
-                      <span className="text-[#4d5651]">{job.age}</span>
-                      {job.cleanupEligible ? (
-                        <button
-                          type="button"
-                          onClick={() => setDeletedJobIds((current) => [...current, job.id])}
-                          className="inline-flex h-9 items-center justify-center gap-1 rounded-md bg-[#9f4a4a] px-2 text-xs font-semibold text-white"
-                        >
-                          <ImageIcon className="size-3.5" aria-hidden="true" />
-                          Delete photo job
-                        </button>
-                      ) : null}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-4">
+                    <span className="rounded-md border border-[#ddd8cd] bg-white px-3 py-2">
+                      {jobMetrics.claimed} claimed
+                    </span>
+                    <span className="rounded-md border border-[#ddd8cd] bg-white px-3 py-2">
+                      {jobMetrics.completed} completed
+                    </span>
+                    <span className="rounded-md border border-[#ddd8cd] bg-white px-3 py-2">
+                      {jobMetrics.cleanup} photos to clean
+                    </span>
+                  </div>
+
+                  {filteredJobs.map((job) => {
+                    const expiring = mutatingJobId === `expire:${job.id}`;
+                    const completing = mutatingJobId === `complete:${job.id}`;
+                    const deletingPhoto = mutatingJobId === `delete_photo:${job.id}`;
+                    const busy = expiring || completing || deletingPhoto;
+
+                    return (
+                      <article key={job.id} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-mono text-xs font-semibold text-[#6c756f]">#{job.shortId}</span>
+                              <span className={`rounded-md px-2 py-1 text-xs font-semibold ${statusClass(job.status)}`}>
+                                {job.status}
+                              </span>
+                              <span className="rounded-md bg-[#fff7e7] px-2 py-1 text-xs font-semibold text-[#78511c]">
+                                {job.urgency}
+                              </span>
+                              {job.hasPhoto ? (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-[#eef5f3] px-2 py-1 text-xs font-semibold text-[#234f7a]">
+                                  <ImageIcon className="size-3.5" aria-hidden="true" />
+                                  photo
+                                </span>
+                              ) : null}
+                            </div>
+                            <h3 className="mt-2 text-lg font-semibold text-[#101410]">{job.trade}</h3>
+                            <p className="mt-1 text-sm text-[#5f6a64]">
+                              {job.client} - {job.town}, {job.district}
+                            </p>
+                            <p className="mt-2 text-sm leading-6 text-[#4d5651]">{job.description}</p>
+                          </div>
+
+                          <div className="grid gap-2 text-sm text-[#4d5651] lg:w-64">
+                            <span className="rounded-md bg-[#f8f4ea] px-3 py-2">
+                              Assigned: <strong className="text-[#101410]">{job.assignedTo}</strong>
+                            </span>
+                            <span className="rounded-md bg-[#f8f4ea] px-3 py-2">
+                              Targets: {job.notificationCount} sent, {job.pendingNotificationCount} pending
+                            </span>
+                            <span className="rounded-md bg-[#f8f4ea] px-3 py-2">
+                              Created: {job.age}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                          {job.status === "claimed" ? (
+                            <button
+                              type="button"
+                              onClick={() => void mutateJob("complete", job.id)}
+                              disabled={busy}
+                              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
+                            >
+                              <CheckCircle2 className="size-4" aria-hidden="true" />
+                              {completing ? "Saving" : "Mark complete"}
+                            </button>
+                          ) : null}
+
+                          {["open", "claimed"].includes(job.status) ? (
+                            <button
+                              type="button"
+                              onClick={() => void mutateJob("expire", job.id)}
+                              disabled={busy}
+                              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#e4bbb4] bg-[#fff4f2] px-3 text-sm font-semibold text-[#9f4a4a] disabled:cursor-wait disabled:opacity-70"
+                            >
+                              <Clock className="size-4" aria-hidden="true" />
+                              {expiring ? "Expiring" : "Expire job"}
+                            </button>
+                          ) : null}
+
+                          {job.hasPhoto ? (
+                            <button
+                              type="button"
+                              onClick={() => void mutateJob("delete_photo", job.id)}
+                              disabled={busy}
+                              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#9f4a4a] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
+                            >
+                              <Trash2 className="size-4" aria-hidden="true" />
+                              {deletingPhoto ? "Deleting" : job.cleanupEligible ? "Delete cleanup photo" : "Delete photo"}
+                            </button>
+                          ) : null}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
                 <EmptyState
                   title="No job requests"
-                  copy="Real client requests, assigned artisans, and photo cleanup tasks will appear here after request storage is connected."
+                  copy="Live client requests will appear here as soon as homeowners post work."
                 />
-              </div>
-            )
+              )}
+            </div>
           ) : null}
 
           {activeTab === "rules" ? (
