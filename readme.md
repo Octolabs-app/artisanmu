@@ -24,10 +24,23 @@ npm audit --audit-level=moderate
 The app uses static export. Cloudflare Pages or Vercel can deploy the generated
 `out` directory.
 
+## Pages
+
+The public site is split into routed pages (shared header tabs + footer):
+
+- `/` — landing (hero, how-it-works teaser, popular trades, CTA)
+- `/how-it-works` — steps, why ArtisanMU, FAQ
+- `/browse` — verified artisans with live Supabase data + filters
+- `/post` — the job-request flow (accepts `?trade=` to preselect a trade)
+
+`/login`, `/artisan`, `/admin` (and the `/ops` redirect) keep their own layouts.
+Language (EN / FR / Morisien) is shared across pages via a context provider and
+persisted in `localStorage`.
+
 ## Advertising
 
 Ad placements use one reusable responsive banner component. Without Google AdSense
-environment variables, the UI shows a clearly labeled direct-partner fallback.
+environment variables, the component renders nothing (no placeholder box).
 
 ```bash
 NEXT_PUBLIC_ADSENSE_CLIENT_ID=ca-pub-...
