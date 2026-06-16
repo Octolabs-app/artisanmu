@@ -89,6 +89,8 @@ export const marketplaceCopy = {
       notAvailable: "Not marked available right now. You can still prepare a request for later.",
       selectHint: "Send a WhatsApp-ready brief directly to this artisan.",
       whatsapp: "WhatsApp contact",
+      noMatch: "No matches for these filters",
+      noMatchHint: "Try fewer filters or a different search.",
     },
     faq: {
       title: "Good to know",
@@ -192,6 +194,8 @@ export const marketplaceCopy = {
       notAvailable: "Pas disponible pour le moment. Vous pouvez quand meme preparer une demande.",
       selectHint: "Envoyez une demande prete pour WhatsApp directement a cet artisan.",
       whatsapp: "Contacter sur WhatsApp",
+      noMatch: "Aucun resultat pour ces filtres",
+      noMatchHint: "Essayez moins de filtres ou une autre recherche.",
     },
     faq: {
       title: "Bon a savoir",
@@ -295,6 +299,8 @@ export const marketplaceCopy = {
       notAvailable: "Pa disponib la. Ou kapav prepar enn demann pou plitar.",
       selectHint: "Avoy enn demann pare pou WhatsApp direk ar sa artizan-la.",
       whatsapp: "Kontak lor WhatsApp",
+      noMatch: "Pena rezilta pou sa bann filtre-la",
+      noMatchHint: "Esey mwins filtre ou enn lot rod.",
     },
     faq: {
       title: "Bon pou kone",

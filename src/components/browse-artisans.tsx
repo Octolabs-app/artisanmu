@@ -4,19 +4,20 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronDown,
   ChevronRight,
   Clock,
   HeartHandshake,
   Images,
   MapPin,
   MessageCircle,
-  Navigation,
+  RotateCcw,
   Search,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Star,
-  Wrench,
+  X,
 } from "lucide-react";
 import { useLanguage } from "@/components/language-context";
 import { useReveal } from "@/components/use-reveal";
@@ -24,6 +25,7 @@ import {
   allDistrictsLabel,
   allTagsLabel,
   allTradesLabel,
+  popularTrades,
   quickFilters,
   tradeSearchAliases,
 } from "@/lib/copy";
@@ -53,7 +55,7 @@ function scoreArtisan(artisan: Artisan, selectedTrade: string, selectedDistrict:
 }
 
 export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
-  const { copy } = useLanguage();
+  const { language, copy } = useLanguage();
   const [refreshedArtisans, setRefreshedArtisans] = useState<Artisan[] | null>(null);
   const [query, setQuery] = useState("");
   const [selectedTrade, setSelectedTrade] = useState(allTradesLabel);
@@ -62,7 +64,9 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
   const [urgent, setUrgent] = useState(true);
   const [selectedArtisanId, setSelectedArtisanId] = useState(artisans[0]?.id || "");
   const [expandedArtisanId, setExpandedArtisanId] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const displayArtisans = refreshedArtisans || artisans;
+  const hasAnyArtisans = displayArtisans.length > 0;
 
   useEffect(() => {
     const supabase = getBrowserSupabase();
@@ -138,24 +142,11 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
   const selectedArtisan =
     filteredArtisans.find((artisan) => artisan.id === selectedArtisanId) || filteredArtisans[0] || null;
   const availableCount = filteredArtisans.filter((artisan) => artisan.available).length;
-  const fastestEta = filteredArtisans.length
-    ? Math.min(...filteredArtisans.map((artisan) => artisan.etaMinutes))
-    : 0;
   const activeFilterCount =
     (query.trim() ? 1 : 0) +
     (selectedTrade !== allTradesLabel ? 1 : 0) +
     (selectedDistrict !== allDistrictsLabel ? 1 : 0) +
     (selectedTag !== allTagsLabel ? 1 : 0);
-  const filterSummary = activeFilterCount
-    ? [
-        query.trim() ? `"${query.trim()}"` : "",
-        selectedTrade !== allTradesLabel ? selectedTrade : "",
-        selectedDistrict !== allDistrictsLabel ? selectedDistrict : "",
-        selectedTag !== allTagsLabel ? selectedTag : "",
-      ]
-        .filter(Boolean)
-        .join(" - ")
-    : copy.browse.allVerified;
 
   function toggleArtisanCard(artisanId: string) {
     setSelectedArtisanId(artisanId);
@@ -191,153 +182,163 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
             <p className="mt-3 text-lg text-[#5d6863]">{copy.browse.subtitle}</p>
           </div>
 
-          {/* Filters */}
-          <div className="reveal reveal-d1 mt-7 rounded-2xl border border-[#e3ddd1] bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#101410]">
+          {/* Search + filters — only when there are artisans to filter */}
+          {hasAnyArtisans ? (
+            <div className="reveal reveal-d1 mt-7">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label className="flex min-h-[52px] flex-1 items-center gap-2 rounded-2xl border border-[#e3ddd1] bg-white px-4 shadow-sm focus-within:border-[#0d8b66]">
+                  <Search className="size-5 shrink-0 text-[#0d8b66]" aria-hidden="true" />
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    className="min-w-0 flex-1 bg-transparent py-3 text-base outline-none placeholder:text-[#8b928e]"
+                    placeholder={copy.browse.searchPlaceholder}
+                    aria-label="Search by job, town, or specialty"
+                  />
+                  {query ? (
+                    <button
+                      type="button"
+                      onClick={() => setQuery("")}
+                      aria-label="Clear search"
+                      className="rounded-full p-1 text-[#8b928e] transition hover:text-[#0d1612]"
+                    >
+                      <X className="size-4" aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </label>
+                <button
+                  type="button"
+                  aria-expanded={showFilters}
+                  onClick={() => setShowFilters((value) => !value)}
+                  className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-[#e3ddd1] bg-white px-4 text-sm font-semibold text-[#0d1612] shadow-sm transition hover:border-[#0d8b66]"
+                >
                   <SlidersHorizontal className="size-4 text-[#234f7a]" aria-hidden="true" />
                   {copy.browse.filters}
                   {activeFilterCount ? (
-                    <span className="rounded-full bg-[#234f7a] px-2 py-0.5 text-xs text-white">{activeFilterCount}</span>
+                    <span className="rounded-full bg-[#0d8b66] px-2 py-0.5 text-xs text-white">{activeFilterCount}</span>
                   ) : null}
-                </div>
-                <p className="mt-1 text-xs text-[#6c756f]">{filterSummary}</p>
+                  <ChevronDown className={`size-4 transition ${showFilters ? "rotate-180" : ""}`} aria-hidden="true" />
+                </button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="inline-flex min-h-9 items-center gap-2 rounded-full bg-[#f2eee4] px-3 text-xs font-semibold text-[#5f6a64]">
-                  <Wrench className="size-3.5 text-[#0d8b66]" aria-hidden="true" />
-                  {copy.browse.quickTitle}
-                </span>
+
+              {/* Quick starts — always one tap away */}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 {quickFilters.map((preset) => (
                   <button
                     key={preset.label}
                     type="button"
                     onClick={() => applyQuickFilter(preset)}
-                    className="inline-flex min-h-9 items-center rounded-full border border-[#e3ddd1] bg-white px-3 text-xs font-semibold text-[#0d1612] transition hover:border-[#0d8b66]"
+                    className="inline-flex min-h-9 items-center rounded-full border border-[#e3ddd1] bg-white px-3 text-xs font-semibold text-[#0d1612] transition hover:border-[#0d8b66] hover:bg-[#e7f5ef]"
                   >
                     {preset.label}
                   </button>
                 ))}
+                {activeFilterCount ? (
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-[#9f4a4a] transition hover:bg-[#fdecec]"
+                  >
+                    <RotateCcw className="size-3.5" aria-hidden="true" />
+                    {copy.browse.resetAction}
+                  </button>
+                ) : null}
               </div>
-            </div>
 
-            <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.1fr)_150px_170px_170px_120px_auto]">
-              <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3">
-                <Search className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#8b928e]"
-                  placeholder={copy.browse.searchPlaceholder}
-                  aria-label="Search by job, town, or specialty"
-                />
-              </label>
+              {/* Advanced filters — collapsed by default */}
+              {showFilters ? (
+                <div className="mt-3 grid gap-3 rounded-2xl border border-[#e3ddd1] bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3">
+                    <SlidersHorizontal className="size-4 shrink-0 text-[#234f7a]" aria-hidden="true" />
+                    <select
+                      value={selectedTrade}
+                      onChange={(event) => {
+                        setSelectedTrade(event.target.value);
+                        setExpandedArtisanId("");
+                      }}
+                      className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                      aria-label="Filter by trade"
+                    >
+                      <option>{allTradesLabel}</option>
+                      {trades.map((trade) => (
+                        <option key={trade}>{trade}</option>
+                      ))}
+                    </select>
+                  </label>
 
-              <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3">
-                <SlidersHorizontal className="size-4 shrink-0 text-[#234f7a]" aria-hidden="true" />
-                <select
-                  value={selectedTrade}
-                  onChange={(event) => {
-                    setSelectedTrade(event.target.value);
-                    setExpandedArtisanId("");
-                  }}
-                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                  aria-label="Filter by trade"
-                >
-                  <option>{allTradesLabel}</option>
-                  {trades.map((trade) => (
-                    <option key={trade}>{trade}</option>
-                  ))}
-                </select>
-              </label>
+                  <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3">
+                    <MapPin className="size-4 shrink-0 text-[#9f4a4a]" aria-hidden="true" />
+                    <select
+                      value={selectedDistrict}
+                      onChange={(event) => {
+                        setSelectedDistrict(event.target.value);
+                        setExpandedArtisanId("");
+                      }}
+                      className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                      aria-label="Filter by district"
+                    >
+                      <option>{allDistrictsLabel}</option>
+                      {districts.map((district) => (
+                        <option key={district}>{district}</option>
+                      ))}
+                    </select>
+                  </label>
 
-              <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3">
-                <MapPin className="size-4 shrink-0 text-[#9f4a4a]" aria-hidden="true" />
-                <select
-                  value={selectedDistrict}
-                  onChange={(event) => {
-                    setSelectedDistrict(event.target.value);
-                    setExpandedArtisanId("");
-                  }}
-                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                  aria-label="Filter by district"
-                >
-                  <option>{allDistrictsLabel}</option>
-                  {districts.map((district) => (
-                    <option key={district}>{district}</option>
-                  ))}
-                </select>
-              </label>
+                  <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3">
+                    <Sparkles className="size-4 shrink-0 text-[#78511c]" aria-hidden="true" />
+                    <select
+                      value={selectedTag}
+                      onChange={(event) => {
+                        setSelectedTag(event.target.value);
+                        setExpandedArtisanId("");
+                      }}
+                      className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                      aria-label="Filter by service tag"
+                    >
+                      <option>{allTagsLabel}</option>
+                      {serviceTagOptions.map((tag) => (
+                        <option key={tag}>{tag}</option>
+                      ))}
+                    </select>
+                  </label>
 
-              <label className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3">
-                <Sparkles className="size-4 shrink-0 text-[#78511c]" aria-hidden="true" />
-                <select
-                  value={selectedTag}
-                  onChange={(event) => {
-                    setSelectedTag(event.target.value);
-                    setExpandedArtisanId("");
-                  }}
-                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                  aria-label="Filter by service tag"
-                >
-                  <option>{allTagsLabel}</option>
-                  {serviceTagOptions.map((tag) => (
-                    <option key={tag}>{tag}</option>
-                  ))}
-                </select>
-              </label>
-
-              <button
-                type="button"
-                aria-pressed={urgent}
-                onClick={() => setUrgent((value) => !value)}
-                className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
-                  urgent ? "bg-[#0d1612] text-white" : "border border-[#e3ddd1] bg-white text-[#0d1612]"
-                }`}
-              >
-                <Clock className="size-4" aria-hidden="true" />
-                {copy.browse.fastFirst}
-              </button>
-
-              {activeFilterCount ? (
-                <button type="button" onClick={resetFilters} className="btn btn-secondary min-h-12">
-                  {copy.browse.resetAction}
-                </button>
+                  <button
+                    type="button"
+                    aria-pressed={urgent}
+                    onClick={() => setUrgent((value) => !value)}
+                    className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
+                      urgent ? "bg-[#0d1612] text-white" : "border border-[#e3ddd1] bg-white text-[#0d1612]"
+                    }`}
+                  >
+                    <Clock className="size-4" aria-hidden="true" />
+                    {copy.browse.fastFirst}
+                  </button>
+                </div>
               ) : null}
             </div>
+          ) : null}
 
-            <div className="mt-4 grid gap-3 text-sm text-[#5d6863] sm:grid-cols-3">
-              <div className="flex items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3 py-2">
-                <ShieldCheck className="size-4 text-[#0d8b66]" aria-hidden="true" />
-                <span>{availableCount ? copy.browse.availableNow(availableCount) : copy.browse.onboarding}</span>
+          {/* Results header — only when there are matches */}
+          {filteredArtisans.length ? (
+            <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-[#0d8b66]">{copy.browse.eyebrow}</p>
+                <h2 className="font-display text-2xl text-[#101410]">
+                  {copy.browse.readyHeading(filteredArtisans.length)}
+                </h2>
               </div>
-              <div className="flex items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3 py-2">
-                <Navigation className="size-4 text-[#234f7a]" aria-hidden="true" />
-                <span>{fastestEta ? copy.browse.fastestEta(fastestEta) : copy.browse.etaSoon}</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3 py-2">
-                <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
-                <span>{copy.browse.reviewAfter}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Results */}
-          <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-medium text-[#0d8b66]">{copy.browse.eyebrow}</p>
-              <h2 className="font-display text-2xl text-[#101410]">
-                {filteredArtisans.length ? copy.browse.readyHeading(filteredArtisans.length) : copy.browse.emptyTitle}
-              </h2>
-            </div>
-            {filteredArtisans.length ? (
               <div className="flex flex-wrap gap-2 text-xs text-[#5d6863]">
+                {availableCount ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e3ddd1] bg-white px-2.5 py-1.5">
+                    <ShieldCheck className="size-3.5 text-[#0d8b66]" aria-hidden="true" />
+                    {copy.browse.availableNow(availableCount)}
+                  </span>
+                ) : null}
                 <span className="rounded-full border border-[#e3ddd1] bg-white px-2.5 py-1.5">{copy.browse.sortedEta}</span>
                 <span className="rounded-full border border-[#e3ddd1] bg-white px-2.5 py-1.5">{copy.browse.verifiedFirst}</span>
               </div>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {filteredArtisans.map((artisan) => {
@@ -530,17 +531,46 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
             })}
 
             {!filteredArtisans.length ? (
-              <div className="rounded-2xl border border-dashed border-[#cfc6b6] bg-white p-8 text-center shadow-sm lg:col-span-2">
-                <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#e7f5ef] text-[#0a5e46]">
-                  <HeartHandshake className="size-7" aria-hidden="true" />
-                </span>
-                <h3 className="mt-4 text-xl font-semibold text-[#101410]">{copy.browse.emptyTitle}</h3>
-                <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#5d6863]">{copy.browse.emptyCopy}</p>
-                <Link href="/post" className="btn btn-primary mt-5">
-                  <MessageCircle className="size-4" aria-hidden="true" />
-                  {copy.browse.emptyCta}
-                </Link>
-              </div>
+              !hasAnyArtisans ? (
+                <div className="reveal rounded-3xl border border-dashed border-[#cfc6b6] bg-white p-8 text-center shadow-sm sm:p-12 lg:col-span-2">
+                  <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#e7f5ef] text-[#0a5e46]">
+                    <HeartHandshake className="size-7" aria-hidden="true" />
+                  </span>
+                  <h3 className="font-display mt-4 text-2xl text-[#101410]">{copy.browse.emptyTitle}</h3>
+                  <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#5d6863]">{copy.browse.emptyCopy}</p>
+                  <div className="mx-auto mt-6 flex max-w-lg flex-wrap justify-center gap-2">
+                    {popularTrades.map((trade) => {
+                      const TileIcon = trade.icon;
+                      return (
+                        <Link
+                          key={trade.value}
+                          href={`/post?trade=${encodeURIComponent(trade.value)}`}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-[#e3ddd1] bg-white px-3 py-1.5 text-xs font-semibold text-[#4d5651] transition hover:-translate-y-0.5 hover:border-[#0d8b66] hover:text-[#0a5e46]"
+                        >
+                          <TileIcon className="size-3.5 text-[#0d8b66]" aria-hidden="true" />
+                          {trade.labels[language]}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  <Link href="/post" className="btn btn-primary mt-6">
+                    <MessageCircle className="size-4" aria-hidden="true" />
+                    {copy.browse.emptyCta}
+                  </Link>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-[#cfc6b6] bg-white p-8 text-center shadow-sm lg:col-span-2">
+                  <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-[#f2eee4] text-[#5d6863]">
+                    <Search className="size-6" aria-hidden="true" />
+                  </span>
+                  <h3 className="mt-4 text-lg font-semibold text-[#101410]">{copy.browse.noMatch}</h3>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#5d6863]">{copy.browse.noMatchHint}</p>
+                  <button type="button" onClick={resetFilters} className="btn btn-secondary mt-5">
+                    <RotateCcw className="size-4" aria-hidden="true" />
+                    {copy.browse.resetAction}
+                  </button>
+                </div>
+              )
             ) : null}
           </div>
         </div>
