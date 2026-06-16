@@ -85,9 +85,24 @@ async function uploadPhoto(file: File) {
   return signPayload.path;
 }
 
-export function JobRequestForm() {
-  const [step, setStep] = useState(0);
-  const [form, setForm] = useState<FormState>(initialForm);
+type JobRequestFormProps = {
+  /**
+   * Trade to preselect (e.g. when a "Popular trades" tile is clicked). The
+   * parent remounts the form (via a changing `key`) so this is read once as
+   * the initial trade — no in-effect state updates required.
+   */
+  initialTrade?: string;
+};
+
+export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
+  // Starting at the "Problem" step when a trade was preselected keeps the flow
+  // short: the visitor has already signalled what they need by tapping a tile.
+  const [step, setStep] = useState(initialTrade ? 1 : 0);
+  const [form, setForm] = useState<FormState>(() => ({
+    ...initialForm,
+    trade: initialTrade || initialForm.trade,
+    urgency: initialTrade ? "planned" : "",
+  }));
   const [error, setError] = useState("");
   const [locationNote, setLocationNote] = useState("");
   const [locating, setLocating] = useState(false);
