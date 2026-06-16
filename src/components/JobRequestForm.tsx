@@ -15,6 +15,7 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
+import { useLanguage } from "@/components/language-context";
 import { invokePublicFunction } from "@/lib/artisanmu-functions";
 import { districtOptions, tradeOptions } from "@/lib/service-options";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
@@ -95,6 +96,8 @@ type JobRequestFormProps = {
 };
 
 export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
+  const { copy } = useLanguage();
+  const t = copy.jobForm;
   // Starting at the "Problem" step when a trade was preselected keeps the flow
   // short: the visitor has already signalled what they need by tapping a tile.
   const [step, setStep] = useState(initialTrade ? 1 : 0);
@@ -118,13 +121,13 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
   }
 
   function validateStep(targetStep = step) {
-    if (targetStep === 0 && !form.urgency) return "Choose how soon you need help.";
+    if (targetStep === 0 && !form.urgency) return t.errUrgency;
     if (targetStep === 1 && form.description.trim().length < 10) {
-      return "Add at least 10 characters so artisans understand the job.";
+      return t.errDescription;
     }
-    if (targetStep === 2 && !form.district) return "Choose the closest area.";
+    if (targetStep === 2 && !form.district) return t.errDistrict;
     if (targetStep === 3 && !/^[24579]\d{7}$/.test(localPhone)) {
-      return "Enter a valid Mauritius WhatsApp number.";
+      return t.errPhone;
     }
     return "";
   }
@@ -145,7 +148,7 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
 
   function useLocation() {
     if (!navigator.geolocation) {
-      setLocationNote("GPS is not available here. Pick the closest area.");
+      setLocationNote(t.locUnavailable);
       return;
     }
 
@@ -154,11 +157,11 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
     navigator.geolocation.getCurrentPosition(
       () => {
         setLocating(false);
-        setLocationNote("Location shared. Choose the closest area so artisans can match faster.");
+        setLocationNote(t.locShared);
       },
       () => {
         setLocating(false);
-        setLocationNote("Location denied. No problem, pick the closest area.");
+        setLocationNote(t.locDenied);
       },
       { enableHighAccuracy: false, timeout: 8000 },
     );
@@ -191,7 +194,7 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
       });
 
       if (!payload.id || !form.urgency) {
-        throw new Error(payload.message || "Request could not be posted.");
+        throw new Error(payload.message || t.errPost);
       }
 
       setConfirmation({
@@ -202,7 +205,7 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
         urgency: form.urgency,
       });
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Request failed. Try again.");
+      setError(submitError instanceof Error ? submitError.message : t.errFailed);
     } finally {
       setSubmitting(false);
     }
@@ -222,26 +225,28 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
         <div className="flex size-12 items-center justify-center rounded-lg bg-[#e8f6f1] text-[#0d7c5c]">
           <CheckCircle2 className="size-6" aria-hidden="true" />
         </div>
-        <p className="mt-4 text-sm font-medium text-[#0d8b66]">Request #{confirmation.id.slice(0, 8)}</p>
-        <h2 className="mt-1 text-2xl font-semibold text-[#101410]">Your request is live</h2>
+        <p className="mt-4 text-sm font-medium text-[#0d8b66]">
+          {t.reqPrefix} #{confirmation.id.slice(0, 8)}
+        </p>
+        <h2 className="mt-1 text-2xl font-semibold text-[#101410]">{t.confTitle}</h2>
         <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
-          Notifying {confirmation.artisanCount} registered artisans matched to {confirmation.district} now
+          {t.confNotifying(confirmation.artisanCount, confirmation.district)}
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
             <p className="text-2xl font-semibold text-[#101410]">{confirmation.artisanCount}</p>
-            <p className="mt-1 text-xs font-medium text-[#5f6a64]">targeted artisans</p>
+            <p className="mt-1 text-xs font-medium text-[#5f6a64]">{t.confTargeted}</p>
           </div>
           <div className="rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
             <p className="text-2xl font-semibold text-[#101410]">{confirmation.responseMinutes}m</p>
-            <p className="mt-1 text-xs font-medium text-[#5f6a64]">avg response time</p>
+            <p className="mt-1 text-xs font-medium text-[#5f6a64]">{t.confResponse}</p>
           </div>
         </div>
 
         <div className="mt-4 flex gap-3 rounded-lg border border-[#c8d9f2] bg-[#eef5ff] p-3 text-sm leading-5 text-[#234f7a]">
           <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <p>We&apos;ll send you a message when an artisan accepts</p>
+          <p>{t.confAccept}</p>
         </div>
 
         <button
@@ -249,7 +254,7 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
           onClick={resetForm}
           className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white hover:bg-[#17251e]"
         >
-          Post another request
+          {t.postAnother}
         </button>
       </div>
     );
@@ -259,17 +264,17 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
     <div className="rounded-lg border border-[#d8d1c3] bg-[#fffdf8] p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-[#0d8b66]">Request</p>
-          <h2 className="text-xl font-semibold text-[#101410]">Find an artisan</h2>
+          <p className="text-sm font-medium text-[#0d8b66]">{t.eyebrow}</p>
+          <h2 className="text-xl font-semibold text-[#101410]">{t.title}</h2>
         </div>
         <span className="rounded-md bg-[#eef5f3] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
-          Auto-match
+          {t.badge}
         </span>
       </div>
 
       <div className="mt-4">
         <div className="flex items-center justify-between gap-2 text-xs font-semibold text-[#5f6a64]">
-          {stepLabels.map((label, index) => (
+          {t.steps.map((label, index) => (
             <span key={label} className={index === step ? "text-[#101410]" : ""}>
               {label}
             </span>
@@ -299,8 +304,8 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
                 <Clock3 className="size-5" aria-hidden="true" />
               </span>
               <span>
-                <span className="block font-semibold text-[#101410]">I need help today</span>
-                <span className="mt-1 block text-sm text-[#5f6a64]">Urgent matching for same-day problems.</span>
+                <span className="block font-semibold text-[#101410]">{t.urgentTitle}</span>
+                <span className="mt-1 block text-sm text-[#5f6a64]">{t.urgentDesc}</span>
               </span>
             </span>
           </button>
@@ -318,8 +323,8 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
                 <CalendarDays className="size-5" aria-hidden="true" />
               </span>
               <span>
-                <span className="block font-semibold text-[#101410]">I&apos;m planning ahead</span>
-                <span className="mt-1 block text-sm text-[#5f6a64]">Post it and let verified artisans reply.</span>
+                <span className="block font-semibold text-[#101410]">{t.plannedTitle}</span>
+                <span className="mt-1 block text-sm text-[#5f6a64]">{t.plannedDesc}</span>
               </span>
             </span>
           </button>
@@ -329,17 +334,17 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
       {step === 1 ? (
         <div className="mt-4 grid gap-4">
           <label className="block text-sm font-medium text-[#101410]">
-            Describe the problem in your own words
+            {t.describeLabel}
             <textarea
               value={form.description}
               onChange={(event) => updateForm({ description: event.target.value })}
               rows={6}
               className="mt-2 w-full resize-none rounded-md border border-[#d8d1c3] bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-[#0d8b66]"
-              placeholder="Explik problem-la: robine pe koule, kouran koupe, laport bloke..."
+              placeholder={t.describePlaceholder}
             />
           </label>
           <label className="block text-sm font-medium text-[#101410]">
-            Trade - tap to change
+            {t.tradeLabel}
             <select
               value={form.trade}
               onChange={(event) => updateForm({ trade: event.target.value })}
@@ -382,7 +387,7 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
             ) : (
               <Navigation className="size-4 text-[#234f7a]" aria-hidden="true" />
             )}
-            Use my location
+            {t.useLocation}
           </button>
           {locationNote ? (
             <p className="flex gap-2 text-xs leading-5 text-[#5f6a64]">
@@ -396,7 +401,7 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
       {step === 3 ? (
         <div className="mt-4 grid gap-4">
           <label className="block text-sm font-medium text-[#101410]">
-            WhatsApp number
+            {t.whatsappLabel}
             <span className="mt-2 flex h-12 overflow-hidden rounded-md border border-[#d8d1c3] bg-white focus-within:border-[#0d8b66]">
               <span className="flex items-center border-r border-[#eee8dc] bg-[#f8f4ea] px-3 text-sm font-semibold text-[#4d5651]">
                 +230
@@ -413,15 +418,15 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
 
           <div className="flex gap-3 rounded-lg border border-[#c8d9f2] bg-[#eef5ff] p-3 text-sm leading-5 text-[#234f7a]">
             <Lock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <p>Your number is never shown directly. Artisans contact you only through the app or a protected link.</p>
+            <p>{t.privacy}</p>
           </div>
 
           <label className="block cursor-pointer rounded-lg border border-dashed border-[#c9c2b6] bg-[#f8f4ea] p-4 text-center text-sm text-[#4d5651] hover:border-[#0d8b66]">
             <ImagePlus className="mx-auto size-6 text-[#0d8b66]" aria-hidden="true" />
             <span className="mt-2 block font-semibold text-[#101410]">
-              {form.photoFile ? form.photoFile.name : "Add a photo"}
+              {form.photoFile ? form.photoFile.name : t.addPhoto}
             </span>
-            <span className="mt-1 block text-xs text-[#6c756f]">Optional, image under 5 MB</span>
+            <span className="mt-1 block text-xs text-[#6c756f]">{t.photoHint}</span>
             <input
               type="file"
               accept="image/*"
@@ -430,12 +435,12 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
                 const file = event.target.files?.[0] || null;
                 if (file && !file.type.startsWith("image/")) {
                   setForm((current) => ({ ...current, photoFile: null }));
-                  setError("Please choose an image file.");
+                  setError(t.errPhotoType);
                   return;
                 }
                 if (file && file.size > 5 * 1024 * 1024) {
                   setForm((current) => ({ ...current, photoFile: null }));
-                  setError("Photo is too large. Please choose an image under 5 MB.");
+                  setError(t.errPhotoSize);
                   return;
                 }
                 updateForm({ photoFile: file });
@@ -459,7 +464,7 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-4 text-sm font-semibold text-[#0d1612] disabled:cursor-not-allowed disabled:opacity-45"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back
+          {t.back}
         </button>
         {step < stepLabels.length - 1 ? (
           <button
@@ -467,7 +472,7 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
             onClick={goNext}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white hover:bg-[#17251e]"
           >
-            Continue
+            {t.continue}
             <ArrowRight className="size-4" aria-hidden="true" />
           </button>
         ) : (
@@ -482,7 +487,7 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
             ) : (
               <Send className="size-4" aria-hidden="true" />
             )}
-            {form.urgency === "urgent" ? "Find artisans now" : "Post my request"}
+            {form.urgency === "urgent" ? t.submitUrgent : t.submitPlanned}
           </button>
         )}
       </div>

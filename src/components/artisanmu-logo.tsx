@@ -8,9 +8,8 @@ type ArtisanMuLogoProps = {
 };
 
 /**
- * Artisan Moris mark — a stylised Mauritius island badge holding a
- * construction hard hat over crossed tools (wrench + screwdriver).
- * Original artwork, fully inline, legible down to favicon size.
+ * Artisan Moris mark — a stylised outline of the island of Mauritius in brand
+ * green with a crossed wrench + hammer. Original artwork, fully inline.
  */
 export function ArtisanMuMark({ className = "size-10" }: ArtisanMuMarkProps) {
   return (
@@ -20,38 +19,33 @@ export function ArtisanMuMark({ className = "size-10" }: ArtisanMuMarkProps) {
       role="img"
       aria-label="Artisan Moris"
     >
-      {/* Island badge (Mauritius silhouette, stylised) */}
+      {/* Mauritius island silhouette */}
       <path
-        d="M24 4C32 4 39 8 42 16C44.6 22.2 43 30 38 36C34 41 29 44 24 44C19 44 14 41 10 36C5 30 3.4 22.2 6 16C9 8 16 4 24 4Z"
+        d="M23 7.5C26 7 29 9 31.5 12.5C33.5 15.5 34.2 18.5 33.6 23C33 27 32 30.5 29.8 34C27.8 37.5 26 41 23 42.6C20.5 41.5 18.8 39 17 36C15 32.5 14 28.5 13.7 24C13.4 19.5 13.6 15 15.5 11.5C17.3 8.8 19.8 7.8 23 7.5Z"
         fill="#0d8b66"
+        stroke="#0a5e46"
+        strokeWidth="0.8"
       />
+      {/* soft north-west highlight for depth */}
       <path
-        d="M24 44C19 44 14 41 10 36C5 30 3.4 22.2 6 16C7 13.5 8.7 11.4 10.8 9.8C8.7 13 8 17 9.4 21.5C12 30 21 41 38.6 35.4C34.4 41 29 44 24 44Z"
-        fill="#0a5e46"
-        opacity="0.55"
+        d="M15.5 11.5C17.3 8.8 19.8 7.8 23 7.5C20.5 9 18.5 11.5 17.2 15C15.6 19.2 15 24 15.6 29C14.4 26 13.8 22 13.7 19C13.7 16 14.2 13.3 15.5 11.5Z"
+        fill="#34b88a"
+        opacity="0.35"
       />
 
-      {/* Crossed tools (behind the hat) */}
-      <path d="M14 39 L33 18.5" stroke="#ecd29a" strokeWidth="3.1" strokeLinecap="round" />
-      <path d="M34 39 L15 18.5" stroke="#ecd29a" strokeWidth="3.1" strokeLinecap="round" />
-      {/* wrench open jaw, top-right */}
+      {/* Crossed tools on the island */}
+      {/* hammer */}
+      <path d="M30 36 L19.5 19.5" stroke="#ecd29a" strokeWidth="2.6" strokeLinecap="round" />
+      <rect x="15.2" y="15.6" width="6.4" height="2.9" rx="1.4" transform="rotate(-57 18.4 17)" fill="#ecd29a" />
+      {/* wrench */}
+      <path d="M18 36 L28.8 19.5" stroke="#ecd29a" strokeWidth="2.6" strokeLinecap="round" />
       <path
-        d="M31.4 14.6a3.6 3.6 0 1 0 3.4 5.7"
+        d="M27.4 15a3 3 0 1 0 3 4.9"
         fill="none"
         stroke="#ecd29a"
-        strokeWidth="2.3"
+        strokeWidth="2.1"
         strokeLinecap="round"
       />
-      {/* screwdriver tip, top-left */}
-      <path d="M12.6 15.4l3.6 3.5-2.5 1.1z" fill="#ecd29a" />
-
-      {/* Hard hat */}
-      <rect x="9.4" y="25.4" width="29.2" height="4.8" rx="2.4" fill="#f7f4ee" />
-      <path d="M15 26.4C15 18.3 19 13.9 24 13.9C29 13.9 33 18.3 33 26.4Z" fill="#f7f4ee" />
-      <rect x="22" y="10.4" width="4" height="4.8" rx="2" fill="#f7f4ee" />
-      {/* hat ridges */}
-      <path d="M20.2 26C20.2 20 20.8 16.7 22.3 14.6" fill="none" stroke="#cfe7dd" strokeWidth="1.3" strokeLinecap="round" />
-      <path d="M27.8 26C27.8 20 27.2 16.7 25.7 14.6" fill="none" stroke="#cfe7dd" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
