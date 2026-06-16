@@ -12,7 +12,7 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <p className="font-display text-xl">
-            Artisan<span className="text-[#3fbf95]">MU</span>
+            Artisan <span className="text-[#3fbf95]">Moris</span>
           </p>
           <p className="mt-3 max-w-xs text-sm leading-6 text-[#cbd4ce]">{copy.footer.tagline}</p>
           <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-[#cbd4ce]">
@@ -65,7 +65,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-[#8a978f] sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>ArtisanMu by Octolabs</p>
+          <p>Artisan Moris by Octolabs</p>
           <p>{copy.footer.builtFor}</p>
         </div>
       </div>

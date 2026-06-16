@@ -40,7 +40,7 @@ function buildWhatsAppLink(artisan: Artisan | null) {
   const cleaned = artisan.phone.replace(/\D/g, "");
   const phoneNumber = cleaned.startsWith("230") ? cleaned : `230${cleaned}`;
   const message = encodeURIComponent(
-    `Bonjour ${artisan.name}, je vous contacte via ArtisanMu. J'ai un travail a faire.`,
+    `Bonjour ${artisan.name}, je vous contacte via Artisan Moris. J'ai un travail a faire.`,
   );
   return `https://wa.me/${phoneNumber}?text=${message}`;
 }
@@ -353,8 +353,7 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
               return (
                 <article
                   key={artisan.id}
-                  onClick={() => toggleArtisanCard(artisan.id)}
-                  className={`group hover-lift grid cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-sm sm:grid-cols-[132px_minmax(0,1fr)] ${
+                  className={`group hover-lift grid overflow-hidden rounded-2xl border bg-white shadow-sm sm:grid-cols-[132px_minmax(0,1fr)] ${
                     isSelected
                       ? "border-[#0d8b66] ring-2 ring-[#0d8b66]/15"
                       : "border-[#e3ddd1] hover:border-[#0d8b66]/40 hover:shadow-lg"
@@ -438,11 +437,7 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                         type="button"
                         aria-expanded={isExpanded}
                         aria-controls={detailsId}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setSelectedArtisanId(artisan.id);
-                          setExpandedArtisanId(artisan.id);
-                        }}
+                        onClick={() => toggleArtisanCard(artisan.id)}
                         className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0d1612] px-4 text-sm font-semibold text-white transition hover:bg-[#17251e]"
                       >
                         {isExpanded ? copy.browse.selected : copy.browse.view}

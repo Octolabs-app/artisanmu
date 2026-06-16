@@ -98,7 +98,7 @@ export function LoginAccessPanel() {
     if (!linked) {
       await supabase.auth.signOut();
       setNotice(
-        "This account is not linked to an ArtisanMu artisan profile yet. Submit the artisan application first.",
+        "This account is not linked to an Artisan Moris artisan profile yet. Submit the artisan application first.",
       );
       setPassword("");
       setSubmitting(false);
@@ -130,10 +130,10 @@ export function LoginAccessPanel() {
             Artisan-only access
           </div>
           <h1 className="mt-4 text-3xl font-semibold leading-tight sm:text-4xl">
-            Log in to manage your ArtisanMu profile.
+            Log in to manage your Artisan Moris profile.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f6a64]">
-            Use the email and password linked to your ArtisanMu artisan profile. Admin access stays on the private admin page.
+            Use the email and password linked to your Artisan Moris artisan profile. Admin access stays on the private admin page.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-5 grid gap-4" noValidate>

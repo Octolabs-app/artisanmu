@@ -426,7 +426,20 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
               type="file"
               accept="image/*"
               className="sr-only"
-              onChange={(event) => updateForm({ photoFile: event.target.files?.[0] || null })}
+              onChange={(event) => {
+                const file = event.target.files?.[0] || null;
+                if (file && !file.type.startsWith("image/")) {
+                  setForm((current) => ({ ...current, photoFile: null }));
+                  setError("Please choose an image file.");
+                  return;
+                }
+                if (file && file.size > 5 * 1024 * 1024) {
+                  setForm((current) => ({ ...current, photoFile: null }));
+                  setError("Photo is too large. Please choose an image under 5 MB.");
+                  return;
+                }
+                updateForm({ photoFile: file });
+              }}
             />
           </label>
         </div>

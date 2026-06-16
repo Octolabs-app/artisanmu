@@ -51,7 +51,7 @@ export function SiteHeader() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <label className="hidden h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-2.5 text-sm text-[#0d1612] shadow-sm md:flex">
+            <label className="flex h-10 items-center gap-1.5 rounded-xl border border-[#e3ddd1] bg-white px-2 text-sm text-[#0d1612] shadow-sm sm:gap-2 sm:px-2.5">
               <Globe2 className="size-4 text-[#0d8b66]" aria-hidden="true" />
               <select
                 value={language}
