@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BadgeCheck,
   ChevronDown,
@@ -40,7 +40,7 @@ import {
   publicArtisanSelect,
   type SupabaseArtisanProfile,
 } from "@/lib/artisan-profile";
-import { districts, trades } from "@/lib/mock-data";
+import { districts, trades, tradeImages } from "@/lib/mock-data";
 import { districtMatchesSelection, serviceTagOptions, tradeMatchesSelection } from "@/lib/service-options";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
 import type { Artisan } from "@/lib/types";
@@ -438,6 +438,66 @@ function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// Animated count-up that triggers when scrolled into view.
+function CountUp({ end, duration = 1400, suffix = "" }: { end: number; duration?: number; suffix?: string }) {
+  const [value, setValue] = useState(0);
+  const ref = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+
+    const run = () => {
+      const start = performance.now();
+      const tick = (now: number) => {
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setValue(Math.round(end * eased));
+        if (progress < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+
+    if (typeof IntersectionObserver === "undefined" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      const raf = requestAnimationFrame(() => setValue(end));
+      return () => cancelAnimationFrame(raf);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          run();
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [end, duration]);
+
+  return (
+    <span ref={ref}>
+      {value}
+      {suffix}
+    </span>
+  );
+}
+
+// Hero showcase cards — illustrative "artisan at work" imagery (trade photos
+// already used by the data layer); decorative only, not real listings.
+const heroShowcase: { trade: string; image: string; tilt: string; float: string; delay: string }[] = [
+  { trade: "Plumber", image: tradeImages.Plumber, tilt: "-4deg", float: "animate-float", delay: "" },
+  { trade: "Electrician", image: tradeImages.Electrician, tilt: "5deg", float: "animate-float-slow", delay: "anim-delay-2" },
+  { trade: "Carpenter", image: tradeImages.Carpenter, tilt: "-3deg", float: "animate-float-soft", delay: "anim-delay-1" },
+];
+
+const heroStats: { value: number; suffix: string; labels: Record<Language, string> }[] = [
+  { value: 8, suffix: "", labels: { en: "Trades", fr: "Metiers", mfe: "Metie" } },
+  { value: 9, suffix: "", labels: { en: "Districts", fr: "Districts", mfe: "Distrik" } },
+  { value: 100, suffix: "%", labels: { en: "Free to post", fr: "Gratuit", mfe: "Gratis" } },
+];
+
 export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
   const [refreshedArtisans, setRefreshedArtisans] = useState<Artisan[] | null>(null);
   const [query, setQuery] = useState("");
@@ -493,6 +553,30 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
       window.removeEventListener("focus", onFocus);
       void client.removeChannel(channel);
     };
+  }, []);
+
+  // Reveal marketing sections as they scroll into view.
+  useEffect(() => {
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>(".reveal:not(.is-visible)"));
+    if (typeof IntersectionObserver === "undefined") {
+      nodes.forEach((node) => node.classList.add("is-visible"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
+    );
+
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
   }, []);
 
   const filteredArtisans = useMemo(() => {
@@ -641,29 +725,47 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b border-[#e3ddd1]">
-        <div
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              "radial-gradient(60% 60% at 85% 10%, rgba(13,139,102,0.10), transparent 60%), radial-gradient(50% 50% at 5% 0%, rgba(199,155,85,0.12), transparent 55%)",
-          }}
-          aria-hidden="true"
-        />
-        <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:py-16">
+        {/* Animated background: morphing blobs + soft mesh */}
+        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+          <div
+            className="blob left-[-8%] top-[-10%] size-[42vw] max-w-[560px]"
+            style={{ background: "radial-gradient(circle at 30% 30%, #34b88a, #0d8b66)" }}
+          />
+          <div
+            className="blob right-[-10%] top-[8%] size-[36vw] max-w-[480px] anim-delay-2"
+            style={{ background: "radial-gradient(circle at 60% 40%, #e2c99a, #c79b55)", opacity: 0.4 }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: "radial-gradient(rgba(13,22,18,0.06) 1px, transparent 1px)",
+              backgroundSize: "26px 26px",
+              maskImage: "radial-gradient(80% 70% at 50% 30%, #000, transparent)",
+              WebkitMaskImage: "radial-gradient(80% 70% at 50% 30%, #000, transparent)",
+            }}
+          />
+        </div>
+
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,500px)] lg:py-20">
           <div className="min-w-0">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#0d8b66]/25 bg-[#e7f5ef] px-3 py-1.5 text-xs font-semibold text-[#0a5e46]">
-              <MapPinned className="size-3.5" aria-hidden="true" />
+            <span className="reveal inline-flex items-center gap-2 rounded-full border border-[#0d8b66]/25 bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#0a5e46] backdrop-blur">
+              <span className="relative flex size-2">
+                <span className="pulse-ring absolute inline-flex size-2 rounded-full bg-[#0d8b66]" />
+                <span className="relative inline-flex size-2 rounded-full bg-[#0d8b66]" />
+              </span>
               {copy.hero.location}
             </span>
-            <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-[#0d8b66]">{copy.hero.eyebrow}</p>
-            <h1 className="font-display mt-2 max-w-2xl text-4xl leading-[1.05] text-[#101410] sm:text-5xl lg:text-6xl">
-              {copy.hero.headlineLead} <span className="text-[#0d8b66]">{copy.hero.headlineEm}</span>
+            <p className="reveal reveal-d1 mt-5 text-sm font-semibold uppercase tracking-wide text-[#0d8b66]">
+              {copy.hero.eyebrow}
+            </p>
+            <h1 className="font-display reveal reveal-d1 mt-2 max-w-2xl text-[2.7rem] leading-[1.02] text-[#101410] sm:text-6xl lg:text-7xl">
+              {copy.hero.headlineLead} <span className="gradient-text">{copy.hero.headlineEm}</span>
               {copy.hero.headlineTail}
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-8 text-[#5d6863]">{copy.hero.support}</p>
+            <p className="reveal reveal-d2 mt-5 max-w-xl text-lg leading-8 text-[#5d6863]">{copy.hero.support}</p>
 
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <button type="button" onClick={() => scrollToId("request")} className="btn btn-primary text-base">
+            <div className="reveal reveal-d3 mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <button type="button" onClick={() => scrollToId("request")} className="btn btn-primary shine text-base">
                 <MessageCircle className="size-5" aria-hidden="true" />
                 {copy.hero.ctaPrimary}
               </button>
@@ -673,13 +775,13 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
               </button>
             </div>
 
-            <ul className="mt-7 flex flex-wrap gap-2">
+            <ul className="reveal reveal-d4 mt-7 flex flex-wrap gap-2">
               {copy.hero.chips.map((chip, index) => {
                 const ChipIcon = [ShieldCheck, MessageCircle, Globe2, Clock][index] || Sparkles;
                 return (
                   <li
                     key={chip}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[#e3ddd1] bg-white/80 px-3 py-1.5 text-sm font-medium text-[#4d5651]"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#e3ddd1] bg-white/80 px-3 py-1.5 text-sm font-medium text-[#4d5651] backdrop-blur"
                   >
                     <ChipIcon className="size-4 text-[#0d8b66]" aria-hidden="true" />
                     {chip}
@@ -687,41 +789,84 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
                 );
               })}
             </ul>
+
+            <dl className="reveal reveal-d5 mt-8 flex flex-wrap gap-x-8 gap-y-4">
+              {heroStats.map((stat) => (
+                <div key={stat.labels.en}>
+                  <dt className="font-display text-3xl text-[#101410] sm:text-4xl">
+                    <CountUp end={stat.value} suffix={stat.suffix} />
+                  </dt>
+                  <dd className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-[#5d6863]">{stat.labels[language]}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
 
-          {/* Original illustrative visual: floating trade tiles (no stock imagery) */}
-          <div className="relative mx-auto hidden w-full max-w-md lg:block" aria-hidden="true">
-            <div
-              className="absolute inset-0 -z-10 rounded-[2.5rem]"
-              style={{ background: "linear-gradient(135deg, #0d1612 0%, #114a39 60%, #0d8b66 100%)" }}
-            />
-            <div className="rounded-[2.5rem] p-7">
-              <div className="grid grid-cols-2 gap-4">
-                {popularTrades.slice(0, 6).map((trade, index) => {
-                  const TileIcon = trade.icon;
-                  const rotations = ["-rotate-2", "rotate-1", "rotate-2", "-rotate-1", "rotate-1", "-rotate-2"];
-                  const offsets = ["", "translate-y-3", "", "translate-y-3", "", "translate-y-3"];
-                  return (
-                    <div
-                      key={trade.value}
-                      className={`flex items-center gap-3 rounded-2xl bg-white/95 p-4 shadow-[0_18px_40px_-22px_rgba(0,0,0,0.6)] backdrop-blur ${rotations[index]} ${offsets[index]}`}
-                    >
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#e7f5ef] text-[#0a5e46]">
-                        <TileIcon className="size-5" aria-hidden="true" />
+          {/* Animated cluster of floating "artisan at work" photo cards */}
+          <div className="relative mx-auto h-[440px] w-full max-w-md sm:h-[500px]" aria-hidden="true">
+            {heroShowcase.map((card, index) => {
+              const positions = [
+                "left-1/2 top-0 w-60 -translate-x-[58%] sm:w-64",
+                "right-0 top-28 w-52 sm:top-32 sm:w-60",
+                "left-0 bottom-2 w-52 sm:w-60",
+              ];
+              return (
+                <figure
+                  key={card.trade}
+                  className={`group absolute ${positions[index]} ${card.float} ${card.delay} overflow-hidden rounded-3xl border border-white/60 bg-white shadow-[0_28px_60px_-28px_rgba(13,22,18,0.55)]`}
+                  style={{ ["--tilt" as string]: card.tilt }}
+                >
+                  <div className="relative aspect-[4/5]">
+                    <Image
+                      src={card.image}
+                      alt=""
+                      fill
+                      sizes="(min-width: 1024px) 240px, 50vw"
+                      className="object-cover"
+                      priority={index === 0}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                    <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-xs font-bold text-[#78511c] shadow-sm backdrop-blur">
+                      <Star className="size-3.5 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
+                      4.9
+                    </span>
+                    <figcaption className="absolute inset-x-2 bottom-2 flex items-center justify-between gap-2 rounded-2xl bg-white/90 px-3 py-2 backdrop-blur">
+                      <span className="truncate text-sm font-semibold text-[#101410]">
+                        {popularTrades.find((trade) => trade.value === card.trade)?.labels[language] ?? card.trade}
                       </span>
-                      <span className="text-sm font-semibold text-[#101410]">{trade.labels.en}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-5 flex items-center justify-between rounded-2xl bg-white/95 px-4 py-3 shadow-[0_18px_40px_-22px_rgba(0,0,0,0.6)]">
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0a5e46]">
-                  <ShieldCheck className="size-5" aria-hidden="true" />
-                  {copy.hero.visualBadge}
-                </span>
-                <span className="text-xs font-medium text-[#5d6863]">{copy.hero.visualCaption}</span>
-              </div>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0a5e46]">
+                        <span className="size-1.5 rounded-full bg-[#0d8b66]" />
+                        {copy.browse.available}
+                      </span>
+                    </figcaption>
+                  </div>
+                </figure>
+              );
+            })}
+
+            {/* Floating verified badge */}
+            <div className="animate-float-slow anim-delay-1 absolute right-2 top-2 z-10 flex items-center gap-2 rounded-2xl bg-[#0d1612] px-3 py-2 text-white shadow-xl">
+              <BadgeCheck className="size-5 text-[#34b88a]" aria-hidden="true" />
+              <span className="text-xs font-semibold">{copy.hero.visualBadge}</span>
             </div>
+          </div>
+        </div>
+
+        {/* Trades marquee ticker */}
+        <div className="relative border-t border-[#e3ddd1] bg-white/50 py-3 backdrop-blur">
+          <div className="marquee gap-3">
+            {[...popularTrades, ...popularTrades].map((trade, index) => {
+              const TileIcon = trade.icon;
+              return (
+                <span
+                  key={`${trade.value}-${index}`}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#e3ddd1] bg-white px-4 py-1.5 text-sm font-semibold text-[#4d5651]"
+                >
+                  <TileIcon className="size-4 text-[#0d8b66]" aria-hidden="true" />
+                  {trade.labels[language]}
+                </span>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -729,7 +874,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
       {/* ── How it works ── */}
       <section id="how" className="scroll-mt-20 border-b border-[#e3ddd1]">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:py-16">
-          <div className="max-w-2xl">
+          <div className="reveal max-w-2xl">
             <h2 className="font-display text-3xl text-[#101410] sm:text-4xl">{copy.how.title}</h2>
             <p className="mt-3 text-lg text-[#5d6863]">{copy.how.subtitle}</p>
           </div>
@@ -739,7 +884,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
               return (
                 <li
                   key={step.title}
-                  className="relative rounded-2xl border border-[#e3ddd1] bg-white p-6 shadow-sm"
+                  className={`reveal reveal-d${index + 1} hover-lift relative rounded-2xl border border-[#e3ddd1] bg-white p-6 shadow-sm hover:border-[#0d8b66]/40 hover:shadow-lg`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="flex size-12 items-center justify-center rounded-2xl bg-[#e7f5ef] text-[#0a5e46]">
@@ -759,21 +904,21 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
       {/* ── Popular trades ── */}
       <section id="trades" className="scroll-mt-20 border-b border-[#e3ddd1]">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:py-16">
-          <div className="max-w-2xl">
+          <div className="reveal max-w-2xl">
             <h2 className="font-display text-3xl text-[#101410] sm:text-4xl">{copy.tradesSection.title}</h2>
             <p className="mt-3 text-lg text-[#5d6863]">{copy.tradesSection.subtitle}</p>
           </div>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {popularTrades.map((trade) => {
+            {popularTrades.map((trade, index) => {
               const TileIcon = trade.icon;
               return (
                 <button
                   key={trade.value}
                   type="button"
                   onClick={() => startRequestWithTrade(trade.value)}
-                  className="group flex items-center gap-3 rounded-2xl border border-[#e3ddd1] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#0d8b66] hover:shadow-md"
+                  className={`group reveal reveal-d${(index % 4) + 1} shine flex items-center gap-3 rounded-2xl border border-[#e3ddd1] bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-[#0d8b66] hover:shadow-lg`}
                 >
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#e7f5ef] text-[#0a5e46] transition group-hover:bg-[#0d8b66] group-hover:text-white">
+                  <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#e7f5ef] text-[#0a5e46] transition duration-300 group-hover:-rotate-6 group-hover:scale-110 group-hover:bg-[#0d8b66] group-hover:text-white">
                     <TileIcon className="size-6" aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -793,7 +938,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
       {/* ── Request a job (centerpiece) ── */}
       <section id="request" className="scroll-mt-20 border-b border-[#e3ddd1] bg-[#fbf8f1]">
         <div className="mx-auto grid max-w-7xl items-start gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:py-16">
-          <div className="lg:sticky lg:top-24">
+          <div className="reveal lg:sticky lg:top-24">
             <span className="inline-flex items-center gap-2 rounded-full bg-[#e7f5ef] px-3 py-1.5 text-xs font-semibold text-[#0a5e46]">
               <Sparkles className="size-3.5" aria-hidden="true" />
               {copy.request.eyebrow}
@@ -816,7 +961,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
             </ul>
           </div>
 
-          <div className="rounded-3xl border border-[#e3ddd1] bg-white p-2 shadow-[0_30px_60px_-40px_rgba(13,22,18,0.4)]">
+          <div className="reveal reveal-d2 rounded-3xl border border-[#e3ddd1] bg-white p-2 shadow-[0_30px_60px_-40px_rgba(13,22,18,0.4)]">
             <JobRequestForm key={`req-${requestTrade ?? "default"}-${prefillSignal}`} initialTrade={requestTrade} />
           </div>
         </div>
@@ -825,15 +970,18 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
       {/* ── Why ArtisanMU ── */}
       <section id="why" className="scroll-mt-20 border-b border-[#e3ddd1]">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:py-16">
-          <div className="max-w-2xl">
+          <div className="reveal max-w-2xl">
             <h2 className="font-display text-3xl text-[#101410] sm:text-4xl">{copy.why.title}</h2>
           </div>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {copy.why.items.map((item, index) => {
               const WhyIcon = whyIcons[index] || HeartHandshake;
               return (
-                <div key={item.title} className="rounded-2xl border border-[#e3ddd1] bg-white p-6 shadow-sm">
-                  <span className="flex size-12 items-center justify-center rounded-2xl bg-[#e7f5ef] text-[#0a5e46]">
+                <div
+                  key={item.title}
+                  className={`reveal reveal-d${index + 1} hover-lift rounded-2xl border border-[#e3ddd1] bg-white p-6 shadow-sm hover:border-[#0d8b66]/40 hover:shadow-lg`}
+                >
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-[#e7f5ef] text-[#0a5e46] transition group-hover:scale-105">
                     <WhyIcon className="size-6" aria-hidden="true" />
                   </span>
                   <h3 className="mt-4 text-lg font-semibold text-[#101410]">{item.title}</h3>
@@ -848,7 +996,7 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
       {/* ── Browse verified artisans ── */}
       <section id="browse" className="scroll-mt-20 border-b border-[#e3ddd1]">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:py-16">
-          <div className="max-w-2xl">
+          <div className="reveal max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-wide text-[#0d8b66]">{copy.browse.eyebrow}</p>
             <h2 className="font-display mt-2 text-3xl text-[#101410] sm:text-4xl">{copy.browse.title}</h2>
             <p className="mt-3 text-lg text-[#5d6863]">{copy.browse.subtitle}</p>
@@ -1021,17 +1169,19 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
                 <article
                   key={artisan.id}
                   onClick={() => toggleArtisanCard(artisan.id)}
-                  className={`grid cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-sm transition sm:grid-cols-[132px_minmax(0,1fr)] ${
-                    isSelected ? "border-[#0d8b66] ring-2 ring-[#0d8b66]/15" : "border-[#e3ddd1] hover:border-[#cfc6b6]"
+                  className={`group hover-lift grid cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-sm sm:grid-cols-[132px_minmax(0,1fr)] ${
+                    isSelected
+                      ? "border-[#0d8b66] ring-2 ring-[#0d8b66]/15"
+                      : "border-[#e3ddd1] hover:border-[#0d8b66]/40 hover:shadow-lg"
                   }`}
                 >
-                  <div className="relative aspect-[16/9] min-h-36 sm:aspect-auto sm:min-h-full">
+                  <div className="relative aspect-[16/9] min-h-36 overflow-hidden sm:aspect-auto sm:min-h-full">
                     <Image
                       src={artisan.image}
                       alt={`${artisan.trade} work`}
                       fill
                       sizes="(min-width: 640px) 132px, 100vw"
-                      className="object-cover"
+                      className="object-cover transition duration-500 group-hover:scale-105"
                     />
                     <span
                       className={`absolute left-2 top-2 rounded-full px-2 py-1 text-xs font-semibold ${
@@ -1217,12 +1367,15 @@ export function ArtisanMarketplace({ artisans }: ArtisanMarketplaceProps) {
       {/* ── FAQ ── */}
       <section id="faq" className="scroll-mt-20 border-b border-[#e3ddd1]">
         <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:py-16">
-          <h2 className="font-display text-3xl text-[#101410] sm:text-4xl">{copy.faq.title}</h2>
+          <h2 className="font-display reveal text-3xl text-[#101410] sm:text-4xl">{copy.faq.title}</h2>
           <div className="mt-8 grid gap-3">
             {copy.faq.items.map((item, index) => {
               const isOpen = openFaq === index;
               return (
-                <div key={item.q} className="overflow-hidden rounded-2xl border border-[#e3ddd1] bg-white shadow-sm">
+                <div
+                  key={item.q}
+                  className={`reveal reveal-d${(index % 4) + 1} overflow-hidden rounded-2xl border border-[#e3ddd1] bg-white shadow-sm transition hover:border-[#0d8b66]/40`}
+                >
                   <button
                     type="button"
                     aria-expanded={isOpen}
