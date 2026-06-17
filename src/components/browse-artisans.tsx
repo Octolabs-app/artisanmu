@@ -63,8 +63,7 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
   const [selectedDistrict, setSelectedDistrict] = useState(allDistrictsLabel);
   const [selectedTag, setSelectedTag] = useState(allTagsLabel);
   const [urgent, setUrgent] = useState(true);
-  const [selectedArtisanId, setSelectedArtisanId] = useState(artisans[0]?.id || "");
-  const [expandedArtisanId, setExpandedArtisanId] = useState("");
+  const [modalArtisanId, setModalArtisanId] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const displayArtisans = refreshedArtisans || artisans;
   const hasAnyArtisans = displayArtisans.length > 0;
@@ -140,8 +139,7 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
 
   useReveal([filteredArtisans.length]);
 
-  const selectedArtisan =
-    filteredArtisans.find((artisan) => artisan.id === selectedArtisanId) || filteredArtisans[0] || null;
+  const modalArtisan = filteredArtisans.find((artisan) => artisan.id === modalArtisanId) || null;
   const availableCount = filteredArtisans.filter((artisan) => artisan.available).length;
   const activeFilterCount =
     (query.trim() ? 1 : 0) +
@@ -149,10 +147,20 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
     (selectedDistrict !== allDistrictsLabel ? 1 : 0) +
     (selectedTag !== allTagsLabel ? 1 : 0);
 
-  function toggleArtisanCard(artisanId: string) {
-    setSelectedArtisanId(artisanId);
-    setExpandedArtisanId((current) => (current === artisanId ? "" : artisanId));
-  }
+  // Close the detail modal on Escape, and lock body scroll while it's open.
+  useEffect(() => {
+    if (!modalArtisanId) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setModalArtisanId("");
+    };
+    window.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [modalArtisanId]);
 
   function applyQuickFilter(preset: (typeof quickFilters)[number]) {
     setQuery(preset.query);
@@ -160,7 +168,6 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
     setSelectedDistrict(allDistrictsLabel);
     setSelectedTag(preset.tag);
     setUrgent(true);
-    setExpandedArtisanId("");
   }
 
   function resetFilters() {
@@ -169,8 +176,6 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
     setSelectedDistrict(allDistrictsLabel);
     setSelectedTag(allTagsLabel);
     setUrgent(true);
-    setExpandedArtisanId("");
-    setSelectedArtisanId(displayArtisans[0]?.id || "");
   }
 
   return (
@@ -255,7 +260,6 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                       value={selectedTrade}
                       onChange={(event) => {
                         setSelectedTrade(event.target.value);
-                        setExpandedArtisanId("");
                       }}
                       className="min-w-0 flex-1 bg-transparent text-sm outline-none"
                       aria-label="Filter by trade"
@@ -273,7 +277,6 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                       value={selectedDistrict}
                       onChange={(event) => {
                         setSelectedDistrict(event.target.value);
-                        setExpandedArtisanId("");
                       }}
                       className="min-w-0 flex-1 bg-transparent text-sm outline-none"
                       aria-label="Filter by district"
@@ -291,7 +294,6 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                       value={selectedTag}
                       onChange={(event) => {
                         setSelectedTag(event.target.value);
-                        setExpandedArtisanId("");
                       }}
                       className="min-w-0 flex-1 bg-transparent text-sm outline-none"
                       aria-label="Filter by service tag"
@@ -343,22 +345,14 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
 
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {filteredArtisans.map((artisan) => {
-              const isSelected = selectedArtisan?.id === artisan.id;
-              const isExpanded = expandedArtisanId === artisan.id;
-              const artisanWhatsappLink = buildWhatsAppLink(artisan);
-              const hasPortfolio = artisan.portfolioImages.length > 0;
-              const detailsId = `artisan-${artisan.id}-details`;
               const visibleTags = artisan.serviceTags.slice(0, 3);
               const hiddenTagCount = Math.max(0, artisan.serviceTags.length - visibleTags.length);
 
               return (
                 <article
                   key={artisan.id}
-                  className={`group hover-lift grid overflow-hidden rounded-2xl border bg-white shadow-sm sm:grid-cols-[132px_minmax(0,1fr)] ${
-                    isSelected
-                      ? "border-[#0d8b66] ring-2 ring-[#0d8b66]/15"
-                      : "border-[#e3ddd1] hover:border-[#0d8b66]/40 hover:shadow-lg"
-                  }`}
+                  onClick={() => setModalArtisanId(artisan.id)}
+                  className="group hover-lift grid cursor-pointer overflow-hidden rounded-2xl border border-[#e3ddd1] bg-white shadow-sm transition hover:border-[#0d8b66]/40 hover:shadow-lg sm:grid-cols-[132px_minmax(0,1fr)]"
                 >
                   <div className="relative aspect-[16/9] min-h-36 overflow-hidden sm:aspect-auto sm:min-h-full">
                     <Image
@@ -442,106 +436,16 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                       </div>
                       <button
                         type="button"
-                        aria-expanded={isExpanded}
-                        aria-controls={detailsId}
-                        onClick={() => toggleArtisanCard(artisan.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setModalArtisanId(artisan.id);
+                        }}
                         className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0d1612] px-4 text-sm font-semibold text-white transition hover:bg-[#17251e]"
                       >
-                        {isExpanded ? copy.browse.selected : copy.browse.view}
-                        <ChevronRight className={`size-4 transition ${isExpanded ? "rotate-90" : ""}`} aria-hidden="true" />
+                        {copy.browse.view}
+                        <ChevronRight className="size-4" aria-hidden="true" />
                       </button>
                     </div>
-
-                    {isExpanded ? (
-                      <div id={detailsId} className="mt-4 grid gap-3 border-t border-[#eee8dc] pt-4">
-                        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-                          <section className="rounded-2xl border border-[#e3ddd1] bg-[#fbf8f1] p-3">
-                            <div className="flex items-center gap-2 font-semibold text-[#101410]">
-                              <Images className="size-4 text-[#234f7a]" aria-hidden="true" />
-                              {copy.browse.portfolio}
-                            </div>
-                            {hasPortfolio ? (
-                              <div className="mt-3 grid grid-cols-2 gap-2">
-                                {artisan.portfolioImages.slice(0, 4).map((image, index) => (
-                                  <div
-                                    key={`${artisan.id}-portfolio-${index}`}
-                                    className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#ddd8cd]"
-                                  >
-                                    <Image
-                                      src={image}
-                                      alt={`${artisan.name} portfolio ${index + 1}`}
-                                      fill
-                                      sizes="(min-width: 1024px) 180px, 45vw"
-                                      className="object-cover"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="mt-2 text-sm leading-5 text-[#5d6863]">{copy.browse.portfolioEmpty}</p>
-                            )}
-                          </section>
-
-                          <section className="grid gap-3">
-                            <div className="rounded-2xl border border-[#e3ddd1] bg-white p-3">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 font-semibold text-[#101410]">
-                                  <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
-                                  {copy.browse.reviews}
-                                </div>
-                                <span className="rounded-full bg-[#fff4e0] px-2 py-1 text-xs font-semibold text-[#78511c]">
-                                  {artisan.rating}/5
-                                </span>
-                              </div>
-                              <p className="mt-2 text-sm leading-5 text-[#5d6863]">{copy.browse.reviewsCount(artisan.reviews)}</p>
-                            </div>
-
-                            <div className="rounded-2xl border border-[#e3ddd1] bg-white p-3">
-                              <div className="flex items-center gap-2 font-semibold text-[#101410]">
-                                <Clock className="size-4 text-[#0d8b66]" aria-hidden="true" />
-                                {copy.browse.availability}
-                              </div>
-                              <p className="mt-2 text-sm leading-5 text-[#5d6863]">
-                                {artisan.available ? copy.browse.availableToday(artisan.etaMinutes) : copy.browse.notAvailable}
-                              </p>
-                            </div>
-                          </section>
-                        </div>
-
-                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                          <p className="text-sm leading-5 text-[#5d6863]">{copy.browse.selectHint}</p>
-                          {artisan.contactPreference === "call" ? (
-                            <a
-                              href={artisan.phone ? `tel:${artisan.phone.replace(/[^\d+]/g, "")}` : "#"}
-                              onClick={(event) => event.stopPropagation()}
-                              className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold ${
-                                artisan.phone
-                                  ? "bg-[#0d1612] text-white hover:bg-[#17251e]"
-                                  : "pointer-events-none bg-[#ddd8cd] text-[#6c756f]"
-                              }`}
-                            >
-                              <Phone className="size-4" aria-hidden="true" />
-                              {copy.browse.callContact}
-                            </a>
-                          ) : (
-                            <a
-                              href={artisanWhatsappLink}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(event) => event.stopPropagation()}
-                              className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold ${
-                                artisan.phone
-                                  ? "bg-[#0d8b66] text-white hover:bg-[#0b7758]"
-                                  : "pointer-events-none bg-[#ddd8cd] text-[#6c756f]"
-                              }`}
-                            >
-                              <MessageCircle className="size-4" aria-hidden="true" />
-                              {copy.browse.whatsapp}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    ) : null}
                   </div>
                 </article>
               );
@@ -592,6 +496,176 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
           </div>
         </div>
       </section>
+
+      {/* Sleek artisan detail modal (bottom-sheet on mobile, centered on desktop) */}
+      {modalArtisan ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={modalArtisan.name}
+          onClick={() => setModalArtisanId("")}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center sm:p-4"
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
+          >
+            <div className="relative h-44 w-full overflow-hidden sm:h-52">
+              <Image
+                src={modalArtisan.image}
+                alt={`${modalArtisan.trade} work`}
+                fill
+                sizes="(min-width: 640px) 672px, 100vw"
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+              <span
+                className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  modalArtisan.available ? "bg-[#0d8b66] text-white" : "bg-white text-[#5f6a64]"
+                }`}
+              >
+                {modalArtisan.available ? copy.browse.available : copy.browse.later}
+              </span>
+              <button
+                type="button"
+                onClick={() => setModalArtisanId("")}
+                aria-label="Close"
+                className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-white/90 text-[#0d1612] shadow transition hover:bg-white"
+              >
+                <X className="size-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-display text-2xl text-[#101410]">{modalArtisan.name}</h2>
+                    {modalArtisan.verified ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#e7f5ef] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
+                        <ShieldCheck className="size-3.5" aria-hidden="true" />
+                        {copy.browse.verified}
+                      </span>
+                    ) : null}
+                    {modalArtisan.contactPreference === "whatsapp" && modalArtisan.phone ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2 py-1 text-xs font-semibold text-[#166534]">
+                        <MessageCircle className="size-3.5" aria-hidden="true" />
+                        {copy.browse.whatsappBadge}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-[#5d6863]">
+                    <MapPin className="size-4 shrink-0 text-[#9f4a4a]" aria-hidden="true" />
+                    {modalArtisan.trade} · {modalArtisan.town}, {modalArtisan.district}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1 rounded-full bg-[#fff4e0] px-2.5 py-1.5 text-sm font-semibold text-[#78511c]">
+                  <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
+                  {modalArtisan.rating}
+                  <span className="font-normal text-[#8a7657]">({modalArtisan.reviews})</span>
+                </div>
+              </div>
+
+              <p className="mt-3 text-sm leading-6 text-[#5d6863]">{modalArtisan.bio}</p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {modalArtisan.serviceTags.map((tag) => (
+                  <span key={tag} className="rounded-full bg-[#e7f5ef] px-2.5 py-1 text-xs font-semibold text-[#0d7c5c]">
+                    {tag}
+                  </span>
+                ))}
+                {modalArtisan.specialties.map((specialty) => (
+                  <span key={specialty} className="rounded-full border border-[#e3ddd1] bg-white px-2.5 py-1 text-xs text-[#4d5651]">
+                    {specialty}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2 text-sm text-[#4d5651]">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eef5f3] px-2.5 py-1.5">
+                  <Clock className="size-4 text-[#0f766e]" aria-hidden="true" />
+                  {modalArtisan.etaMinutes} min
+                </span>
+                <span className="rounded-full bg-[#f2eee4] px-2.5 py-1.5">{modalArtisan.priceHint}</span>
+              </div>
+
+              <div className="mt-5">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-[#101410]">
+                  <Images className="size-4 text-[#234f7a]" aria-hidden="true" />
+                  {copy.browse.portfolio}
+                </h3>
+                {modalArtisan.portfolioImages.length ? (
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {modalArtisan.portfolioImages.slice(0, 6).map((image, index) => (
+                      <div key={`${modalArtisan.id}-pf-${index}`} className="relative aspect-square overflow-hidden rounded-xl bg-[#ddd8cd]">
+                        <Image
+                          src={image}
+                          alt={`${modalArtisan.name} work ${index + 1}`}
+                          fill
+                          sizes="(min-width: 640px) 200px, 45vw"
+                          className="object-cover transition duration-500 hover:scale-105"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm leading-5 text-[#5d6863]">{copy.browse.portfolioEmpty}</p>
+                )}
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-[#e3ddd1] bg-white p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 font-semibold text-[#101410]">
+                      <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
+                      {copy.browse.reviews}
+                    </div>
+                    <span className="rounded-full bg-[#fff4e0] px-2 py-1 text-xs font-semibold text-[#78511c]">
+                      {modalArtisan.rating}/5
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-5 text-[#5d6863]">{copy.browse.reviewsCount(modalArtisan.reviews)}</p>
+                </div>
+                <div className="rounded-2xl border border-[#e3ddd1] bg-white p-3">
+                  <div className="flex items-center gap-2 font-semibold text-[#101410]">
+                    <Clock className="size-4 text-[#0d8b66]" aria-hidden="true" />
+                    {copy.browse.availability}
+                  </div>
+                  <p className="mt-2 text-sm leading-5 text-[#5d6863]">
+                    {modalArtisan.available ? copy.browse.availableToday(modalArtisan.etaMinutes) : copy.browse.notAvailable}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                {modalArtisan.contactPreference === "call" ? (
+                  <a
+                    href={modalArtisan.phone ? `tel:${modalArtisan.phone.replace(/[^\d+]/g, "")}` : "#"}
+                    className={`flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold ${
+                      modalArtisan.phone ? "bg-[#0d1612] text-white hover:bg-[#17251e]" : "pointer-events-none bg-[#ddd8cd] text-[#6c756f]"
+                    }`}
+                  >
+                    <Phone className="size-4" aria-hidden="true" />
+                    {copy.browse.callContact}
+                  </a>
+                ) : (
+                  <a
+                    href={buildWhatsAppLink(modalArtisan)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold ${
+                      modalArtisan.phone ? "bg-[#0d8b66] text-white hover:bg-[#0b7758]" : "pointer-events-none bg-[#ddd8cd] text-[#6c756f]"
+                    }`}
+                  >
+                    <MessageCircle className="size-4" aria-hidden="true" />
+                    {copy.browse.whatsapp}
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
