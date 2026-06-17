@@ -4,8 +4,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://artisanmu.octolabs.app"),
   title: {
-    default: "Artisan Moris | Trusted Artisans in Mauritius",
-    template: "%s | Artisan Moris",
+    default: "Artizan Moris | Trusted Artisans in Mauritius",
+    template: "%s | Artizan Moris",
   },
   description:
     "Find verified artisans in Mauritius, compare profiles, and send a clean job request in minutes.",
@@ -13,22 +13,22 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Artisan Moris",
+    title: "Artizan Moris",
     description:
       "Search verified artisans in Mauritius and send a clean WhatsApp-ready job request.",
     url: "/",
-    siteName: "Artisan Moris",
+    siteName: "Artizan Moris",
     locale: "en_MU",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "Artisan Moris",
+    title: "Artizan Moris",
     description: "Find verified artisans in Mauritius quickly.",
   },
   icons: {
-    icon: "/artisanmu-mark.svg",
-    apple: "/artisanmu-mark.svg",
+    icon: "/artizan-moris-logo-192.png",
+    apple: "/artizan-moris-logo-192.png",
   },
 };
 

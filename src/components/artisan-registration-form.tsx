@@ -10,7 +10,6 @@ import {
   MapPin,
   MessageCircle,
   ShieldCheck,
-  UserRoundPlus,
 } from "lucide-react";
 import { invokePublicFunction, invokeUserFunction } from "@/lib/artisanmu-functions";
 import { districtOptions, serviceTagOptions, tradeOptions } from "@/lib/service-options";
@@ -215,19 +214,7 @@ export function ArtisanRegistrationForm() {
   }
 
   return (
-    <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
-      <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-[#e8f6f1] text-[#0d7c5c]">
-          <UserRoundPlus className="size-5" aria-hidden="true" />
-        </span>
-        <div>
-          <h2 className="font-semibold text-[#101410]">New artisan</h2>
-          <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
-            Apply with your trade details and recent work photos.
-          </p>
-        </div>
-      </div>
-
+    <div>
       {success ? (
         <div className="mt-4 rounded-md border border-[#b9dfcf] bg-[#e8f6f1] p-3 text-sm text-[#0d7c5c]">
           <div className="flex gap-2 font-semibold">
@@ -429,6 +416,6 @@ export function ArtisanRegistrationForm() {
           Pending accounts can log in, but job leads open only after approval.
         </p>
       </form>
-    </article>
+    </div>
   );
 }

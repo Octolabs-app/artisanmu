@@ -1,7 +1,7 @@
 import { Hammer, HardHat, KeyRound, Leaf, PaintRoller, PlugZap, Snowflake, Wrench } from "lucide-react";
 import { tradeImages } from "@/lib/mock-data";
 
-export const brandName = "Artisan Moris";
+export const brandName = "Artizan Moris";
 export const allTradesLabel = "All trades";
 export const allDistrictsLabel = "All districts";
 export const allTagsLabel = "All tags";
@@ -24,7 +24,7 @@ export const marketplaceCopy = {
       visualCaption: "Trusted trades, one tap away",
     },
     how: {
-      title: "How Artisan Moris works",
+      title: "How Artizan Moris works",
       subtitle: "Three simple steps, no phone tag.",
       steps: [
         { title: "Describe the job", desc: "A sentence or two and a photo — that's all we need to start." },
@@ -42,7 +42,7 @@ export const marketplaceCopy = {
       subtitle: "Post your job once and let verified artisans come to you on WhatsApp. Free to post.",
     },
     why: {
-      title: "Why Artisan Moris",
+      title: "Why Artizan Moris",
       items: [
         { title: "Verified artisans", desc: "Every pro is identity-checked before they can be matched." },
         { title: "Local to Mauritius", desc: "Built for the island — districts, trades and WhatsApp habits we all know." },
@@ -96,7 +96,7 @@ export const marketplaceCopy = {
     faq: {
       title: "Good to know",
       items: [
-        { q: "Is it free to post a job?", a: "Yes. Posting a job on Artisan Moris is completely free. You only arrange payment directly with the artisan you choose." },
+        { q: "Is it free to post a job?", a: "Yes. Posting a job on Artizan Moris is completely free. You only arrange payment directly with the artisan you choose." },
         { q: "How do artisans reach me?", a: "Your WhatsApp number stays protected. Matched artisans contact you through the app or a protected link once they accept your job." },
         { q: "Are the artisans verified?", a: "Every artisan is identity-checked before they can be matched to a job, and verified profiles are clearly badged." },
         { q: "Which areas do you cover?", a: "All of Mauritius — every district from Port Louis to Rodrigues. Pick the closest area when you post." },
@@ -169,7 +169,7 @@ export const marketplaceCopy = {
       visualCaption: "Des artisans de confiance, en un clic",
     },
     how: {
-      title: "Comment fonctionne Artisan Moris",
+      title: "Comment fonctionne Artizan Moris",
       subtitle: "Trois etapes simples, sans courir apres le telephone.",
       steps: [
         { title: "Decrivez le travail", desc: "Une ou deux phrases et une photo — c'est tout ce qu'il faut." },
@@ -187,7 +187,7 @@ export const marketplaceCopy = {
       subtitle: "Postez votre travail une fois et laissez les artisans verifies venir a vous sur WhatsApp. Gratuit.",
     },
     why: {
-      title: "Pourquoi Artisan Moris",
+      title: "Pourquoi Artizan Moris",
       items: [
         { title: "Artisans verifies", desc: "Chaque pro est verifie avant d'etre propose." },
         { title: "Local a Maurice", desc: "Pense pour l'ile — districts, metiers et habitudes WhatsApp que l'on connait." },
@@ -241,7 +241,7 @@ export const marketplaceCopy = {
     faq: {
       title: "Bon a savoir",
       items: [
-        { q: "Est-ce gratuit de poster un travail ?", a: "Oui. Poster un travail sur Artisan Moris est totalement gratuit. Vous reglez le paiement directement avec l'artisan choisi." },
+        { q: "Est-ce gratuit de poster un travail ?", a: "Oui. Poster un travail sur Artizan Moris est totalement gratuit. Vous reglez le paiement directement avec l'artisan choisi." },
         { q: "Comment les artisans me contactent ?", a: "Votre numero WhatsApp reste protege. Les artisans vous contactent via l'app ou un lien protege une fois qu'ils acceptent." },
         { q: "Les artisans sont-ils verifies ?", a: "Chaque artisan est verifie avant d'etre propose, et les profils verifies sont clairement identifies." },
         { q: "Quelles regions couvrez-vous ?", a: "Tout Maurice — chaque district, de Port-Louis a Rodrigues. Choisissez la region la plus proche." },
@@ -314,7 +314,7 @@ export const marketplaceCopy = {
       visualCaption: "Bann artizan serye, enn tap lwin",
     },
     how: {
-      title: "Kouma Artisan Moris marse",
+      title: "Kouma Artizan Moris marse",
       subtitle: "Trwa step fasil, pa bizin galoup deryer telefonn.",
       steps: [
         { title: "Dekrir travay-la", desc: "Enn-de fraz ek enn foto — samem tou seki bizin." },
@@ -332,7 +332,7 @@ export const marketplaceCopy = {
       subtitle: "Poste ou travay enn sel fwa ek les bann artizan verifye vinn get ou lor WhatsApp. Gratis.",
     },
     why: {
-      title: "Kifer Artisan Moris",
+      title: "Kifer Artizan Moris",
       items: [
         { title: "Artizan verifye", desc: "Sak pro verifye avan ki li kapav gagn enn travay." },
         { title: "Lokal pou Moris", desc: "Fer pou lil — distrik, metie ek labitid WhatsApp ki nou tou konn." },
@@ -386,7 +386,7 @@ export const marketplaceCopy = {
     faq: {
       title: "Bon pou kone",
       items: [
-        { q: "Eski gratis pou poste enn travay?", a: "Wi. Poste enn travay lor Artisan Moris net gratis. Ou aranz peyman direk ar artizan ki ou swazir." },
+        { q: "Eski gratis pou poste enn travay?", a: "Wi. Poste enn travay lor Artizan Moris net gratis. Ou aranz peyman direk ar artizan ki ou swazir." },
         { q: "Kouma bann artizan kontak mwa?", a: "Ou nimero WhatsApp res protze. Bann artizan kontak ou via lapp ou enn lien protze enn fwa ki zot aksepte." },
         { q: "Eski bann artizan verifye?", a: "Sak artizan verifye avan ki li kapav gagn enn travay, ek bann profil verifye ena enn badz kler." },
         { q: "Ki landrwa zot kouver?", a: "Tou Moris — sak distrik, depi Port-Louis ziska Rodrig. Swazir landrwa pli pre kan ou poste." },

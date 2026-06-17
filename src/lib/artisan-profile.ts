@@ -90,7 +90,7 @@ export function mapSupabaseArtisan(row: SupabaseArtisanProfile): Artisan {
       .filter(Boolean)
       .slice(0, 8),
     serviceTags: Array.isArray(row.service_tags) ? row.service_tags.filter(Boolean).slice(0, 8) : [],
-    bio: row.bio || "Profil verifie par ArtisanMu.",
+    bio: row.bio || "Profil verifie par Artizan Moris.",
     phone: row.tel || "",
     image: profileImage,
     portfolioImages,

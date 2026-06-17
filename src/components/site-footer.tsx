@@ -65,7 +65,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-[#8a978f] sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>Artisan Moris by Octolabs</p>
+          <p>Artizan Moris by Octolabs</p>
           <p>{copy.footer.builtFor}</p>
         </div>
       </div>
