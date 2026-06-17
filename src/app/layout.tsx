@@ -20,11 +20,13 @@ export const metadata: Metadata = {
     siteName: "Artizan Moris",
     locale: "en_MU",
     type: "website",
+    images: [{ url: "/artizan-moris-logo.png", width: 512, height: 512, alt: "Artizan Moris" }],
   },
   twitter: {
     card: "summary",
     title: "Artizan Moris",
     description: "Find verified artisans in Mauritius quickly.",
+    images: ["/artizan-moris-logo.png"],
   },
   icons: {
     icon: "/artizan-moris-logo-192.png",

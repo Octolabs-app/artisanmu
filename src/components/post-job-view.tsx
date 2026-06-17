@@ -1,28 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { JobRequestForm } from "@/components/JobRequestForm";
 import { useLanguage } from "@/components/language-context";
 import { useReveal } from "@/components/use-reveal";
 import { popularTrades } from "@/lib/copy";
 
+// Resolve a ?trade= query param to a known trade, synchronously on the client.
+function tradeFromQuery(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  const trade = new URLSearchParams(window.location.search).get("trade");
+  if (!trade) return undefined;
+  return popularTrades.find((item) => item.value.toLowerCase() === trade.toLowerCase())?.value;
+}
+
 export function PostJobView() {
   const { language, copy } = useLanguage();
-  const [initialTrade, setInitialTrade] = useState<string | undefined>(undefined);
+  // Read synchronously at first render so the form mounts already on the
+  // "Problem" step with the trade preselected (a deferred read left it on step 1).
+  const [initialTrade, setInitialTrade] = useState<string | undefined>(tradeFromQuery);
   useReveal([language]);
-
-  // Read a ?trade= query param (set when a trade tile is tapped) after mount.
-  // Deferred so it never runs a synchronous setState inside the effect body.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const trade = params.get("trade");
-    if (!trade) return;
-    const match = popularTrades.find((item) => item.value.toLowerCase() === trade.toLowerCase());
-    if (!match) return;
-    const raf = requestAnimationFrame(() => setInitialTrade(match.value));
-    return () => cancelAnimationFrame(raf);
-  }, []);
 
   return (
     <main className="text-[#16201b]">

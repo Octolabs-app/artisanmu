@@ -5,19 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, LockKeyhole, ShieldCheck } from "lucide-react";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { AdminConsole } from "@/components/admin-console";
-
-const ADMIN_PASSWORD_HASH =
-  process.env.NEXT_PUBLIC_ADMIN_PASSWORD_HASH ??
-  "fe3ffd2d9a9aaced48c32c451afd6c81ca0a68beb6873dbcb3717755a0150bd9";
-
-async function sha256Hex(value: string) {
-  const data = new TextEncoder().encode(value);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
+import { invokePublicFunction } from "@/lib/artisanmu-functions";
 
 export function AdminAccessGate() {
   const [unlocked, setUnlocked] = useState(false);
@@ -31,24 +19,19 @@ export function AdminAccessGate() {
     setError("");
     setChecking(true);
 
-    if (!crypto.subtle) {
-      setChecking(false);
-      setError("This browser cannot verify the admin password. Please use an updated browser.");
-      return;
-    }
-
-    const candidateHash = await sha256Hex(password.trim());
-
-    if (candidateHash === ADMIN_PASSWORD_HASH) {
-      setAdminPassword(password.trim());
+    // Verify the admin password server-side (the Edge Function checks it against
+    // the server-only ADMIN_PASSWORD_HASH). No hash is bundled in the client.
+    const candidate = password.trim();
+    try {
+      await invokePublicFunction("artisanmu-admin-artisans", { admin_password: candidate, action: "list" });
+      setAdminPassword(candidate);
       setUnlocked(true);
       setPassword("");
+    } catch {
+      setError("Wrong password. Check capitalization and punctuation.");
+    } finally {
       setChecking(false);
-      return;
     }
-
-    setError("Wrong password. Check capitalization and punctuation.");
-    setChecking(false);
   }
 
   if (unlocked) {

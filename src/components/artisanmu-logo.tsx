@@ -18,10 +18,10 @@ type ArtisanMuLogoProps = {
 export function ArtisanMuMark({ className = "size-11" }: ArtisanMuMarkProps) {
   return (
     <Image
-      src="/artizan-moris-logo.png"
+      src="/artizan-moris-logo-192.png"
       alt="Artizan Moris"
-      width={512}
-      height={512}
+      width={192}
+      height={192}
       priority
       className={`shrink-0 object-contain ${className}`}
     />
