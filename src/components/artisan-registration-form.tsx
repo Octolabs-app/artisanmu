@@ -20,6 +20,7 @@ type RegistrationState = {
   email: string;
   password: string;
   whatsapp: string;
+  hasWhatsapp: boolean;
   trade: string;
   district: string;
   town: string;
@@ -34,6 +35,7 @@ const initialForm: RegistrationState = {
   email: "",
   password: "",
   whatsapp: "",
+  hasWhatsapp: true,
   trade: "Plumber",
   district: "",
   town: "",
@@ -127,7 +129,7 @@ export function ArtisanRegistrationForm() {
     if (form.name.trim().length < 2) return "Enter your full name.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return "Enter a valid email address.";
     if (form.password.length < 8) return "Use a password with at least 8 characters.";
-    if (!/^[24579]\d{7}$/.test(localPhone)) return "Enter a valid Mauritius WhatsApp number.";
+    if (!/^[24579]\d{7}$/.test(localPhone)) return "Enter a valid Mauritius phone number.";
     if (!form.district) return "Choose your district.";
     if (form.town.trim().length < 2) return "Enter your town or village.";
     if (form.bio.trim().length < 30) return "Add a bio of at least 30 characters.";
@@ -186,6 +188,15 @@ export function ArtisanRegistrationForm() {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) {
         throw new Error(`Application was created, but photos could not attach yet: ${signInError.message}`);
+      }
+
+      // Record whether this number is on WhatsApp (default is WhatsApp at registration).
+      if (!form.hasWhatsapp) {
+        try {
+          await invokeUserFunction("artisanmu-set-contact-preference", { has_whatsapp: false });
+        } catch {
+          // Non-fatal: profile still created; preference can be updated later.
+        }
       }
 
       const portfolioPaths = await Promise.all(filesToUpload.map((file) => uploadApplicationPhoto(file)));
@@ -271,7 +282,7 @@ export function ArtisanRegistrationForm() {
         </div>
 
         <label className="block text-sm font-medium text-[#101410]">
-          WhatsApp
+          Phone number
           <span className="mt-2 flex h-11 overflow-hidden rounded-md border border-[#d8d1c3] bg-white focus-within:border-[#0d8b66]">
             <span className="flex items-center border-r border-[#eee8dc] bg-[#f8f4ea] px-3 text-sm font-semibold text-[#4d5651]">
               +230
@@ -284,6 +295,24 @@ export function ArtisanRegistrationForm() {
               className="min-w-0 flex-1 px-3 text-sm outline-none"
               placeholder="5812 3456"
             />
+          </span>
+        </label>
+
+        <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-[#ddd8cd] bg-white px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={form.hasWhatsapp}
+            onChange={(event) => updateForm({ hasWhatsapp: event.target.checked })}
+            className="mt-0.5 size-4 shrink-0 accent-[#0d8b66]"
+          />
+          <span className="text-sm text-[#101410]">
+            <span className="flex items-center gap-1.5 font-medium">
+              <MessageCircle className="size-4 text-[#0d8b66]" aria-hidden="true" />
+              This number is on WhatsApp
+            </span>
+            <span className="mt-0.5 block text-xs leading-5 text-[#6c756f]">
+              WhatsApp pros get a badge and clients can message them in one tap. Uncheck if clients should call instead.
+            </span>
           </span>
         </label>
 

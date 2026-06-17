@@ -11,6 +11,7 @@ import {
   Images,
   MapPin,
   MessageCircle,
+  Phone,
   RotateCcw,
   Search,
   ShieldCheck,
@@ -387,6 +388,12 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                               {copy.browse.verified}
                             </span>
                           ) : null}
+                          {artisan.contactPreference === "whatsapp" && artisan.phone ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2 py-1 text-xs font-semibold text-[#166534]">
+                              <MessageCircle className="size-3.5" aria-hidden="true" />
+                              {copy.browse.whatsappBadge}
+                            </span>
+                          ) : null}
                         </div>
                         <p className="mt-1 text-sm text-[#5d6863]">
                           {artisan.trade} - {artisan.town}, {artisan.district}
@@ -503,20 +510,35 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
 
                         <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                           <p className="text-sm leading-5 text-[#5d6863]">{copy.browse.selectHint}</p>
-                          <a
-                            href={artisanWhatsappLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(event) => event.stopPropagation()}
-                            className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold ${
-                              artisan.phone
-                                ? "bg-[#0d8b66] text-white hover:bg-[#0b7758]"
-                                : "pointer-events-none bg-[#ddd8cd] text-[#6c756f]"
-                            }`}
-                          >
-                            <MessageCircle className="size-4" aria-hidden="true" />
-                            {copy.browse.whatsapp}
-                          </a>
+                          {artisan.contactPreference === "call" ? (
+                            <a
+                              href={artisan.phone ? `tel:${artisan.phone.replace(/[^\d+]/g, "")}` : "#"}
+                              onClick={(event) => event.stopPropagation()}
+                              className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold ${
+                                artisan.phone
+                                  ? "bg-[#0d1612] text-white hover:bg-[#17251e]"
+                                  : "pointer-events-none bg-[#ddd8cd] text-[#6c756f]"
+                              }`}
+                            >
+                              <Phone className="size-4" aria-hidden="true" />
+                              {copy.browse.callContact}
+                            </a>
+                          ) : (
+                            <a
+                              href={artisanWhatsappLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(event) => event.stopPropagation()}
+                              className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold ${
+                                artisan.phone
+                                  ? "bg-[#0d8b66] text-white hover:bg-[#0b7758]"
+                                  : "pointer-events-none bg-[#ddd8cd] text-[#6c756f]"
+                              }`}
+                            >
+                              <MessageCircle className="size-4" aria-hidden="true" />
+                              {copy.browse.whatsapp}
+                            </a>
+                          )}
                         </div>
                       </div>
                     ) : null}
