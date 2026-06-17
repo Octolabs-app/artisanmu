@@ -28,6 +28,7 @@ type RegistrationState = {
   specialties: string;
   serviceTags: string[];
   files: File[];
+  profilePhoto: File | null;
 };
 
 const initialForm: RegistrationState = {
@@ -43,6 +44,7 @@ const initialForm: RegistrationState = {
   specialties: "",
   serviceTags: [],
   files: [],
+  profilePhoto: null,
 };
 
 const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -199,6 +201,16 @@ export function ArtisanRegistrationForm() {
         }
       }
 
+      // Optional profile photo (avatar) so clients can recognise the artisan.
+      if (form.profilePhoto) {
+        try {
+          const avatarPath = await uploadApplicationPhoto(form.profilePhoto);
+          await invokeUserFunction("artisanmu-set-avatar", { path: avatarPath });
+        } catch {
+          // Non-fatal: profile created; photo can be added later.
+        }
+      }
+
       const portfolioPaths = await Promise.all(filesToUpload.map((file) => uploadApplicationPhoto(file)));
       const attachPayload = await invokeUserFunction<{ success?: boolean; message?: string }>("artisanmu-artisan-profile", {
         action: "add_application_photos",
@@ -314,6 +326,19 @@ export function ArtisanRegistrationForm() {
               WhatsApp pros get a badge and clients can message them in one tap. Uncheck if clients should call instead.
             </span>
           </span>
+        </label>
+
+        <label className="block cursor-pointer rounded-md border border-dashed border-[#c9c2b6] bg-[#f8f4ea] p-3 text-center text-sm text-[#4d5651] hover:border-[#0d8b66]">
+          <span className="block font-semibold text-[#101410]">
+            {form.profilePhoto ? form.profilePhoto.name : "Profile photo (optional)"}
+          </span>
+          <span className="mt-0.5 block text-xs text-[#6c756f]">A clear photo helps clients recognise you.</span>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="sr-only"
+            onChange={(event) => updateForm({ profilePhoto: event.target.files?.[0] || null })}
+          />
         </label>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">

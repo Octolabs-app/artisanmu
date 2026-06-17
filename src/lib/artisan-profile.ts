@@ -93,6 +93,7 @@ export function mapSupabaseArtisan(row: SupabaseArtisanProfile): Artisan {
     bio: row.bio || "Profil verifie par Artizan Moris.",
     phone: row.tel || "",
     image: profileImage,
+    avatarUrl: avatarImage || undefined,
     portfolioImages,
     initials: row.initiales || undefined,
     contactPreference: row.contact_preference || undefined,

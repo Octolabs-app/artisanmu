@@ -20,6 +20,7 @@ import {
   Star,
   X,
 } from "lucide-react";
+import { ArtisanReviews } from "@/components/artisan-reviews";
 import { useLanguage } from "@/components/language-context";
 import { useReveal } from "@/components/use-reveal";
 import {
@@ -44,6 +45,37 @@ function buildWhatsAppLink(artisan: Artisan | null) {
     `Bonjour ${artisan.name}, je vous contacte via Artisan Moris. J'ai un travail a faire.`,
   );
   return `https://wa.me/${phoneNumber}?text=${message}`;
+}
+
+function Avatar({
+  url,
+  initials,
+  name,
+  className = "size-10 text-sm",
+}: {
+  url?: string;
+  initials?: string;
+  name: string;
+  className?: string;
+}) {
+  if (url) {
+    return (
+      <span className={`relative shrink-0 overflow-hidden rounded-full border-2 border-white bg-[#e7f5ef] shadow-sm ${className}`}>
+        <Image src={url} alt={name} fill sizes="64px" className="object-cover" />
+      </span>
+    );
+  }
+  const letters = (initials || name.split(" ").map((part) => part[0]).join(""))
+    .slice(0, 2)
+    .toUpperCase();
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-full border-2 border-white bg-[#0d8b66] font-semibold text-white shadow-sm ${className}`}
+      aria-hidden="true"
+    >
+      {letters}
+    </span>
+  );
 }
 
 function scoreArtisan(artisan: Artisan, selectedTrade: string, selectedDistrict: string, urgent: boolean) {
@@ -373,25 +405,33 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
 
                   <div className="min-w-0 p-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="min-w-0 text-lg font-semibold text-[#101410]">{artisan.name}</h3>
-                          {artisan.verified ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#e7f5ef] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
-                              <ShieldCheck className="size-3.5" aria-hidden="true" />
-                              {copy.browse.verified}
-                            </span>
-                          ) : null}
-                          {artisan.contactPreference === "whatsapp" && artisan.phone ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2 py-1 text-xs font-semibold text-[#166534]">
-                              <MessageCircle className="size-3.5" aria-hidden="true" />
-                              {copy.browse.whatsappBadge}
-                            </span>
-                          ) : null}
+                      <div className="flex min-w-0 items-start gap-3">
+                        <Avatar
+                          url={artisan.avatarUrl}
+                          initials={artisan.initials}
+                          name={artisan.name}
+                          className="size-11 text-sm"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="min-w-0 text-lg font-semibold text-[#101410]">{artisan.name}</h3>
+                            {artisan.verified ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#e7f5ef] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
+                                <ShieldCheck className="size-3.5" aria-hidden="true" />
+                                {copy.browse.verified}
+                              </span>
+                            ) : null}
+                            {artisan.contactPreference === "whatsapp" && artisan.phone ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2 py-1 text-xs font-semibold text-[#166534]">
+                                <MessageCircle className="size-3.5" aria-hidden="true" />
+                                {copy.browse.whatsappBadge}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-sm text-[#5d6863]">
+                            {artisan.trade} - {artisan.town}, {artisan.district}
+                          </p>
                         </div>
-                        <p className="mt-1 text-sm text-[#5d6863]">
-                          {artisan.trade} - {artisan.town}, {artisan.district}
-                        </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-1 rounded-full bg-[#fff4e0] px-2.5 py-1.5 text-sm font-semibold text-[#78511c]">
                         <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
@@ -538,26 +578,34 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
 
             <div className="p-5 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-display text-2xl text-[#101410]">{modalArtisan.name}</h2>
-                    {modalArtisan.verified ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#e7f5ef] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
-                        <ShieldCheck className="size-3.5" aria-hidden="true" />
-                        {copy.browse.verified}
-                      </span>
-                    ) : null}
-                    {modalArtisan.contactPreference === "whatsapp" && modalArtisan.phone ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2 py-1 text-xs font-semibold text-[#166534]">
-                        <MessageCircle className="size-3.5" aria-hidden="true" />
-                        {copy.browse.whatsappBadge}
-                      </span>
-                    ) : null}
+                <div className="flex min-w-0 items-start gap-3">
+                  <Avatar
+                    url={modalArtisan.avatarUrl}
+                    initials={modalArtisan.initials}
+                    name={modalArtisan.name}
+                    className="-mt-10 size-16 text-lg"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="font-display text-2xl text-[#101410]">{modalArtisan.name}</h2>
+                      {modalArtisan.verified ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#e7f5ef] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
+                          <ShieldCheck className="size-3.5" aria-hidden="true" />
+                          {copy.browse.verified}
+                        </span>
+                      ) : null}
+                      {modalArtisan.contactPreference === "whatsapp" && modalArtisan.phone ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2 py-1 text-xs font-semibold text-[#166534]">
+                          <MessageCircle className="size-3.5" aria-hidden="true" />
+                          {copy.browse.whatsappBadge}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 flex items-center gap-1.5 text-sm text-[#5d6863]">
+                      <MapPin className="size-4 shrink-0 text-[#9f4a4a]" aria-hidden="true" />
+                      {modalArtisan.trade} · {modalArtisan.town}, {modalArtisan.district}
+                    </p>
                   </div>
-                  <p className="mt-1 flex items-center gap-1.5 text-sm text-[#5d6863]">
-                    <MapPin className="size-4 shrink-0 text-[#9f4a4a]" aria-hidden="true" />
-                    {modalArtisan.trade} · {modalArtisan.town}, {modalArtisan.district}
-                  </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1 rounded-full bg-[#fff4e0] px-2.5 py-1.5 text-sm font-semibold text-[#78511c]">
                   <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
@@ -613,28 +661,18 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                 )}
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-[#e3ddd1] bg-white p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 font-semibold text-[#101410]">
-                      <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
-                      {copy.browse.reviews}
-                    </div>
-                    <span className="rounded-full bg-[#fff4e0] px-2 py-1 text-xs font-semibold text-[#78511c]">
-                      {modalArtisan.rating}/5
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm leading-5 text-[#5d6863]">{copy.browse.reviewsCount(modalArtisan.reviews)}</p>
+              <div className="mt-5 rounded-2xl border border-[#e3ddd1] bg-white p-3">
+                <div className="flex items-center gap-2 font-semibold text-[#101410]">
+                  <Clock className="size-4 text-[#0d8b66]" aria-hidden="true" />
+                  {copy.browse.availability}
                 </div>
-                <div className="rounded-2xl border border-[#e3ddd1] bg-white p-3">
-                  <div className="flex items-center gap-2 font-semibold text-[#101410]">
-                    <Clock className="size-4 text-[#0d8b66]" aria-hidden="true" />
-                    {copy.browse.availability}
-                  </div>
-                  <p className="mt-2 text-sm leading-5 text-[#5d6863]">
-                    {modalArtisan.available ? copy.browse.availableToday(modalArtisan.etaMinutes) : copy.browse.notAvailable}
-                  </p>
-                </div>
+                <p className="mt-2 text-sm leading-5 text-[#5d6863]">
+                  {modalArtisan.available ? copy.browse.availableToday(modalArtisan.etaMinutes) : copy.browse.notAvailable}
+                </p>
+              </div>
+
+              <div className="mt-3">
+                <ArtisanReviews artisanId={modalArtisan.id} />
               </div>
 
               <div className="mt-5">
