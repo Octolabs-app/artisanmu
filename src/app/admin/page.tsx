@@ -1,7 +1,7 @@
 import { AdminAccessGate } from "@/components/admin-access-gate";
 
 export const metadata = {
-  title: "ArtisanMU Admin",
+  title: "Artizan Moris Admin",
   robots: {
     index: false,
     follow: false,

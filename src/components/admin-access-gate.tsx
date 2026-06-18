@@ -51,7 +51,7 @@ export function AdminAccessGate() {
 
           <h1 className="mt-6 text-2xl font-semibold">Admin access</h1>
           <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
-            Unlock artisan validation, ad placements, review moderation, and cleanup controls.
+            Unlock artisan validation, badges, job monitoring, and cleanup controls.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
