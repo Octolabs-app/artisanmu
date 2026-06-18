@@ -6,11 +6,32 @@ import { createClient } from "npm:@supabase/supabase-js@2.107.0";
 // — this is NOT the AES contact-crypto core, so reproducing the hash check here
 // is safe and keeps the function self-contained.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// CORS allowlist (audit hardening). Defaults include the live + new brand
+// domains and local dev; override via the ARTIZAN_ALLOWED_ORIGINS edge secret
+// (comma-separated). Browser requests from other origins get no CORS header and
+// are blocked at preflight; non-browser callers (no Origin) are allowed.
+const allowedOrigins = (
+  Deno.env.get("ARTIZAN_ALLOWED_ORIGINS") ||
+  "https://artizanmoris.octolabs.app,https://artisanmu.octolabs.app,http://localhost:3000,http://127.0.0.1:3000"
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+function corsHeadersFor(request: Request): Record<string, string> {
+  const origin = request.headers.get("Origin") || "";
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers": "authorization, content-type, apikey",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    Vary: "Origin",
+  };
+  if (!origin) {
+    headers["Access-Control-Allow-Origin"] = "*";
+  } else if (allowedOrigins.includes(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
+}
 
 // Same fallback hash the shared core uses, so behaviour matches the existing
 // admin functions until ADMIN_PASSWORD_HASH is set as an edge secret.
@@ -27,13 +48,6 @@ type AdminContentBody = {
   photo_url?: string;
   is_visible?: boolean;
 };
-
-function json(data: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
-  });
-}
 
 function serviceKey() {
   const direct = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SECRET_KEY");
@@ -101,7 +115,14 @@ function pathFromPortfolioUrl(value: string) {
 }
 
 Deno.serve(async (request: Request) => {
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+  const cors = corsHeadersFor(request);
+  const json = (data: Record<string, unknown>, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...cors, "Content-Type": "application/json; charset=utf-8" },
+    });
+
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
