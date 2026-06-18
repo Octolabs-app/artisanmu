@@ -21,10 +21,11 @@ const portfolioMarker = "/storage/v1/object/public/portfolios/";
 
 type AdminContentBody = {
   admin_password?: string;
-  action?: "list_reviews" | "delete_review" | "delete_artisan_photo";
+  action?: "list_reviews" | "delete_review" | "set_review_visibility" | "delete_artisan_photo";
   artisan_id?: number | string;
   review_id?: number | string;
   photo_url?: string;
+  is_visible?: boolean;
 };
 
 function json(data: Record<string, unknown>, status = 200) {
@@ -119,7 +120,7 @@ Deno.serve(async (request: Request) => {
     if (action === "list_reviews") {
       let query = admin
         .from("reviews")
-        .select("id, artisan_id, rating, comment, author_name, created_at")
+        .select("id, artisan_id, rating, comment, author_name, created_at, is_visible")
         .order("created_at", { ascending: false })
         .limit(200);
 
@@ -169,6 +170,29 @@ Deno.serve(async (request: Request) => {
       });
 
       return json({ success: true, review_id: reviewId, artisan_id: review.artisan_id });
+    }
+
+    if (action === "set_review_visibility") {
+      const reviewId = intId(body.review_id);
+      if (!reviewId) return json({ error: "invalid_review_id", message: "A valid review id is required." }, 400);
+      const isVisible = body.is_visible !== false; // default to visible unless explicitly false
+
+      const { data: updated, error: updateError } = await admin
+        .from("reviews")
+        .update({ is_visible: isVisible })
+        .eq("id", reviewId)
+        .select("id, artisan_id, is_visible")
+        .maybeSingle();
+      if (updateError) return json({ error: "review_visibility_failed", message: updateError.message }, 500);
+      if (!updated) return json({ error: "review_not_found", message: "Review was not found." }, 404);
+
+      await admin.from("audit_logs").insert({
+        artisan_id: updated.artisan_id,
+        event: isVisible ? "admin_review_show" : "admin_review_hide",
+        metadata: { source: "artisanmu-admin-content", review_id: reviewId },
+      });
+
+      return json({ success: true, review_id: reviewId, is_visible: updated.is_visible });
     }
 
     if (action === "delete_artisan_photo") {

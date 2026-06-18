@@ -19,6 +19,7 @@ import {
   Clock,
   ExternalLink,
   Eye,
+  EyeOff,
   ImageIcon,
   Inbox,
   Mail,
@@ -60,6 +61,7 @@ type AdminReview = {
   comment: string | null;
   author_name: string | null;
   created_at: string;
+  is_visible?: boolean;
 };
 
 type AdminReviewsPayload = {
@@ -646,6 +648,7 @@ function ArtisanDetailModal({
   onClose,
   onDeletePhoto,
   onDeleteReview,
+  onToggleVisibility,
 }: {
   artisan: LiveAdminArtisan;
   reviews: AdminReview[];
@@ -655,6 +658,7 @@ function ArtisanDetailModal({
   onClose: () => void;
   onDeletePhoto: (photoUrl: string) => void;
   onDeleteReview: (reviewId: number) => void;
+  onToggleVisibility: (reviewId: number, isVisible: boolean) => void;
 }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -823,28 +827,55 @@ function ArtisanDetailModal({
               <ul className="mt-2 grid gap-2">
                 {reviews.map((review) => {
                   const deleting = mutatingContent === `review:${review.id}`;
+                  const togglingVisibility = mutatingContent === `review-visibility:${review.id}`;
+                  const hidden = review.is_visible === false;
                   return (
-                    <li key={review.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] p-3">
+                    <li
+                      key={review.id}
+                      className={`rounded-xl border border-[var(--line)] p-3 ${hidden ? "bg-[#f3efe6] opacity-70" : "bg-[var(--surface-soft)]"}`}
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm font-semibold text-[var(--ink)]">{review.author_name || "Client"}</span>
                             <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-[#8a6a1f]">
                               <Star className="size-3.5 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
                               {review.rating}/5
                             </span>
+                            {hidden ? (
+                              <span className="rounded-full bg-[#eef1ef] px-2 py-0.5 text-[11px] font-semibold text-[var(--muted)]">Hidden</span>
+                            ) : null}
                           </div>
                           {review.comment ? <p className="mt-1 text-sm leading-5 text-[#3f4a45]">{review.comment}</p> : null}
                         </div>
-                        <button
-                          type="button"
-                          disabled={deleting}
-                          onClick={() => onDeleteReview(review.id)}
-                          aria-label="Delete review"
-                          className="btn btn-secondary h-9 shrink-0 px-3 text-xs text-[var(--rose)] hover:border-[var(--rose)] disabled:opacity-60"
-                        >
-                          {deleting ? <RefreshCw className="size-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="size-3.5" aria-hidden="true" />}
-                        </button>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={togglingVisibility || deleting}
+                            onClick={() => onToggleVisibility(review.id, hidden)}
+                            aria-label={hidden ? "Show review" : "Hide review"}
+                            title={hidden ? "Show review" : "Hide review"}
+                            className="btn btn-secondary h-9 px-3 text-xs disabled:opacity-60"
+                          >
+                            {togglingVisibility ? (
+                              <RefreshCw className="size-3.5 animate-spin" aria-hidden="true" />
+                            ) : hidden ? (
+                              <Eye className="size-3.5" aria-hidden="true" />
+                            ) : (
+                              <EyeOff className="size-3.5" aria-hidden="true" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deleting || togglingVisibility}
+                            onClick={() => onDeleteReview(review.id)}
+                            aria-label="Delete review"
+                            title="Delete review"
+                            className="btn btn-secondary h-9 px-3 text-xs text-[var(--rose)] hover:border-[var(--rose)] disabled:opacity-60"
+                          >
+                            {deleting ? <RefreshCw className="size-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="size-3.5" aria-hidden="true" />}
+                          </button>
+                        </div>
                       </div>
                     </li>
                   );
@@ -1061,6 +1092,26 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
       void loadArtisans();
     } catch (error) {
       pushToast("error", error instanceof Error ? error.message : "Could not delete review.");
+    } finally {
+      setMutatingContent("");
+    }
+  }
+
+  async function setReviewVisibility(reviewId: number, isVisible: boolean) {
+    setMutatingContent(`review-visibility:${reviewId}`);
+    try {
+      await invokePublicFunction("artisanmu-admin-content", {
+        admin_password: adminPassword,
+        action: "set_review_visibility",
+        review_id: reviewId,
+        is_visible: isVisible,
+      });
+      setDetailReviews((current) =>
+        current.map((review) => (review.id === reviewId ? { ...review, is_visible: isVisible } : review)),
+      );
+      pushToast("success", isVisible ? "Review shown." : "Review hidden.");
+    } catch (error) {
+      pushToast("error", error instanceof Error ? error.message : "Could not update review.");
     } finally {
       setMutatingContent("");
     }
@@ -1640,6 +1691,7 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
               onConfirm: () => void deleteReview(reviewId),
             })
           }
+          onToggleVisibility={(reviewId, isVisible) => void setReviewVisibility(reviewId, isVisible)}
         />
       ) : null}
 
