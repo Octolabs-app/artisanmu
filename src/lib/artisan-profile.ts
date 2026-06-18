@@ -61,10 +61,13 @@ function parsePortfolioImages(rawPhotos?: string | null) {
 
 export function mapSupabaseArtisan(row: SupabaseArtisanProfile): Artisan {
   const reviews = row.nombre_avis || 0;
-  const rating = reviews > 0 ? (row.note_total || 0) / reviews : 4.6;
+  // No fake default: a 0-review artisan has no rating yet (UI shows "New").
+  const rating = reviews > 0 ? (row.note_total || 0) / reviews : 0;
   const avatarImage = row.avatar && row.avatar.startsWith("http") ? row.avatar : "";
   const profileImage = avatarImage || tradeImages[row.metier || ""] || tradeImages.default;
-  const portfolioImages = parsePortfolioImages(row.photos).filter((image) => image !== profileImage);
+  // Show every uploaded work photo. (Previously the avatar was filtered out, which
+  // hid an artisan's only photo when it doubled as their avatar.)
+  const portfolioImages = parsePortfolioImages(row.photos);
   const badges = [
     row.is_verified ? "Verified" : "",
     row.has_fair_price_badge ? "Fair price" : "",

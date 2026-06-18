@@ -435,8 +435,14 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                       </div>
                       <div className="flex shrink-0 items-center gap-1 rounded-full bg-[#fff4e0] px-2.5 py-1.5 text-sm font-semibold text-[#78511c]">
                         <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
-                        {artisan.rating}
-                        <span className="font-normal text-[#8a7657]">({artisan.reviews})</span>
+                        {artisan.reviews > 0 ? (
+                          <>
+                            {artisan.rating}
+                            <span className="font-normal text-[#8a7657]">({artisan.reviews})</span>
+                          </>
+                        ) : (
+                          "New"
+                        )}
                       </div>
                     </div>
 
@@ -609,8 +615,14 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                 </div>
                 <div className="flex shrink-0 items-center gap-1 rounded-full bg-[#fff4e0] px-2.5 py-1.5 text-sm font-semibold text-[#78511c]">
                   <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
-                  {modalArtisan.rating}
-                  <span className="font-normal text-[#8a7657]">({modalArtisan.reviews})</span>
+                  {modalArtisan.reviews > 0 ? (
+                    <>
+                      {modalArtisan.rating}
+                      <span className="font-normal text-[#8a7657]">({modalArtisan.reviews})</span>
+                    </>
+                  ) : (
+                    "New"
+                  )}
                 </div>
               </div>
 

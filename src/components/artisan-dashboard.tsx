@@ -888,7 +888,7 @@ export function ArtisanDashboard() {
               <div className="mt-3 flex flex-wrap gap-2 text-sm">
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-[#fff7e7] px-2.5 py-1.5 text-[#78511c]">
                   <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
-                  {artisan.rating} rating
+                  {artisan.reviews > 0 ? `${artisan.rating} rating` : "New"}
                 </span>
                 <span className="rounded-md bg-[#eef5f3] px-2.5 py-1.5 text-[#0d7c5c]">
                   {artisan.reviews} reviews
