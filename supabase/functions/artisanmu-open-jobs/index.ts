@@ -16,7 +16,7 @@ import {
 // successful claim, reusing the shared decryptPhone crypto core.
 
 type OpenJobsBody = {
-  action?: "list" | "claim";
+  action?: "list" | "claim" | "unclaim";
   job_id?: string;
 };
 
@@ -115,11 +115,52 @@ Deno.serve(async (request: Request) => {
       return jsonResponse({ success: true, jobs });
     }
 
+    const jobId = requireString(body.job_id, "job_id");
+
+    if (action === "unclaim") {
+      // Release a job the artisan claimed but can't do — reopen it for others.
+      const { data: released, error: releaseError } = await supabase
+        .from("job_requests")
+        .update({ status: "open", claimed_by_artisan_id: null, claimed_at: null, contact_revealed_at: null })
+        .eq("id", jobId)
+        .eq("status", "claimed")
+        .eq("claimed_by_artisan_id", artisan.id)
+        .select("id")
+        .maybeSingle();
+
+      if (releaseError) {
+        throw new HttpError(500, "unclaim_failed", releaseError.message);
+      }
+      if (!released) {
+        return jsonResponse({ success: false, reason: "not_claimable" }, 409);
+      }
+
+      await Promise.all([
+        supabase
+          .from("job_notifications")
+          .update({ status: "read", claimed_at: null })
+          .eq("job_id", jobId)
+          .eq("artisan_id", artisan.id),
+        supabase.from("job_events").insert({
+          job_id: jobId,
+          event: "unclaimed",
+          artisan_id: artisan.id,
+          metadata: { source: "artisanmu-open-jobs" },
+        }),
+        supabase.from("audit_logs").insert({
+          job_id: jobId,
+          artisan_id: artisan.id,
+          event: "unclaimed",
+          metadata: { source: "artisanmu-open-jobs" },
+        }),
+      ]);
+
+      return jsonResponse({ success: true });
+    }
+
     if (action !== "claim") {
       throw new HttpError(400, "invalid_action", "Job board action is not supported.");
     }
-
-    const jobId = requireString(body.job_id, "job_id");
 
     const { data: job, error: claimError } = await supabase
       .from("job_requests")
