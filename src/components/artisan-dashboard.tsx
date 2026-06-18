@@ -168,7 +168,7 @@ function EmptyDashboard({
     <main className="min-h-screen bg-[#f6f4ef] text-[#101410]">
       <header className="sticky top-0 z-30 border-b border-[#ddd8cd] bg-[#f6f4ef]/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link href="/" aria-label="ArtisanMU home">
+          <Link href="/" aria-label="Artizan Moris home">
             <ArtisanMuLogo subtitle="Artisan dashboard" />
           </Link>
           <Link
@@ -229,7 +229,7 @@ function PendingArtisanDashboard({
     <main className="min-h-screen bg-[#f6f4ef] text-[#101410]">
       <header className="border-b border-[#ddd8cd] bg-[#fffdf8]">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <Link href="/" aria-label="ArtisanMU home">
+          <Link href="/" aria-label="Artizan Moris home">
             <ArtisanMuLogo subtitle="Application status" />
           </Link>
           <button
@@ -272,7 +272,7 @@ function PendingArtisanDashboard({
                 Back to marketplace
               </Link>
               <Link
-                href="mailto:hello@octolabs.app?subject=ArtisanMU%20application%20review"
+                href="mailto:hello@octolabs.app?subject=Artizan%20Moris%20application%20review"
                 className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#0d1612] px-4 text-sm font-semibold text-white"
               >
                 Contact Octolabs
@@ -643,7 +643,7 @@ export function ArtisanDashboard() {
       return;
     }
     if (action === "Request badge") {
-      window.location.assign("mailto:hello@octolabs.app?subject=ArtisanMU%20badge%20request");
+      window.location.assign("mailto:hello@octolabs.app?subject=Artizan%20Moris%20badge%20request");
       return;
     }
 
@@ -783,7 +783,7 @@ export function ArtisanDashboard() {
     <main className="min-h-screen bg-[#f6f4ef] pb-20 text-[#101410] md:pb-0">
       <header className="sticky top-0 z-30 border-b border-[#ddd8cd] bg-[#f6f4ef]/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link href="/" aria-label="ArtisanMU home">
+          <Link href="/" aria-label="Artizan Moris home">
             <ArtisanMuLogo subtitle="Artisan dashboard" />
           </Link>
 
@@ -1318,7 +1318,7 @@ export function ArtisanDashboard() {
                   type="button"
                   onClick={() => {
                     if (item === "Support") {
-                      window.location.assign("mailto:hello@octolabs.app?subject=ArtisanMU%20artisan%20support");
+                      window.location.assign("mailto:hello@octolabs.app?subject=Artizan%20Moris%20artisan%20support");
                       return;
                     }
                     if (item === "WhatsApp and profile") {

@@ -3,4 +3,4 @@ Disallow: /ops
 Disallow: /admin
 Allow: /
 
-Sitemap: https://artisanmu.octolabs.app/sitemap.xml
+Sitemap: https://artizanmoris.octolabs.app/sitemap.xml

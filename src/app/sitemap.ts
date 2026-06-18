@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://artisanmu.octolabs.app";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://artizanmoris.octolabs.app";
   const lastModified = new Date("2026-06-16");
 
   const marketing = [

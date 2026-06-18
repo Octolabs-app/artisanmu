@@ -42,7 +42,7 @@ function buildWhatsAppLink(artisan: Artisan | null) {
   const cleaned = artisan.phone.replace(/\D/g, "");
   const phoneNumber = cleaned.startsWith("230") ? cleaned : `230${cleaned}`;
   const message = encodeURIComponent(
-    `Bonjour ${artisan.name}, je vous contacte via Artisan Moris. J'ai un travail a faire.`,
+    `Bonjour ${artisan.name}, je vous contacte via Artizan Moris. J'ai un travail a faire.`,
   );
   return `https://wa.me/${phoneNumber}?text=${message}`;
 }
