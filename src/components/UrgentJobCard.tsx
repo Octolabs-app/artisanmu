@@ -24,13 +24,24 @@ type UrgentJobCardProps = {
   onTaken?: (jobId: string) => void;
   onClaimed?: (jobId: string) => void;
   onOpenThread?: (jobId: string) => void;
+  /** Edge function used to claim. Defaults to the targeted-notification flow. */
+  claimFn?: string;
+  /** Extra body fields merged into the claim request (e.g. { action: "claim" }). */
+  claimExtraBody?: Record<string, unknown>;
 };
 
 function excerpt(value: string) {
   return value.length > 120 ? `${value.slice(0, 117)}...` : value;
 }
 
-export function UrgentJobCard({ job, onTaken, onClaimed, onOpenThread }: UrgentJobCardProps) {
+export function UrgentJobCard({
+  job,
+  onTaken,
+  onClaimed,
+  onOpenThread,
+  claimFn = "artisanmu-claim-job",
+  claimExtraBody,
+}: UrgentJobCardProps) {
   const [claiming, setClaiming] = useState(false);
   const [taken, setTaken] = useState(false);
   const [contact, setContact] = useState<ClaimContact | null>(null);
@@ -51,7 +62,7 @@ export function UrgentJobCard({ job, onTaken, onClaimed, onOpenThread }: UrgentJ
         reason?: string;
         contact?: ClaimContact;
         message?: string;
-      }>("artisanmu-claim-job", { job_id: job.id });
+      }>(claimFn, { job_id: job.id, ...(claimExtraBody ?? {}) });
 
       if (!payload.success || !payload.contact) {
         if (payload.reason === "already_claimed") {
@@ -158,7 +169,7 @@ export function UrgentJobCard({ job, onTaken, onClaimed, onOpenThread }: UrgentJ
         </button>
 
         {contact ? (
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className={`mt-3 grid gap-2 ${onOpenThread ? "sm:grid-cols-2" : ""}`}>
             <button
               type="button"
               onClick={() => window.open(contact.whatsapp_deep_link, "_blank", "noopener,noreferrer")}
@@ -167,14 +178,16 @@ export function UrgentJobCard({ job, onTaken, onClaimed, onOpenThread }: UrgentJ
               <MessageCircle className="size-4" aria-hidden="true" />
               WhatsApp
             </button>
-            <button
-              type="button"
-              onClick={() => onOpenThread?.(job.id)}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]"
-            >
-              <MessageSquareText className="size-4" aria-hidden="true" />
-              In-app message
-            </button>
+            {onOpenThread ? (
+              <button
+                type="button"
+                onClick={() => onOpenThread(job.id)}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]"
+              >
+                <MessageSquareText className="size-4" aria-hidden="true" />
+                In-app message
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>

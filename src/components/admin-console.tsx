@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -17,6 +18,7 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
+  Eye,
   ImageIcon,
   Inbox,
   Mail,
@@ -50,6 +52,28 @@ type AdminTab = (typeof adminTabs)[number]["id"];
 type BadgeName = "Fair price" | "Fast response" | "Top rated";
 
 const badgeOptions: BadgeName[] = ["Fair price", "Fast response", "Top rated"];
+
+type AdminReview = {
+  id: number;
+  artisan_id: number;
+  rating: number;
+  comment: string | null;
+  author_name: string | null;
+  created_at: string;
+};
+
+type AdminReviewsPayload = {
+  success?: boolean;
+  reviews?: AdminReview[];
+  message?: string;
+};
+
+type PhotoDeletePayload = {
+  success?: boolean;
+  photos?: string[];
+  avatar?: string | null;
+  message?: string;
+};
 
 type LiveAdminArtisan = {
   id: string;
@@ -414,6 +438,7 @@ function ReviewCard({
   onBadge,
   onApprove,
   onReject,
+  onView,
 }: {
   artisan: LiveAdminArtisan;
   badge: string;
@@ -421,6 +446,7 @@ function ReviewCard({
   onBadge: (badge: string) => void;
   onApprove: () => void;
   onReject: () => void;
+  onView: () => void;
 }) {
   const approving = busyAction === "approve";
   const rejecting = busyAction === "reject";
@@ -439,7 +465,18 @@ function ReviewCard({
             {artisan.trade} · {artisan.town}, {artisan.district}
           </p>
         </div>
-        <span className="shrink-0 text-sm font-medium text-[var(--green-strong)]">{ageLabel(artisan.createdAt)}</span>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="text-sm font-medium text-[var(--green-strong)]">{ageLabel(artisan.createdAt)}</span>
+          <button
+            type="button"
+            onClick={onView}
+            className="btn btn-secondary h-9 px-3 text-xs"
+            aria-label={`View ${artisan.name} details`}
+          >
+            <Eye className="size-3.5" aria-hidden="true" />
+            Details
+          </button>
+        </div>
       </div>
 
       {artisan.bio ? <p className="mt-3 text-sm leading-6 text-[#3f4a45]">{artisan.bio}</p> : null}
@@ -598,6 +635,231 @@ function AdsPanel() {
   );
 }
 
+/* ─────────────────────────── artisan detail modal ─────────────────────────── */
+
+function ArtisanDetailModal({
+  artisan,
+  reviews,
+  loadingReviews,
+  reviewsError,
+  mutatingContent,
+  onClose,
+  onDeletePhoto,
+  onDeleteReview,
+}: {
+  artisan: LiveAdminArtisan;
+  reviews: AdminReview[];
+  loadingReviews: boolean;
+  reviewsError: string;
+  mutatingContent: string;
+  onClose: () => void;
+  onDeletePhoto: (photoUrl: string) => void;
+  onDeleteReview: (reviewId: number) => void;
+}) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const extraBadges = artisan.badges.filter((badge) => badge !== "Verified");
+
+  return (
+    <div
+      className="fixed inset-0 z-[55] flex items-end justify-center bg-[#0d1612]/45 backdrop-blur-sm sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${artisan.name} details`}
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-[var(--surface)] shadow-2xl sm:rounded-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] p-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-semibold text-[var(--ink)]">{artisan.name}</h2>
+              <StatusBadge status={artisan.status} />
+              {!artisan.hasAuthUser ? (
+                <span className="rounded-full bg-[#fdecec] px-2.5 py-0.5 text-xs font-semibold text-[var(--rose)]">no login</span>
+              ) : null}
+            </div>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-[var(--muted)]">
+              <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
+              {artisan.trade} · {artisan.town}, {artisan.district}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="shrink-0 rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--surface-soft)] hover:text-[var(--ink)]"
+          >
+            <X className="size-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <a
+              href={`https://wa.me/${digitsOnly(artisan.phone)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-11 items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] px-3 text-sm font-medium text-[var(--ink)] hover:border-[var(--green)]"
+            >
+              <MessageCircle className="size-4 text-[var(--green)]" aria-hidden="true" />
+              {artisan.phone || "No phone"}
+            </a>
+            <a
+              href={`tel:${digitsOnly(artisan.phone)}`}
+              className="flex h-11 items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] px-3 text-sm font-medium text-[var(--ink)] hover:border-[var(--green)]"
+            >
+              <Phone className="size-4 text-[var(--green)]" aria-hidden="true" />
+              Call
+            </a>
+            <span className="flex h-11 items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] px-3 text-sm text-[var(--muted)]">
+              <Mail className="size-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">{artisan.email || "No email"}</span>
+            </span>
+            <span className="flex h-11 items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] px-3 text-sm text-[var(--muted)]">
+              <Star className="size-4 shrink-0 text-[#c79b55]" aria-hidden="true" />
+              {artisan.rating > 0 ? `${artisan.rating} · ` : ""}
+              {artisan.reviews} reviews
+            </span>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Pill>{artisan.available ? "Available today" : "Not available"}</Pill>
+            <Pill>Joined {new Date(artisan.createdAt).toLocaleDateString()}</Pill>
+            {artisan.reviewedAt ? <Pill>Reviewed {new Date(artisan.reviewedAt).toLocaleDateString()}</Pill> : null}
+          </div>
+
+          {artisan.bio ? (
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#9aa19c]">About</p>
+              <p className="mt-1 text-sm leading-6 text-[#3f4a45]">{artisan.bio}</p>
+            </div>
+          ) : null}
+
+          {artisan.specialties.length || artisan.serviceTags.length ? (
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#9aa19c]">Specialties &amp; services</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {artisan.specialties.map((item) => (
+                  <Pill key={`s-${item}`}>{item}</Pill>
+                ))}
+                {artisan.serviceTags.map((item) => (
+                  <Pill key={`t-${item}`}>{item}</Pill>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#9aa19c]">Badges</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {artisan.verified ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--green-strong)]">
+                  <BadgeCheck className="size-3.5" aria-hidden="true" />
+                  Verified
+                </span>
+              ) : null}
+              {extraBadges.map((badge) => (
+                <span key={badge} className="inline-flex items-center gap-1 rounded-full bg-[var(--green-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--green-strong)]">
+                  <BadgeCheck className="size-3.5" aria-hidden="true" />
+                  {badge}
+                </span>
+              ))}
+              {!artisan.verified && extraBadges.length === 0 ? (
+                <span className="text-sm text-[var(--muted)]">No badges</span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#9aa19c]">
+              Portfolio photos ({artisan.photos.length})
+            </p>
+            {artisan.photos.length ? (
+              <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {artisan.photos.map((url) => {
+                  const deleting = mutatingContent === `photo:${url}`;
+                  return (
+                    <div
+                      key={url}
+                      className="group relative aspect-square overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface-soft)]"
+                    >
+                      <Image src={url} alt="Portfolio work" fill sizes="200px" className="object-cover" />
+                      <button
+                        type="button"
+                        disabled={deleting}
+                        onClick={() => onDeletePhoto(url)}
+                        aria-label="Delete photo"
+                        className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-lg bg-[#0d1612]/70 text-white opacity-0 transition hover:bg-[var(--rose)] group-hover:opacity-100 disabled:opacity-100"
+                      >
+                        {deleting ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : <Trash2 className="size-4" aria-hidden="true" />}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-2 rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-soft)] px-3 py-4 text-center text-sm text-[var(--muted)]">
+                No portfolio photos.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#9aa19c]">Reviews</p>
+            {loadingReviews ? (
+              <p className="mt-2 text-sm text-[var(--muted)]">Loading reviews…</p>
+            ) : reviewsError ? (
+              <p className="mt-2 rounded-xl border border-[#e6c4be] bg-[#fdecec] px-3 py-2 text-sm text-[var(--rose)]">{reviewsError}</p>
+            ) : reviews.length ? (
+              <ul className="mt-2 grid gap-2">
+                {reviews.map((review) => {
+                  const deleting = mutatingContent === `review:${review.id}`;
+                  return (
+                    <li key={review.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-[var(--ink)]">{review.author_name || "Client"}</span>
+                            <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-[#8a6a1f]">
+                              <Star className="size-3.5 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
+                              {review.rating}/5
+                            </span>
+                          </div>
+                          {review.comment ? <p className="mt-1 text-sm leading-5 text-[#3f4a45]">{review.comment}</p> : null}
+                        </div>
+                        <button
+                          type="button"
+                          disabled={deleting}
+                          onClick={() => onDeleteReview(review.id)}
+                          aria-label="Delete review"
+                          className="btn btn-secondary h-9 shrink-0 px-3 text-xs text-[var(--rose)] hover:border-[var(--rose)] disabled:opacity-60"
+                        >
+                          {deleting ? <RefreshCw className="size-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="size-3.5" aria-hidden="true" />}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-[var(--muted)]">No reviews yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────────────────── main console ─────────────────────────── */
 
 export function AdminConsole({ adminPassword }: { adminPassword: string }) {
@@ -619,6 +881,12 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [jobsError, setJobsError] = useState("");
   const [mutatingJob, setMutatingJob] = useState(""); // `${action}:${id}`
+
+  const [detailArtisan, setDetailArtisan] = useState<LiveAdminArtisan | null>(null);
+  const [detailReviews, setDetailReviews] = useState<AdminReview[]>([]);
+  const [loadingDetailReviews, setLoadingDetailReviews] = useState(false);
+  const [detailReviewsError, setDetailReviewsError] = useState("");
+  const [mutatingContent, setMutatingContent] = useState(""); // `photo:${url}` | `review:${id}`
 
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -725,6 +993,76 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
       pushToast("error", error instanceof Error ? error.message : "Job update failed.");
     } finally {
       setMutatingJob("");
+    }
+  }
+
+  const loadDetailReviews = useCallback(
+    async (artisanId: string) => {
+      setLoadingDetailReviews(true);
+      setDetailReviewsError("");
+      try {
+        const payload = await invokePublicFunction<AdminReviewsPayload>("artisanmu-admin-content", {
+          admin_password: adminPassword,
+          action: "list_reviews",
+          artisan_id: artisanId,
+        });
+        setDetailReviews(payload.reviews || []);
+      } catch (error) {
+        setDetailReviewsError(error instanceof Error ? error.message : "Could not load reviews.");
+        setDetailReviews([]);
+      } finally {
+        setLoadingDetailReviews(false);
+      }
+    },
+    [adminPassword],
+  );
+
+  const openDetail = useCallback(
+    (artisan: LiveAdminArtisan) => {
+      setDetailArtisan(artisan);
+      setDetailReviews([]);
+      void loadDetailReviews(artisan.id);
+    },
+    [loadDetailReviews],
+  );
+
+  async function deleteArtisanPhoto(artisanId: string, photoUrl: string) {
+    setMutatingContent(`photo:${photoUrl}`);
+    try {
+      const payload = await invokePublicFunction<PhotoDeletePayload>("artisanmu-admin-content", {
+        admin_password: adminPassword,
+        action: "delete_artisan_photo",
+        artisan_id: artisanId,
+        photo_url: photoUrl,
+      });
+      const photos = payload.photos || [];
+      setDetailArtisan((current) =>
+        current && current.id === artisanId ? { ...current, photos, photoCount: photos.length } : current,
+      );
+      pushToast("success", "Photo deleted.");
+      void loadArtisans();
+    } catch (error) {
+      pushToast("error", error instanceof Error ? error.message : "Could not delete photo.");
+    } finally {
+      setMutatingContent("");
+    }
+  }
+
+  async function deleteReview(reviewId: number) {
+    setMutatingContent(`review:${reviewId}`);
+    try {
+      await invokePublicFunction("artisanmu-admin-content", {
+        admin_password: adminPassword,
+        action: "delete_review",
+        review_id: reviewId,
+      });
+      setDetailReviews((current) => current.filter((review) => review.id !== reviewId));
+      pushToast("success", "Review deleted.");
+      void loadArtisans();
+    } catch (error) {
+      pushToast("error", error instanceof Error ? error.message : "Could not delete review.");
+    } finally {
+      setMutatingContent("");
     }
   }
 
@@ -945,6 +1283,7 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
                           onConfirm: () => void mutateArtisan("reject", artisan.id, [], `${artisan.name} rejected.`),
                         })
                       }
+                      onView={() => openDetail(artisan)}
                     />
                   );
                 })}
@@ -1016,6 +1355,15 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openDetail(artisan)}
+                            className="btn btn-secondary h-11 px-3 text-sm"
+                            aria-label={`View ${artisan.name} details`}
+                          >
+                            <Eye className="size-4" aria-hidden="true" />
+                            View
+                          </button>
                           <a
                             href={`https://wa.me/${digitsOnly(artisan.phone)}`}
                             target="_blank"
@@ -1265,6 +1613,35 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
         {/* ── ADS ── */}
         {activeTab === "ads" ? <div className="mt-5"><AdsPanel /></div> : null}
       </div>
+
+      {detailArtisan ? (
+        <ArtisanDetailModal
+          artisan={detailArtisan}
+          reviews={detailReviews}
+          loadingReviews={loadingDetailReviews}
+          reviewsError={detailReviewsError}
+          mutatingContent={mutatingContent}
+          onClose={() => setDetailArtisan(null)}
+          onDeletePhoto={(photoUrl) =>
+            setConfirmState({
+              title: "Delete this photo?",
+              message: "The photo will be permanently removed from storage. This cannot be undone.",
+              confirmLabel: "Delete photo",
+              danger: true,
+              onConfirm: () => void deleteArtisanPhoto(detailArtisan.id, photoUrl),
+            })
+          }
+          onDeleteReview={(reviewId) =>
+            setConfirmState({
+              title: "Delete this review?",
+              message: "The review will be permanently removed and the artisan's rating recalculated.",
+              confirmLabel: "Delete review",
+              danger: true,
+              onConfirm: () => void deleteReview(reviewId),
+            })
+          }
+        />
+      ) : null}
 
       <ConfirmDialog state={confirmState} onClose={() => setConfirmState(null)} />
       <Toaster toasts={toasts} onDismiss={dismissToast} />

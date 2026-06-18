@@ -81,6 +81,19 @@ type DashboardNotification = {
   job: DashboardJobRow;
 };
 
+type OpenBoardJob = {
+  id: string;
+  shortId: string;
+  trade: string;
+  description: string;
+  town: string;
+  district: string;
+  client: string;
+  urgency: "urgent" | "planned" | string;
+  createdAt: string;
+  expiresAt: string | null;
+};
+
 type ProfileFormState = {
   town: string;
   district: string;
@@ -295,6 +308,9 @@ export function ArtisanDashboard() {
   const [jobNotifications, setJobNotifications] = useState<DashboardNotification[]>([]);
   const [jobsLoading, setJobsLoading] = useState(false);
   const [jobsError, setJobsError] = useState("");
+  const [openJobs, setOpenJobs] = useState<OpenBoardJob[]>([]);
+  const [openJobsLoading, setOpenJobsLoading] = useState(false);
+  const [openJobsError, setOpenJobsError] = useState("");
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [portfolioSaving, setPortfolioSaving] = useState(false);
   const [portfolioMessage, setPortfolioMessage] = useState("");
@@ -443,6 +459,29 @@ export function ArtisanDashboard() {
     setJobsLoading(false);
   }, [supabase]);
 
+  const loadOpenJobs = useCallback(async () => {
+    setOpenJobsLoading(true);
+    setOpenJobsError("");
+    try {
+      const payload = await invokeUserFunction<{ success?: boolean; jobs?: OpenBoardJob[]; message?: string }>(
+        "artisanmu-open-jobs",
+        { action: "list" },
+      );
+      setOpenJobs(payload.jobs || []);
+    } catch (error) {
+      setOpenJobs([]);
+      setOpenJobsError(error instanceof Error ? error.message : "Could not load the job board.");
+    } finally {
+      setOpenJobsLoading(false);
+    }
+  }, []);
+
+  // Board = all open jobs minus the ones already surfaced as targeted leads above.
+  const boardJobs = useMemo(() => {
+    const targetedIds = new Set(jobNotifications.map((notification) => notification.job.id));
+    return openJobs.filter((job) => !targetedIds.has(job.id));
+  }, [openJobs, jobNotifications]);
+
   useEffect(() => {
     let active = true;
 
@@ -508,8 +547,10 @@ export function ArtisanDashboard() {
       setStatus("ready");
       if (mappedArtisan.verified && mappedArtisan.verificationStatus === "approved") {
         void loadTargetedJobs();
+        void loadOpenJobs();
       } else {
         setJobNotifications([]);
+        setOpenJobs([]);
       }
     }
 
@@ -527,6 +568,7 @@ export function ArtisanDashboard() {
       if (event === "SIGNED_OUT") {
         setArtisan(null);
         setJobNotifications([]);
+        setOpenJobs([]);
         setStatus("signed-out");
         return;
       }
@@ -538,7 +580,7 @@ export function ArtisanDashboard() {
       active = false;
       subscription.unsubscribe();
     };
-  }, [loadTargetedJobs, supabase]);
+  }, [loadTargetedJobs, loadOpenJobs, supabase]);
 
   async function handleAvailabilityToggle() {
     if (!artisan || savingAvailability) return;
@@ -736,6 +778,7 @@ export function ArtisanDashboard() {
     await supabase.auth.signOut();
     setArtisan(null);
     setJobNotifications([]);
+    setOpenJobs([]);
     setStatus("signed-out");
   }
 
@@ -978,6 +1021,73 @@ export function ArtisanDashboard() {
                   <h2 className="mt-4 text-lg font-semibold text-[#101410]">No open leads yet</h2>
                   <p className="mt-2 text-sm leading-6">
                     Keep your profile online. New matching requests will appear here when clients post work in your trade and service area.
+                  </p>
+                </article>
+              )}
+
+              <div className="mt-2 flex flex-col gap-3 rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="font-semibold text-[#101410]">Job board — all open jobs</h2>
+                  <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                    Every open request across Mauritius. Claim any one to reveal the client&apos;s WhatsApp — first come, first served.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadOpenJobs}
+                  disabled={openJobsLoading}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612] disabled:cursor-wait disabled:opacity-70"
+                >
+                  {openJobsLoading ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <RefreshCcw className="size-4" aria-hidden="true" />
+                  )}
+                  Refresh
+                </button>
+              </div>
+
+              {openJobsError ? (
+                <div className="rounded-md border border-[#E24B4A]/30 bg-[#E24B4A]/10 px-3 py-2 text-sm text-[#9f2f2e]">
+                  {openJobsError}
+                </div>
+              ) : null}
+
+              {openJobsLoading && !openJobs.length ? (
+                <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
+                  <LoaderCircle className="size-5 animate-spin text-[#0d8b66]" aria-hidden="true" />
+                  <h2 className="mt-3 text-lg font-semibold text-[#101410]">Loading the job board</h2>
+                  <p className="mt-2 text-sm leading-6">Fetching all open requests across Mauritius.</p>
+                </article>
+              ) : boardJobs.length ? (
+                boardJobs.map((job) => (
+                  <UrgentJobCard
+                    key={job.id}
+                    job={{
+                      id: job.id,
+                      trade: job.trade,
+                      district: job.district || job.town,
+                      description: job.description,
+                      urgency: job.urgency === "urgent" ? "urgent" : "planned",
+                      customerDisplayName: job.client,
+                      distanceLabel: job.town ? `${job.town} area` : undefined,
+                    }}
+                    claimFn="artisanmu-open-jobs"
+                    claimExtraBody={{ action: "claim" }}
+                    onTaken={loadOpenJobs}
+                    onClaimed={() => {
+                      void loadOpenJobs();
+                    }}
+                  />
+                ))
+              ) : (
+                <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
+                  <div className="flex size-11 items-center justify-center rounded-md bg-[#eef5f3] text-[#0d7c5c]">
+                    <Wrench className="size-5" aria-hidden="true" />
+                  </div>
+                  <h2 className="mt-4 text-lg font-semibold text-[#101410]">No open jobs right now</h2>
+                  <p className="mt-2 text-sm leading-6">
+                    When clients post new work anywhere in Mauritius, it appears here for you to claim.
                   </p>
                 </article>
               )}
