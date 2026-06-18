@@ -1,6 +1,6 @@
-# ArtisanMu
+# Artizan Moris
 
-Next.js rebuild of the ArtisanMu marketplace. The frontend is a static export;
+Next.js rebuild of the Artizan Moris marketplace. The frontend is a static export;
 privileged job workflows run through Supabase Edge Functions.
 
 ## Getting Started
@@ -29,7 +29,7 @@ The app uses static export. Cloudflare Pages or Vercel can deploy the generated
 The public site is split into routed pages (shared header tabs + footer):
 
 - `/` — landing (hero, how-it-works teaser, popular trades, CTA)
-- `/how-it-works` — steps, why ArtisanMU, FAQ
+- `/how-it-works` — steps, why Artizan Moris, FAQ
 - `/browse` — verified artisans with live Supabase data + filters
 - `/post` — the job-request flow (accepts `?trade=` to preselect a trade)
 
@@ -100,7 +100,7 @@ See `HANDOFF_PROMPT.md` for the next-chat prompt and remaining production tasks.
 
 ## License
 
-ArtisanMu is proprietary software. See `LICENSE` for usage terms. Third-party
+Artizan Moris is proprietary software. See `LICENSE` for usage terms. Third-party
 dependencies remain subject to their own license terms.
 
 ## Android APK

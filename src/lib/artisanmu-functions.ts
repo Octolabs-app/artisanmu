@@ -26,7 +26,7 @@ function functionUrl(name: string) {
     throw new ArtisanMuFunctionError(
       500,
       "missing_supabase_config",
-      "ArtisanMu services are not configured for this build.",
+      "Artizan Moris services are not configured for this build.",
     );
   }
 
@@ -65,7 +65,7 @@ async function callFunction<T>(
     throw new ArtisanMuFunctionError(
       response.status,
       payload.error || "function_error",
-      payload.message || "ArtisanMu service request failed.",
+      payload.message || "Artizan Moris service request failed.",
       payload.reason,
     );
   }
@@ -84,7 +84,7 @@ export async function invokeUserFunction<T>(name: string, body: Record<string, u
     throw new ArtisanMuFunctionError(
       500,
       "missing_supabase_config",
-      "ArtisanMu login is not configured for this build.",
+      "Artizan Moris login is not configured for this build.",
     );
   }
 
