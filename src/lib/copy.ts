@@ -162,6 +162,10 @@ export const marketplaceCopy = {
       confResponse: "avg response time",
       confAccept: "We'll send you a message when an artisan accepts",
       postAnother: "Post another request",
+      expiryLabel: "Keep this request active for",
+      expiryHint: "After that, it expires automatically if it isn't completed.",
+      expiryDay: "day",
+      expiryDays: "days",
     },
   },
   fr: {

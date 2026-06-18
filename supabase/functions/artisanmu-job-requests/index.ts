@@ -26,7 +26,18 @@ type CreateJobBody = {
   district?: string;
   whatsapp_number?: string;
   photo_url?: string;
+  expiry_days?: number;
 };
+
+// The poster chooses how long the request stays visible (1–30 days). If it is
+// not claimed/completed before then, it auto-expires and disappears from feeds.
+function resolveExpiryDays(value: unknown, urgency: string) {
+  const requested = Number(value);
+  if (Number.isFinite(requested)) {
+    return Math.min(30, Math.max(1, Math.round(requested)));
+  }
+  return urgency === "urgent" ? 2 : 7;
+}
 
 type ArtisanTarget = {
   id: number;
@@ -70,9 +81,8 @@ Deno.serve(async (request: Request) => {
     ]);
     const displayName = customerDisplayName();
     const now = Date.now();
-    const expiresAt = new Date(
-      now + (urgency === "urgent" ? 4 * 60 * 60 * 1000 : 72 * 60 * 60 * 1000),
-    ).toISOString();
+    const expiryDays = resolveExpiryDays(body.expiry_days, urgency);
+    const expiresAt = new Date(now + expiryDays * 24 * 60 * 60 * 1000).toISOString();
     const photoPath = safePhotoPath(body.photo_url);
 
     const { data: targetPool, error: targetError } = await supabase
