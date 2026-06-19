@@ -1542,18 +1542,18 @@ export function ArtisanDashboard() {
                   {artisan.portfolioImages.length ? (
                     artisan.portfolioImages.map((photo, index) => (
                       <div key={photo} className="group relative aspect-square overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface-soft)]">
-                        <button
-                          type="button"
-                          onClick={() => setLightboxPhoto(photo)}
-                          className="absolute inset-0 z-0 cursor-zoom-in"
-                          aria-label={`Enlarge portfolio photo ${index + 1}`}
-                        />
                         <Image
                           src={photo}
                           alt={`${artisan.name} portfolio ${index + 1}`}
                           fill
                           sizes="(max-width: 768px) 50vw, 220px"
                           className="pointer-events-none object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setLightboxPhoto(photo)}
+                          className="absolute inset-0 z-[2] cursor-zoom-in"
+                          aria-label={`Enlarge portfolio photo ${index + 1}`}
                         />
                         <button
                           type="button"
@@ -1564,7 +1564,7 @@ export function ArtisanDashboard() {
                             }
                           }}
                           disabled={portfolioSaving}
-                          className="absolute right-2 top-2 z-10 inline-flex size-9 items-center justify-center rounded-md bg-[#0d1612]/85 text-white opacity-100 shadow-sm transition sm:opacity-0 sm:group-hover:opacity-100"
+                          className="absolute right-2 top-2 z-[3] inline-flex size-9 items-center justify-center rounded-md bg-[#0d1612]/85 text-white opacity-100 shadow-sm transition sm:opacity-0 sm:group-hover:opacity-100"
                           aria-label={`Remove portfolio photo ${index + 1}`}
                         >
                           <Trash2 className="size-4" aria-hidden="true" />
