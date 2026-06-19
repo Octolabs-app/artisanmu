@@ -28,6 +28,7 @@ import {
 import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { UrgentJobCard } from "@/components/UrgentJobCard";
+import { TagInput } from "@/components/tag-input";
 import { commentThreads, reviewItems } from "@/lib/admin-data";
 import { invokeUserFunction } from "@/lib/artisanmu-functions";
 import {
@@ -593,17 +594,6 @@ export function ArtisanDashboard() {
   }, [loadTargetedJobs, loadOpenJobs, supabase]);
 
 
-  function toggleProfileTag(tag: string) {
-    setProfileForm((current) => {
-      const selected = current.serviceTags.includes(tag);
-      const serviceTags = selected
-        ? current.serviceTags.filter((item) => item !== tag)
-        : [...current.serviceTags, tag].slice(0, 8);
-      return { ...current, serviceTags };
-    });
-    setProfileMessage("");
-  }
-
   async function handleProfileSave() {
     if (!artisan || profileSaving) return;
     setProfileSaving(true);
@@ -627,7 +617,9 @@ export function ArtisanDashboard() {
         town: profileForm.town,
         district: profileForm.district,
         bio: profileForm.bio,
-        specialties: profileForm.specialties,
+        // Skills + services are merged into one list; mirror it into the legacy
+        // specialties field the API still expects.
+        specialties: profileForm.serviceTags,
         service_tags: profileForm.serviceTags,
         contact_preference: profileForm.contactPreference,
         working_hours: profileForm.workingHours,
@@ -1172,18 +1164,6 @@ export function ArtisanDashboard() {
                     />
                   </label>
                   <label className="block text-sm font-medium text-[#101410]">
-                    Specialties
-                    <input
-                      value={profileForm.specialties}
-                      onChange={(event) => {
-                        setProfileForm((current) => ({ ...current, specialties: event.target.value }));
-                        setProfileMessage("");
-                      }}
-                      className="mt-2 h-11 w-full rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none focus:border-[#0d8b66]"
-                      placeholder="Leak repair, rewiring, cabinets"
-                    />
-                  </label>
-                  <label className="block text-sm font-medium text-[#101410]">
                     Preferred contact
                     <select
                       value={profileForm.contactPreference}
@@ -1200,27 +1180,18 @@ export function ArtisanDashboard() {
                 </div>
 
                 <fieldset className="mt-4 grid gap-2 rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
-                  <legend className="px-1 text-sm font-medium text-[#101410]">Service tags</legend>
-                  <div className="flex flex-wrap gap-2">
-                    {serviceTagOptions.map((tag) => {
-                      const selected = profileForm.serviceTags.includes(tag);
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => toggleProfileTag(tag)}
-                          aria-pressed={selected}
-                          className={`inline-flex min-h-10 items-center rounded-md px-3 text-xs font-semibold transition ${
-                            selected
-                              ? "bg-[#0d8b66] text-white"
-                              : "border border-[#ddd8cd] bg-white text-[#4d5651] hover:border-[#0d8b66]"
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <legend className="px-1 text-sm font-medium text-[#101410]">Skills &amp; services</legend>
+                  <p className="text-xs leading-5 text-[#5f6a64]">
+                    Pick from the suggestions or type your own. These help clients find you.
+                  </p>
+                  <TagInput
+                    value={profileForm.serviceTags}
+                    onChange={(tags) => {
+                      setProfileForm((current) => ({ ...current, serviceTags: tags }));
+                      setProfileMessage("");
+                    }}
+                    options={serviceTagOptions}
+                  />
                 </fieldset>
 
                 {profileMessage ? (

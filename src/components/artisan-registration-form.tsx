@@ -14,6 +14,7 @@ import {
 import { invokePublicFunction, invokeUserFunction } from "@/lib/artisanmu-functions";
 import { districtOptions, serviceTagOptions, tradeOptions } from "@/lib/service-options";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
+import { TagInput } from "@/components/tag-input";
 
 type RegistrationState = {
   name: string;
@@ -116,17 +117,6 @@ export function ArtisanRegistrationForm() {
     setError("");
   }
 
-  function toggleServiceTag(tag: string) {
-    setForm((current) => {
-      const selected = current.serviceTags.includes(tag);
-      const nextTags = selected
-        ? current.serviceTags.filter((item) => item !== tag)
-        : [...current.serviceTags, tag].slice(0, 8);
-      return { ...current, serviceTags: nextTags };
-    });
-    setError("");
-  }
-
   function validateForm() {
     if (form.name.trim().length < 2) return "Enter your full name.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return "Enter a valid email address.";
@@ -135,10 +125,7 @@ export function ArtisanRegistrationForm() {
     if (!form.district) return "Choose your district.";
     if (form.town.trim().length < 2) return "Enter your town or village.";
     if (form.bio.trim().length < 30) return "Add a bio of at least 30 characters.";
-    if (!form.specialties.split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean).length) {
-      return "Add at least one specialty.";
-    }
-    if (!form.serviceTags.length) return "Choose at least one service tag.";
+    if (!form.serviceTags.length) return "Add at least one skill or service.";
 
     return validateFiles(form.files);
   }
@@ -169,7 +156,8 @@ export function ArtisanRegistrationForm() {
         district: form.district,
         town: form.town.trim(),
         bio: form.bio.trim(),
-        specialties: form.specialties,
+        // Skills + services are one list now; mirror into the legacy specialties field.
+        specialties: form.serviceTags.join(", "),
         service_tags: form.serviceTags,
       });
 
@@ -396,41 +384,16 @@ export function ArtisanRegistrationForm() {
           />
         </label>
 
-        <label className="block text-sm font-medium text-[#101410]">
-          Specialties
-          <input
-            value={form.specialties}
-            onChange={(event) => updateForm({ specialties: event.target.value })}
-            className="mt-2 h-11 w-full rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none focus:border-[#0d8b66]"
-            placeholder="Leak repair, rewiring, cabinets"
-          />
-        </label>
-
         <fieldset className="grid gap-2 rounded-lg border border-[#ddd8cd] bg-white p-3">
-          <legend className="px-1 text-sm font-medium text-[#101410]">Service tags</legend>
+          <legend className="px-1 text-sm font-medium text-[#101410]">Skills &amp; services</legend>
           <p className="text-xs leading-5 text-[#5f6a64]">
-            Tags help clients filter by the kind of help they need.
+            Pick from the suggestions or type your own. These help clients find you.
           </p>
-          <div className="flex flex-wrap gap-2">
-            {serviceTagOptions.map((tag) => {
-              const selected = form.serviceTags.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleServiceTag(tag)}
-                  aria-pressed={selected}
-                  className={`inline-flex min-h-10 items-center rounded-md px-3 text-xs font-semibold transition ${
-                    selected
-                      ? "bg-[#0d8b66] text-white"
-                      : "border border-[#ddd8cd] bg-[#f8f4ea] text-[#4d5651] hover:border-[#0d8b66]"
-                  }`}
-                >
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
+          <TagInput
+            value={form.serviceTags}
+            onChange={(tags) => updateForm({ serviceTags: tags })}
+            options={serviceTagOptions}
+          />
         </fieldset>
 
         <label className="block cursor-pointer rounded-lg border border-dashed border-[#c9c2b6] bg-[#f8f4ea] p-4 text-center text-sm text-[#4d5651] hover:border-[#0d8b66]">

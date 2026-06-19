@@ -40,6 +40,30 @@ export const serviceTagOptions = [
   "Home repairs",
 ];
 
+// Localized labels for the preset service tags (EN / FR / Morisien). The stored
+// value stays the canonical English key; only the display label is translated.
+// Custom tags an artisan types fall through unchanged.
+export const serviceTagLabels: Record<string, { en: string; fr: string; mfe: string }> = {
+  "Emergency repair": { en: "Emergency repair", fr: "Réparation d'urgence", mfe: "Reparasion irzan" },
+  "Same-day service": { en: "Same-day service", fr: "Service le jour même", mfe: "Servis mem zour" },
+  "Leak repair": { en: "Leak repair", fr: "Réparation de fuite", mfe: "Repar fwit" },
+  "No power": { en: "No power", fr: "Panne de courant", mfe: "Pena kouran" },
+  "AC service": { en: "AC service", fr: "Service climatisation", mfe: "Servis lerkondisyoner" },
+  Installation: { en: "Installation", fr: "Installation", mfe: "Instalasion" },
+  Maintenance: { en: "Maintenance", fr: "Entretien", mfe: "Antretien" },
+  Renovation: { en: "Renovation", fr: "Rénovation", mfe: "Renovasion" },
+  Inspection: { en: "Inspection", fr: "Inspection", mfe: "Inspeksion" },
+  "After-hours": { en: "After-hours", fr: "Après les heures", mfe: "Apre ler travay" },
+  "Weekend jobs": { en: "Weekend jobs", fr: "Travaux le week-end", mfe: "Travay wikenn" },
+  "Small jobs": { en: "Small jobs", fr: "Petits travaux", mfe: "Ti travay" },
+  "Commercial work": { en: "Commercial work", fr: "Travaux commerciaux", mfe: "Travay komersial" },
+  "Home repairs": { en: "Home repairs", fr: "Réparations maison", mfe: "Reparasion lakaz" },
+};
+
+export function localizeTag(tag: string, language: "en" | "fr" | "mfe"): string {
+  return serviceTagLabels[tag]?.[language] || tag;
+}
+
 const tradeAliases: Record<string, string[]> = {
   Plumber: ["Plumber", "Plombier"],
   Plombier: ["Plumber", "Plombier"],

@@ -33,7 +33,7 @@ import {
 } from "@/lib/copy";
 import { mapSupabaseArtisan, publicArtisanSelect, type SupabaseArtisanProfile } from "@/lib/artisan-profile";
 import { districts, trades } from "@/lib/mock-data";
-import { districtMatchesSelection, serviceTagOptions, tradeMatchesSelection } from "@/lib/service-options";
+import { districtMatchesSelection, localizeTag, serviceTagOptions, tradeMatchesSelection } from "@/lib/service-options";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
 import type { Artisan } from "@/lib/types";
 
@@ -378,8 +378,9 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
 
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {filteredArtisans.map((artisan) => {
-              const visibleTags = artisan.serviceTags.slice(0, 3);
-              const hiddenTagCount = Math.max(0, artisan.serviceTags.length - visibleTags.length);
+              const skills = Array.from(new Set([...artisan.serviceTags, ...artisan.specialties]));
+              const visibleTags = skills.slice(0, 4);
+              const hiddenTagCount = Math.max(0, skills.length - visibleTags.length);
 
               return (
                 <article
@@ -455,7 +456,7 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                           key={`${artisan.id}-${tag}`}
                           className="rounded-full bg-[#e7f5ef] px-2.5 py-1 text-xs font-semibold text-[#0d7c5c]"
                         >
-                          {tag}
+                          {localizeTag(tag, language)}
                         </span>
                       ))}
                       {hiddenTagCount ? (
@@ -463,14 +464,6 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                           +{hiddenTagCount}
                         </span>
                       ) : null}
-                      {artisan.specialties.slice(0, 3).map((specialty) => (
-                        <span
-                          key={specialty}
-                          className="rounded-full border border-[#e3ddd1] bg-white px-2.5 py-1 text-xs text-[#4d5651]"
-                        >
-                          {specialty}
-                        </span>
-                      ))}
                     </div>
 
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -630,14 +623,9 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
               <p className="mt-3 text-sm leading-6 text-[#5d6863]">{modalArtisan.bio}</p>
 
               <div className="mt-3 flex flex-wrap gap-2">
-                {modalArtisan.serviceTags.map((tag) => (
+                {Array.from(new Set([...modalArtisan.serviceTags, ...modalArtisan.specialties])).map((tag) => (
                   <span key={tag} className="rounded-full bg-[#e7f5ef] px-2.5 py-1 text-xs font-semibold text-[#0d7c5c]">
-                    {tag}
-                  </span>
-                ))}
-                {modalArtisan.specialties.map((specialty) => (
-                  <span key={specialty} className="rounded-full border border-[#e3ddd1] bg-white px-2.5 py-1 text-xs text-[#4d5651]">
-                    {specialty}
+                    {localizeTag(tag, language)}
                   </span>
                 ))}
               </div>
