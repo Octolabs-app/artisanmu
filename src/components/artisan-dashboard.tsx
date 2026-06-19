@@ -23,6 +23,7 @@ import {
   Trash2,
   UserRound,
   Wrench,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { AdBanner } from "@/components/ad-banner";
@@ -320,9 +321,12 @@ export function ArtisanDashboard() {
   const [openJobs, setOpenJobs] = useState<OpenBoardJob[]>([]);
   const [openJobsLoading, setOpenJobsLoading] = useState(false);
   const [openJobsError, setOpenJobsError] = useState("");
+  const [claimedJobs, setClaimedJobs] = useState<DashboardNotification[]>([]);
+  const [unclaimingId, setUnclaimingId] = useState("");
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [portfolioSaving, setPortfolioSaving] = useState(false);
   const [portfolioMessage, setPortfolioMessage] = useState("");
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
     town: "",
     district: "",
@@ -337,6 +341,10 @@ export function ArtisanDashboard() {
   const [settingsMessage, setSettingsMessage] = useState("");
   const [reviewMessage, setReviewMessage] = useState("");
   const [handledReviewIds, setHandledReviewIds] = useState<string[]>([]);
+  const [accountAction, setAccountAction] = useState<"" | "deactivate" | "reactivate" | "delete">("");
+  const [accountWorking, setAccountWorking] = useState(false);
+  const [accountMessage, setAccountMessage] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const supabase = useMemo(() => getBrowserSupabase(), []);
 
@@ -469,6 +477,71 @@ export function ArtisanDashboard() {
     setJobsLoading(false);
   }, [supabase]);
 
+  const loadClaimedJobs = useCallback(async () => {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("job_notifications")
+      .select(
+        `
+        id,
+        status,
+        urgency,
+        created_at,
+        job:job_requests (
+          id,
+          category,
+          description,
+          district,
+          town,
+          urgency,
+          status,
+          created_at,
+          expires_at,
+          customer_display_name,
+          photo_storage_path
+        )
+      `,
+      )
+      .eq("status", "claimed")
+      .order("created_at", { ascending: false })
+      .limit(30);
+
+    if (error) {
+      setClaimedJobs([]);
+      return;
+    }
+
+    const rows = (data || []) as DashboardNotificationRow[];
+    setClaimedJobs(
+      rows
+        .map((row) => {
+          const job = joinedJob(row.job);
+          if (!job || job.status !== "claimed") return null;
+          return { id: row.id, status: row.status, urgency: row.urgency, createdAt: row.created_at, job };
+        })
+        .filter((row): row is DashboardNotification => Boolean(row)),
+    );
+  }, [supabase]);
+
+  async function handleUnclaim(jobId: string) {
+    setUnclaimingId(jobId);
+    setJobsError("");
+    try {
+      const payload = await invokeUserFunction<{ success?: boolean; reason?: string; message?: string }>(
+        "artisanmu-open-jobs",
+        { action: "unclaim", job_id: jobId },
+      );
+      if (!payload.success) {
+        throw new Error(payload.message || "Could not release this job.");
+      }
+      await Promise.all([loadClaimedJobs(), loadOpenJobs(), loadTargetedJobs()]);
+    } catch (unclaimError) {
+      setJobsError(unclaimError instanceof Error ? unclaimError.message : "Could not release this job.");
+    } finally {
+      setUnclaimingId("");
+    }
+  }
+
   const loadOpenJobs = useCallback(async () => {
     setOpenJobsLoading(true);
     setOpenJobsError("");
@@ -559,6 +632,7 @@ export function ArtisanDashboard() {
       if (mappedArtisan.verified && mappedArtisan.verificationStatus === "approved") {
         void loadTargetedJobs();
         void loadOpenJobs();
+        void loadClaimedJobs();
       } else {
         setJobNotifications([]);
         setOpenJobs([]);
@@ -767,6 +841,33 @@ export function ArtisanDashboard() {
       setPortfolioMessage(portfolioError instanceof Error ? portfolioError.message : "Could not remove photo.");
     } finally {
       setPortfolioSaving(false);
+    }
+  }
+
+  async function handleAccountManage(action: "deactivate" | "reactivate" | "delete") {
+    if (!artisan || accountWorking) return;
+    setAccountWorking(true);
+    setAccountMessage("");
+    try {
+      const payload = await invokeUserFunction<{ success?: boolean; deactivated?: boolean; deleted?: boolean; message?: string }>(
+        "artisanmu-artisan-account",
+        { action },
+      );
+      if (!payload.success) throw new Error(payload.message || "Account action failed.");
+      if (action === "delete") {
+        await supabase?.auth.signOut();
+        setArtisan(null);
+        setStatus("signed-out");
+        return;
+      }
+      setArtisan({ ...artisan, deactivatedAt: action === "deactivate" ? new Date().toISOString() : null });
+      setAccountMessage(action === "deactivate" ? "Your profile is now hidden from the public listing." : "Your profile is visible again.");
+      setAccountAction("");
+      setDeleteConfirmText("");
+    } catch (err) {
+      setAccountMessage(err instanceof Error ? err.message : "Account action failed.");
+    } finally {
+      setAccountWorking(false);
     }
   }
 
@@ -1026,6 +1127,87 @@ export function ArtisanDashboard() {
                   </p>
                 </article>
               )}
+
+              {/* ── My claimed jobs ──────────────────────────────────── */}
+              {claimedJobs.length > 0 ? (
+                <div className="mt-2 grid gap-3">
+                  <div className="rounded-lg border border-[#0d8b66]/30 bg-[#eef5f3] p-4">
+                    <h2 className="font-semibold text-[#0d5c44]">My claimed jobs</h2>
+                    <p className="mt-1 text-sm leading-5 text-[#3a6655]">
+                      Jobs you have accepted. If you can&apos;t complete one, release it so another artisan can help.
+                    </p>
+                  </div>
+                  {claimedJobs.map((notification) => (
+                    <article
+                      key={notification.id}
+                      className="rounded-lg border border-[#0d8b66]/25 bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#0d8b66] px-2.5 py-0.5 text-xs font-semibold text-white">
+                              Claimed
+                            </span>
+                            {(notification.urgency || notification.job.urgency) === "urgent" ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#E24B4A]/15 px-2.5 py-0.5 text-xs font-semibold text-[#9f2f2e]">
+                                Urgent
+                              </span>
+                            ) : null}
+                            <span className="text-xs text-[#8c9490]">
+                              Claimed{" "}
+                              {new Date(notification.createdAt).toLocaleDateString("en-MU", {
+                                day: "numeric",
+                                month: "short",
+                              })}
+                            </span>
+                          </div>
+                          <p className="mt-2 font-medium text-[#101410]">
+                            {notification.job.category || artisan.trade}
+                          </p>
+                          {notification.job.description ? (
+                            <p className="mt-1 line-clamp-2 text-sm text-[#5f6a64]">
+                              {notification.job.description}
+                            </p>
+                          ) : null}
+                          <div className="mt-2 flex flex-wrap gap-3 text-xs text-[#8c9490]">
+                            {notification.job.district || notification.job.town ? (
+                              <span>
+                                {notification.job.town
+                                  ? `${notification.job.town}, ${notification.job.district || "Mauritius"}`
+                                  : notification.job.district}
+                              </span>
+                            ) : null}
+                            {notification.job.customer_display_name ? (
+                              <span>Client: {notification.job.customer_display_name}</span>
+                            ) : null}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={unclaimingId === notification.job.id}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                "Release this job? It will go back to the open board so another artisan can claim it.",
+                              )
+                            ) {
+                              void handleUnclaim(notification.job.id);
+                            }
+                          }}
+                          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-3 text-sm font-semibold text-[#0d1612] transition hover:border-[#E24B4A]/50 hover:bg-[#E24B4A]/5 hover:text-[#9f2f2e] disabled:cursor-wait disabled:opacity-60"
+                        >
+                          {unclaimingId === notification.job.id ? (
+                            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <X className="size-4" aria-hidden="true" />
+                          )}
+                          Release job
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
 
               <div className="mt-2 flex flex-col gap-3 rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -1350,18 +1532,29 @@ export function ArtisanDashboard() {
                   {artisan.portfolioImages.length ? (
                     artisan.portfolioImages.map((photo, index) => (
                       <div key={photo} className="group relative aspect-square overflow-hidden rounded-lg border border-[#ddd8cd] bg-[#f8f4ea]">
+                        <button
+                          type="button"
+                          onClick={() => setLightboxPhoto(photo)}
+                          className="absolute inset-0 z-0 cursor-zoom-in"
+                          aria-label={`Enlarge portfolio photo ${index + 1}`}
+                        />
                         <Image
                           src={photo}
                           alt={`${artisan.name} portfolio ${index + 1}`}
                           fill
                           sizes="(max-width: 768px) 50vw, 220px"
-                          className="object-cover"
+                          className="pointer-events-none object-cover"
                         />
                         <button
                           type="button"
-                          onClick={() => handlePortfolioRemove(photo)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm("Remove this portfolio photo?")) {
+                              void handlePortfolioRemove(photo);
+                            }
+                          }}
                           disabled={portfolioSaving}
-                          className="absolute right-2 top-2 inline-flex size-9 items-center justify-center rounded-md bg-[#0d1612]/85 text-white opacity-100 shadow-sm sm:opacity-0 sm:transition sm:group-hover:opacity-100"
+                          className="absolute right-2 top-2 z-10 inline-flex size-9 items-center justify-center rounded-md bg-[#0d1612]/85 text-white opacity-100 shadow-sm transition sm:opacity-0 sm:group-hover:opacity-100"
                           aria-label={`Remove portfolio photo ${index + 1}`}
                         >
                           <Trash2 className="size-4" aria-hidden="true" />
@@ -1374,6 +1567,41 @@ export function ArtisanDashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* Lightbox */}
+                {lightboxPhoto ? (
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Portfolio photo enlarged"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+                    onClick={() => setLightboxPhoto(null)}
+                    onKeyDown={(e) => e.key === "Escape" && setLightboxPhoto(null)}
+                    tabIndex={-1}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setLightboxPhoto(null)}
+                      className="absolute right-4 top-4 z-10 inline-flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                      aria-label="Close photo"
+                    >
+                      <X className="size-5" aria-hidden="true" />
+                    </button>
+                    <div
+                      className="relative max-h-[90vh] max-w-4xl w-full aspect-video"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Image
+                        src={lightboxPhoto}
+                        alt="Portfolio photo enlarged"
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 1024px"
+                        className="rounded-lg object-contain"
+                        priority
+                      />
+                    </div>
+                  </div>
+                ) : null}
               </article>
 
               {profileCards.map(([title, value, Icon, action]) => (
@@ -1496,31 +1724,114 @@ export function ArtisanDashboard() {
                   {settingsMessage}
                 </p>
               ) : null}
-              {["Notification preferences", "WhatsApp and profile", "Documents and verification", "Support"].map((item) => (
+
+              {/* Quick links */}
+              {[
+                { label: "WhatsApp and profile", action: () => { setActiveTab("profile"); window.setTimeout(() => document.getElementById("profile-editor")?.scrollIntoView({ behavior: "smooth" }), 50); } },
+                { label: "Documents and verification", action: () => setSettingsMessage("Verification document changes — contact support.") },
+                { label: "Support", action: () => window.location.assign("mailto:hello@octolabs.app?subject=Artizan%20Moris%20support") },
+              ].map(({ label, action }) => (
                 <button
-                  key={item}
+                  key={label}
                   type="button"
-                  onClick={() => {
-                    if (item === "Support") {
-                      window.location.assign("mailto:hello@octolabs.app?subject=Artizan%20Moris%20artisan%20support");
-                      return;
-                    }
-                    if (item === "WhatsApp and profile") {
-                      setActiveTab("profile");
-                      setSettingsMessage("");
-                      window.setTimeout(() => {
-                        document.getElementById("profile-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }, 50);
-                      return;
-                    }
-                    setSettingsMessage(`${item} will be connected to live job operations after review storage is enabled.`);
-                  }}
-                  className="flex min-h-12 items-center justify-between rounded-lg border border-[#ddd8cd] bg-[#fffdf8] px-4 text-left text-sm font-semibold text-[#101410] shadow-sm"
+                  onClick={action}
+                  className="flex min-h-12 items-center justify-between rounded-lg border border-[#ddd8cd] bg-[#fffdf8] px-4 text-left text-sm font-semibold text-[#101410] shadow-sm transition hover:border-[#0d8b66]/40"
                 >
-                  {item}
+                  {label}
                   <ChevronRight className="size-4 text-[#6c756f]" aria-hidden="true" />
                 </button>
               ))}
+
+              {/* Account status */}
+              <div className="mt-2 rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
+                <h2 className="font-semibold text-[#101410]">Account status</h2>
+                <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                  {artisan.deactivatedAt
+                    ? "Your profile is currently hidden from the public listing. Reactivate to appear in search results again."
+                    : "Your profile is visible to clients. Deactivate to temporarily hide it without losing any data."}
+                </p>
+                {accountMessage ? (
+                  <p className="mt-3 rounded-md border border-[#d7c292] bg-[#fff8e8] px-3 py-2 text-sm font-medium text-[#78511c]">
+                    {accountMessage}
+                  </p>
+                ) : null}
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {artisan.deactivatedAt ? (
+                    <button
+                      type="button"
+                      disabled={accountWorking}
+                      onClick={() => void handleAccountManage("reactivate")}
+                      className="inline-flex h-10 items-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white transition hover:bg-[#0a7559] disabled:cursor-wait disabled:opacity-70"
+                    >
+                      {accountWorking ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
+                      Reactivate profile
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={accountWorking}
+                      onClick={() => {
+                        if (window.confirm("Deactivate your profile? You will be hidden from public listing until you reactivate.")) {
+                          void handleAccountManage("deactivate");
+                        }
+                      }}
+                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612] transition hover:border-[#0d8b66]/40 disabled:cursor-wait disabled:opacity-70"
+                    >
+                      {accountWorking ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
+                      Deactivate profile
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Danger zone — delete account */}
+              <div className="rounded-lg border border-[#E24B4A]/30 bg-[#fff8f8] p-4 shadow-sm">
+                <h2 className="font-semibold text-[#9f2f2e]">Delete account</h2>
+                <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                  Permanently removes your profile, portfolio photos, reviews, and data. This cannot be undone.
+                  Any jobs you have claimed will be released back to the open board.
+                </p>
+                {accountAction === "delete" ? (
+                  <div className="mt-4 grid gap-3">
+                    <label className="block text-sm font-medium text-[#0d1612]">
+                      Type <strong>DELETE</strong> to confirm
+                    </label>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="DELETE"
+                      className="w-full rounded-md border border-[#E24B4A]/40 bg-white px-3 py-2 text-sm outline-none focus:border-[#E24B4A]"
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        disabled={accountWorking || deleteConfirmText !== "DELETE"}
+                        onClick={() => void handleAccountManage("delete")}
+                        className="inline-flex h-10 items-center gap-2 rounded-md bg-[#E24B4A] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {accountWorking ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
+                        Delete my account
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setAccountAction(""); setDeleteConfirmText(""); }}
+                        className="inline-flex h-10 items-center rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAccountAction("delete")}
+                    className="mt-4 inline-flex h-10 items-center gap-2 rounded-md border border-[#E24B4A]/40 bg-white px-4 text-sm font-semibold text-[#9f2f2e] transition hover:bg-[#E24B4A]/5"
+                  >
+                    Delete account
+                  </button>
+                )}
+              </div>
             </div>
           ) : null}
         </section>

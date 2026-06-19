@@ -42,7 +42,7 @@ const portfolioMarker = "/storage/v1/object/public/portfolios/";
 
 type AdminContentBody = {
   admin_password?: string;
-  action?: "list_reviews" | "delete_review" | "set_review_visibility" | "delete_artisan_photo";
+  action?: "list_reviews" | "delete_review" | "set_review_visibility" | "delete_artisan_photo" | "deactivate_artisan" | "reactivate_artisan" | "delete_artisan";
   artisan_id?: number | string;
   review_id?: number | string;
   photo_url?: string;
@@ -254,6 +254,85 @@ Deno.serve(async (request: Request) => {
       });
 
       return json({ success: true, photos: nextPhotos, avatar: nextPhotos[0] || null });
+    }
+
+    if (action === "deactivate_artisan") {
+      const artisanId = intId(body.artisan_id);
+      if (!artisanId) return json({ error: "invalid_artisan_id", message: "A valid artisan id is required." }, 400);
+      const { error: updateError } = await admin
+        .from("artisans")
+        .update({ deactivated_at: new Date().toISOString(), is_available_today: false })
+        .eq("id", artisanId);
+      if (updateError) return json({ error: "deactivate_failed", message: updateError.message }, 500);
+      await admin.from("audit_logs").insert({
+        artisan_id: artisanId,
+        event: "admin_artisan_deactivate",
+        metadata: { source: "artisanmu-admin-content" },
+      });
+      return json({ success: true, artisan_id: artisanId, deactivated: true });
+    }
+
+    if (action === "reactivate_artisan") {
+      const artisanId = intId(body.artisan_id);
+      if (!artisanId) return json({ error: "invalid_artisan_id", message: "A valid artisan id is required." }, 400);
+      const { error: updateError } = await admin
+        .from("artisans")
+        .update({ deactivated_at: null })
+        .eq("id", artisanId);
+      if (updateError) return json({ error: "reactivate_failed", message: updateError.message }, 500);
+      await admin.from("audit_logs").insert({
+        artisan_id: artisanId,
+        event: "admin_artisan_reactivate",
+        metadata: { source: "artisanmu-admin-content" },
+      });
+      return json({ success: true, artisan_id: artisanId, deactivated: false });
+    }
+
+    if (action === "delete_artisan") {
+      const artisanId = intId(body.artisan_id);
+      if (!artisanId) return json({ error: "invalid_artisan_id", message: "A valid artisan id is required." }, 400);
+
+      const { data: artisan, error: lookupError } = await admin
+        .from("artisans")
+        .select("id, photos, auth_user_id")
+        .eq("id", artisanId)
+        .maybeSingle();
+      if (lookupError) return json({ error: "artisan_lookup_failed", message: lookupError.message }, 500);
+      if (!artisan) return json({ error: "artisan_not_found", message: "Artisan not found." }, 404);
+
+      // Release any claimed jobs.
+      await admin
+        .from("job_requests")
+        .update({ status: "open", claimed_by_artisan_id: null, claimed_at: null, contact_revealed_at: null })
+        .eq("claimed_by_artisan_id", artisanId)
+        .eq("status", "claimed");
+
+      // Durable audit record before row deletion.
+      await admin.from("audit_logs").insert({
+        event: "admin_artisan_delete",
+        metadata: { source: "artisanmu-admin-content", artisan_id: artisanId, auth_user: artisan.auth_user_id },
+      });
+
+      // Remove dependent rows.
+      await admin.from("job_notifications").delete().eq("artisan_id", artisanId);
+      await admin.from("reviews").delete().eq("artisan_id", artisanId);
+
+      // Remove portfolio objects from storage.
+      const paths = parsePhotos(artisan.photos)
+        .map((photoUrl) => pathFromPortfolioUrl(photoUrl))
+        .filter((path): path is string => Boolean(path && path.startsWith("artisan-")));
+      if (paths.length) {
+        await admin.storage.from("portfolios").remove(paths);
+      }
+
+      // Delete artisan row then auth user.
+      const { error: rowError } = await admin.from("artisans").delete().eq("id", artisanId);
+      if (rowError) return json({ error: "delete_failed", message: rowError.message }, 500);
+      if (artisan.auth_user_id) {
+        await admin.auth.admin.deleteUser(artisan.auth_user_id);
+      }
+
+      return json({ success: true, deleted: true, artisan_id: artisanId });
     }
 
     return json({ error: "invalid_action", message: "Admin content action is not supported." }, 400);

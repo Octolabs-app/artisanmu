@@ -41,6 +41,7 @@ type AdminArtisanRow = {
   has_top_rated_badge: boolean;
   is_available_today: boolean;
   auth_user_id: string | null;
+  deactivated_at: string | null;
 };
 
 const selectColumns = [
@@ -68,6 +69,7 @@ const selectColumns = [
   "has_top_rated_badge",
   "is_available_today",
   "auth_user_id",
+  "deactivated_at",
 ].join(",");
 
 function parsePhotos(raw: string | null) {
@@ -138,6 +140,7 @@ function formatRow(row: AdminArtisanRow) {
     reviews,
     rating,
     hasAuthUser: Boolean(row.auth_user_id),
+    deactivatedAt: row.deactivated_at || null,
   };
 }
 

@@ -105,6 +105,7 @@ type LiveAdminArtisan = {
   reviews: number;
   rating: number;
   hasAuthUser: boolean;
+  deactivatedAt?: string | null;
 };
 
 type AdminArtisanPayload = {
@@ -649,6 +650,11 @@ function ArtisanDetailModal({
   onDeletePhoto,
   onDeleteReview,
   onToggleVisibility,
+  onDeactivate,
+  onReactivate,
+  onDeleteArtisan,
+  accountWorking,
+  accountMessage,
 }: {
   artisan: LiveAdminArtisan;
   reviews: AdminReview[];
@@ -659,6 +665,11 @@ function ArtisanDetailModal({
   onDeletePhoto: (photoUrl: string) => void;
   onDeleteReview: (reviewId: number) => void;
   onToggleVisibility: (reviewId: number, isVisible: boolean) => void;
+  onDeactivate: () => void;
+  onReactivate: () => void;
+  onDeleteArtisan: () => void;
+  accountWorking: boolean;
+  accountMessage: string;
 }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -885,6 +896,56 @@ function ArtisanDetailModal({
               <p className="mt-2 text-sm text-[var(--muted)]">No reviews yet.</p>
             )}
           </div>
+
+          {/* ── Admin account actions ─────────────────────── */}
+          <div className="mt-5 border-t border-[var(--line)] pt-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#9aa19c]">Account management</p>
+            {accountMessage ? (
+              <p className="mt-2 rounded-xl border border-[var(--line)] bg-[#fff8e8] px-3 py-2 text-sm font-medium text-[#78511c]">
+                {accountMessage}
+              </p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-3">
+              {artisan.deactivatedAt ? (
+                <button
+                  type="button"
+                  disabled={accountWorking}
+                  onClick={onReactivate}
+                  className="btn btn-primary h-9 px-3 text-sm"
+                >
+                  {accountWorking ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : null}
+                  Reactivate
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={accountWorking}
+                  onClick={() => {
+                    if (window.confirm(`Deactivate ${artisan.name}? Their profile will be hidden from public listing.`)) {
+                      onDeactivate();
+                    }
+                  }}
+                  className="btn btn-secondary h-9 px-3 text-sm"
+                >
+                  {accountWorking ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : null}
+                  Deactivate
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={accountWorking}
+                onClick={() => {
+                  if (window.confirm(`Permanently delete ${artisan.name}? This cannot be undone — all data, photos, and reviews will be removed.`)) {
+                    onDeleteArtisan();
+                  }
+                }}
+                className="btn btn-secondary h-9 px-3 text-sm text-[var(--rose)] hover:border-[var(--rose)]"
+              >
+                {accountWorking ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : null}
+                Delete artisan
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1056,6 +1117,69 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
     },
     [loadDetailReviews],
   );
+
+  const [adminAccountWorking, setAdminAccountWorking] = useState(false);
+  const [adminAccountMessage, setAdminAccountMessage] = useState("");
+
+  async function adminDeactivateArtisan(artisanId: string) {
+    setAdminAccountWorking(true);
+    setAdminAccountMessage("");
+    try {
+      await invokePublicFunction("artisanmu-admin-content", {
+        admin_password: adminPassword,
+        action: "deactivate_artisan",
+        artisan_id: artisanId,
+      });
+      setDetailArtisan((current) =>
+        current && current.id === artisanId ? { ...current, deactivatedAt: new Date().toISOString() } : current,
+      );
+      setAdminAccountMessage("Artisan deactivated — hidden from public listing.");
+      void loadArtisans();
+    } catch (error) {
+      setAdminAccountMessage(error instanceof Error ? error.message : "Could not deactivate artisan.");
+    } finally {
+      setAdminAccountWorking(false);
+    }
+  }
+
+  async function adminReactivateArtisan(artisanId: string) {
+    setAdminAccountWorking(true);
+    setAdminAccountMessage("");
+    try {
+      await invokePublicFunction("artisanmu-admin-content", {
+        admin_password: adminPassword,
+        action: "reactivate_artisan",
+        artisan_id: artisanId,
+      });
+      setDetailArtisan((current) =>
+        current && current.id === artisanId ? { ...current, deactivatedAt: null } : current,
+      );
+      setAdminAccountMessage("Artisan reactivated — profile is now visible.");
+      void loadArtisans();
+    } catch (error) {
+      setAdminAccountMessage(error instanceof Error ? error.message : "Could not reactivate artisan.");
+    } finally {
+      setAdminAccountWorking(false);
+    }
+  }
+
+  async function adminDeleteArtisan(artisanId: string) {
+    setAdminAccountWorking(true);
+    setAdminAccountMessage("");
+    try {
+      await invokePublicFunction("artisanmu-admin-content", {
+        admin_password: adminPassword,
+        action: "delete_artisan",
+        artisan_id: artisanId,
+      });
+      setDetailArtisan(null);
+      pushToast("success", "Artisan permanently deleted.");
+      void loadArtisans();
+    } catch (error) {
+      setAdminAccountMessage(error instanceof Error ? error.message : "Could not delete artisan.");
+      setAdminAccountWorking(false);
+    }
+  }
 
   async function deleteArtisanPhoto(artisanId: string, photoUrl: string) {
     setMutatingContent(`photo:${photoUrl}`);
@@ -1692,6 +1816,11 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
             })
           }
           onToggleVisibility={(reviewId, isVisible) => void setReviewVisibility(reviewId, isVisible)}
+          onDeactivate={() => void adminDeactivateArtisan(detailArtisan.id)}
+          onReactivate={() => void adminReactivateArtisan(detailArtisan.id)}
+          onDeleteArtisan={() => void adminDeleteArtisan(detailArtisan.id)}
+          accountWorking={adminAccountWorking}
+          accountMessage={adminAccountMessage}
         />
       ) : null}
 
