@@ -1,3 +1,5 @@
+import type { WeekHours } from "./availability";
+
 export type Artisan = {
   id: string;
   name: string;
@@ -26,4 +28,6 @@ export type Artisan = {
   badges?: string[];
   verificationStatus?: "pending" | "approved" | "rejected" | "removed";
   applicationEmail?: string;
+  workingHours?: WeekHours | null;
+  deactivatedAt?: string | null;
 };

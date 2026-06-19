@@ -112,6 +112,7 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
         .select(publicArtisanSelect)
         .eq("is_verified", true)
         .eq("verification_status", "approved")
+        .is("deactivated_at", null)
         .order("created_at", { ascending: false });
 
       if (!cancelled && !error && data) {

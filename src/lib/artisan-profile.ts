@@ -1,11 +1,12 @@
 import { tradeImages } from "./mock-data";
+import { isOpenNow, type WeekHours } from "./availability";
 import type { Artisan } from "./types";
 
 export const publicArtisanSelect =
-  "id,nom,metier,ville,district,tel,expertise,service_tags,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,has_fast_response_badge,has_top_rated_badge,verification_status,created_at";
+  "id,nom,metier,ville,district,tel,expertise,service_tags,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,has_fast_response_badge,has_top_rated_badge,verification_status,created_at,working_hours,deactivated_at";
 
 export const ownArtisanProfileSelect =
-  "id,nom,metier,ville,district,tel,lien,gps,expertise,service_tags,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,has_fast_response_badge,has_top_rated_badge,verification_status,application_email,created_at,auth_user_id";
+  "id,nom,metier,ville,district,tel,lien,gps,expertise,service_tags,bio,note_total,nombre_avis,is_available_today,is_verified,avatar,photos,initiales,contact_preference,has_fair_price_badge,has_fast_response_badge,has_top_rated_badge,verification_status,application_email,created_at,auth_user_id,working_hours,deactivated_at";
 
 export type SupabaseArtisanProfile = {
   id: number;
@@ -34,6 +35,8 @@ export type SupabaseArtisanProfile = {
   application_email?: string | null;
   created_at?: string | null;
   auth_user_id?: string | null;
+  working_hours?: WeekHours | null;
+  deactivated_at?: string | null;
 };
 
 function parsePortfolioImages(rawPhotos?: string | null) {
@@ -63,6 +66,10 @@ export function mapSupabaseArtisan(row: SupabaseArtisanProfile): Artisan {
   const reviews = row.nombre_avis || 0;
   // No fake default: a 0-review artisan has no rating yet (UI shows "New").
   const rating = reviews > 0 ? (row.note_total || 0) / reviews : 0;
+  const workingHours = (row.working_hours as WeekHours | null) || null;
+  const deactivated = Boolean(row.deactivated_at);
+  // Availability is derived from the weekly schedule (offline outside hours / when deactivated).
+  const openNow = !deactivated && isOpenNow(workingHours);
   const avatarImage = row.avatar && row.avatar.startsWith("http") ? row.avatar : "";
   const profileImage = avatarImage || tradeImages[row.metier || ""] || tradeImages.default;
   // Show every uploaded work photo. (Previously the avatar was filtered out, which
@@ -83,8 +90,8 @@ export function mapSupabaseArtisan(row: SupabaseArtisanProfile): Artisan {
     district: row.district || "Maurice",
     rating: Number(rating.toFixed(1)),
     reviews,
-    available: !!row.is_available_today,
-    etaMinutes: row.is_available_today ? 22 : 50,
+    available: openNow,
+    etaMinutes: openNow ? 22 : 50,
     priceHint: "Quote after brief",
     verified: !!row.is_verified,
     specialties: (row.expertise || "")
@@ -107,5 +114,7 @@ export function mapSupabaseArtisan(row: SupabaseArtisanProfile): Artisan {
     badges,
     verificationStatus: row.verification_status || (row.is_verified ? "approved" : "pending"),
     applicationEmail: row.application_email || undefined,
+    workingHours,
+    deactivatedAt: row.deactivated_at || null,
   };
 }

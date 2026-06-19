@@ -22,7 +22,36 @@ type ProfileBody = {
   contact_preference?: string;
   available?: boolean;
   paths?: string[];
+  working_hours?: Record<string, { open?: string; close?: string } | null> | null;
 };
+
+const WEEK_DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+function validHHMM(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) return false;
+  return Number(match[1]) <= 23 && Number(match[2]) <= 59;
+}
+
+// Sanitize the weekly schedule to { day: {open,close} | null } with valid HH:MM
+// windows (close strictly after open). Returns null when nothing usable was sent.
+function normalizeWorkingHours(value: ProfileBody["working_hours"]) {
+  if (!value || typeof value !== "object") return null;
+  const result: Record<string, { open: string; close: string }> = {};
+  for (const day of WEEK_DAY_KEYS) {
+    const slot = (value as Record<string, unknown>)[day];
+    if (!slot || typeof slot !== "object") continue;
+    const open = (slot as { open?: unknown }).open;
+    const close = (slot as { close?: unknown }).close;
+    if (!validHHMM(open) || !validHHMM(close)) continue;
+    const [oh, om] = open.split(":").map(Number);
+    const [ch, cm] = close.split(":").map(Number);
+    if (ch * 60 + cm <= oh * 60 + om) continue;
+    result[day] = { open, close };
+  }
+  return Object.keys(result).length ? result : null;
+}
 
 type ArtisanRow = {
   id: number;
@@ -235,9 +264,10 @@ Deno.serve(async (request: Request) => {
         expertise: specialties.join(", "),
         service_tags: serviceTags,
         contact_preference: contactPreference,
+        working_hours: normalizeWorkingHours(body.working_hours),
       })
       .eq("id", artisan.id)
-      .select("ville,district,bio,expertise,service_tags,contact_preference")
+      .select("ville,district,bio,expertise,service_tags,contact_preference,working_hours")
       .single();
 
     if (error || !data) {
@@ -259,6 +289,7 @@ Deno.serve(async (request: Request) => {
         specialties,
         serviceTags,
         contactPreference: data.contact_preference,
+        workingHours: data.working_hours,
       },
     });
   } catch (error) {

@@ -37,6 +37,14 @@ import {
 } from "@/lib/artisan-profile";
 import { getBrowserSupabase, getMissingBrowserSupabaseEnv } from "@/lib/supabase-browser";
 import { districtOptions, serviceTagOptions } from "@/lib/service-options";
+import {
+  WEEK_DAYS,
+  defaultWeekHours,
+  isOpenNow,
+  todayHoursLabel,
+  type DayKey,
+  type WeekHours,
+} from "@/lib/availability";
 import type { Artisan } from "@/lib/types";
 
 const dashboardTabs = [
@@ -101,6 +109,7 @@ type ProfileFormState = {
   specialties: string;
   serviceTags: string[];
   contactPreference: string;
+  workingHours: WeekHours;
 };
 
 const allowedPortfolioTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -304,7 +313,6 @@ export function ArtisanDashboard() {
   const [status, setStatus] = useState<DashboardStatus>("loading");
   const [errorMessage, setErrorMessage] = useState("");
   const [available, setAvailable] = useState(false);
-  const [savingAvailability, setSavingAvailability] = useState(false);
   const [jobNotifications, setJobNotifications] = useState<DashboardNotification[]>([]);
   const [jobsLoading, setJobsLoading] = useState(false);
   const [jobsError, setJobsError] = useState("");
@@ -321,6 +329,7 @@ export function ArtisanDashboard() {
     specialties: "",
     serviceTags: [],
     contactPreference: "whatsapp",
+    workingHours: {},
   });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
@@ -543,6 +552,7 @@ export function ArtisanDashboard() {
         specialties: mappedArtisan.specialties.join(", "),
         serviceTags: mappedArtisan.serviceTags,
         contactPreference: mappedArtisan.contactPreference || "whatsapp",
+        workingHours: mappedArtisan.workingHours || {},
       });
       setStatus("ready");
       if (mappedArtisan.verified && mappedArtisan.verificationStatus === "approved") {
@@ -582,35 +592,6 @@ export function ArtisanDashboard() {
     };
   }, [loadTargetedJobs, loadOpenJobs, supabase]);
 
-  async function handleAvailabilityToggle() {
-    if (!artisan || savingAvailability) return;
-
-    const nextAvailable = !available;
-    setSavingAvailability(true);
-    setAvailable(nextAvailable);
-    setErrorMessage("");
-
-    try {
-      const payload = await invokeUserFunction<{ success?: boolean; available?: boolean; message?: string }>(
-        "artisanmu-artisan-profile",
-        {
-          action: "set_availability",
-          available: nextAvailable,
-        },
-      );
-
-      if (!payload.success) {
-        throw new Error(payload.message || "Availability could not be saved.");
-      }
-
-      setArtisan({ ...artisan, available: payload.available ?? nextAvailable });
-    } catch {
-      setAvailable(!nextAvailable);
-      setErrorMessage("Availability could not be saved. Please try again.");
-    }
-
-    setSavingAvailability(false);
-  }
 
   function toggleProfileTag(tag: string) {
     setProfileForm((current) => {
@@ -638,6 +619,7 @@ export function ArtisanDashboard() {
           specialties: string[];
           serviceTags: string[];
           contactPreference: string;
+          workingHours: WeekHours | null;
         };
         message?: string;
       }>("artisanmu-artisan-profile", {
@@ -648,12 +630,14 @@ export function ArtisanDashboard() {
         specialties: profileForm.specialties,
         service_tags: profileForm.serviceTags,
         contact_preference: profileForm.contactPreference,
+        working_hours: profileForm.workingHours,
       });
 
       if (!payload.success || !payload.profile) {
         throw new Error(payload.message || "Profile could not be saved.");
       }
 
+      const savedHours = payload.profile.workingHours || {};
       setArtisan({
         ...artisan,
         town: payload.profile.town,
@@ -662,6 +646,7 @@ export function ArtisanDashboard() {
         specialties: payload.profile.specialties,
         serviceTags: payload.profile.serviceTags,
         contactPreference: payload.profile.contactPreference,
+        workingHours: savedHours,
       });
       setProfileForm({
         town: payload.profile.town,
@@ -670,6 +655,7 @@ export function ArtisanDashboard() {
         specialties: payload.profile.specialties.join(", "),
         serviceTags: payload.profile.serviceTags,
         contactPreference: payload.profile.contactPreference,
+        workingHours: savedHours,
       });
       setProfileMessage("Profile filters saved. Clients can use the new tags on the public page.");
     } catch (profileError) {
@@ -679,9 +665,29 @@ export function ArtisanDashboard() {
     }
   }
 
+  function setDayEnabled(day: DayKey, enabled: boolean) {
+    setProfileForm((current) => ({
+      ...current,
+      workingHours: {
+        ...current.workingHours,
+        [day]: enabled ? current.workingHours[day] || { open: "08:00", close: "17:00" } : null,
+      },
+    }));
+  }
+
+  function setDayTime(day: DayKey, field: "open" | "close", value: string) {
+    setProfileForm((current) => {
+      const slot = current.workingHours[day] || { open: "08:00", close: "17:00" };
+      return { ...current, workingHours: { ...current.workingHours, [day]: { ...slot, [field]: value } } };
+    });
+  }
+
   function handleProfileCardAction(action: string) {
     if (action === "Edit hours") {
-      void handleAvailabilityToggle();
+      setActiveTab("profile");
+      window.setTimeout(() => {
+        document.getElementById("working-hours")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
       return;
     }
     if (action === "Request badge") {
@@ -822,6 +828,9 @@ export function ArtisanDashboard() {
     return <PendingArtisanDashboard artisan={artisan} onSignOut={handleSignOut} />;
   }
 
+  const openNow = artisan ? isOpenNow(artisan.workingHours) : false;
+  const deactivated = Boolean(artisan?.deactivatedAt);
+
   return (
     <main className="min-h-screen bg-[#f6f4ef] pb-20 text-[#101410] md:pb-0">
       <header className="sticky top-0 z-30 border-b border-[#ddd8cd] bg-[#f6f4ef]/95 backdrop-blur">
@@ -832,21 +841,22 @@ export function ArtisanDashboard() {
 
           <button
             type="button"
-            aria-pressed={available}
-            onClick={handleAvailabilityToggle}
-            disabled={savingAvailability}
+            onClick={() => setActiveTab("profile")}
+            title="Set your working hours"
             className={`inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold ${
-              available
-                ? "bg-[#0d8b66] text-white"
-                : "border border-[#ddd8cd] bg-white text-[#5f6a64]"
+              deactivated
+                ? "border border-[#ddd8cd] bg-white text-[#9f4a4a]"
+                : openNow
+                  ? "bg-[#0d8b66] text-white"
+                  : "border border-[#ddd8cd] bg-white text-[#5f6a64]"
             }`}
           >
-            {available ? (
+            {!deactivated && openNow ? (
               <CheckCircle2 className="size-4" aria-hidden="true" />
             ) : (
               <PauseCircle className="size-4" aria-hidden="true" />
             )}
-            {savingAvailability ? "Saving" : available ? "Online" : "Paused"}
+            {deactivated ? "Deactivated" : openNow ? "Open now" : "Closed"}
           </button>
           <button
             type="button"
@@ -1220,6 +1230,100 @@ export function ArtisanDashboard() {
                 ) : null}
               </article>
 
+              <article id="working-hours" className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm md:col-span-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="font-semibold text-[#101410]">Working hours</h2>
+                    <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                      Set when you normally work. Clients see you as online only during these hours.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileForm((current) => ({ ...current, workingHours: defaultWeekHours() }));
+                      setProfileMessage("");
+                    }}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-3 text-sm font-semibold text-[#0d1612]"
+                  >
+                    Use 08:00–17:00, Mon–Sat
+                  </button>
+                </div>
+
+                <p
+                  className={`mt-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-semibold ${
+                    isOpenNow(profileForm.workingHours)
+                      ? "bg-[#e8f6f1] text-[#0d7c5c]"
+                      : "bg-[#f2eee4] text-[#5f6a64]"
+                  }`}
+                >
+                  {isOpenNow(profileForm.workingHours) ? (
+                    <CheckCircle2 className="size-4" aria-hidden="true" />
+                  ) : (
+                    <PauseCircle className="size-4" aria-hidden="true" />
+                  )}
+                  {isOpenNow(profileForm.workingHours) ? "Open now" : "Closed now"} · Today: {todayHoursLabel(profileForm.workingHours)}
+                </p>
+
+                <div className="mt-3 grid gap-2">
+                  {WEEK_DAYS.map(({ key, label }) => {
+                    const slot = profileForm.workingHours[key];
+                    const enabled = Boolean(slot?.open && slot?.close);
+                    return (
+                      <div
+                        key={key}
+                        className="flex flex-wrap items-center gap-3 rounded-md border border-[#eee8dc] bg-white px-3 py-2"
+                      >
+                        <label className="flex w-32 cursor-pointer items-center gap-2 text-sm font-medium text-[#101410]">
+                          <input
+                            type="checkbox"
+                            checked={enabled}
+                            onChange={(event) => setDayEnabled(key, event.target.checked)}
+                            className="size-4 accent-[#0d8b66]"
+                          />
+                          {label}
+                        </label>
+                        {enabled && slot ? (
+                          <div className="flex items-center gap-2 text-sm">
+                            <input
+                              type="time"
+                              value={slot.open}
+                              onChange={(event) => setDayTime(key, "open", event.target.value)}
+                              className="h-10 rounded-md border border-[#d8d1c3] bg-white px-2 outline-none focus:border-[#0d8b66]"
+                              aria-label={`${label} opening time`}
+                            />
+                            <span className="text-[#5f6a64]">to</span>
+                            <input
+                              type="time"
+                              value={slot.close}
+                              onChange={(event) => setDayTime(key, "close", event.target.value)}
+                              className="h-10 rounded-md border border-[#d8d1c3] bg-white px-2 outline-none focus:border-[#0d8b66]"
+                              aria-label={`${label} closing time`}
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-sm text-[#9aa19c]">Day off</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleProfileSave}
+                  disabled={profileSaving}
+                  className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
+                >
+                  {profileSaving ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <TimerReset className="size-4" aria-hidden="true" />
+                  )}
+                  Save hours
+                </button>
+              </article>
+
               <article id="portfolio-editor" className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm md:col-span-2">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -1315,7 +1419,6 @@ export function ArtisanDashboard() {
                   <button
                     type="button"
                     onClick={() => handleProfileCardAction(action as string)}
-                    disabled={action === "Edit hours" && savingAvailability}
                     className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border border-[#ddd8cd] bg-white text-sm font-semibold text-[#0d1612] disabled:cursor-wait disabled:opacity-70"
                   >
                     {action as string}
