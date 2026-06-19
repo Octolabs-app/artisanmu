@@ -26,6 +26,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { useLanguage } from "@/components/language-context";
 import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { UrgentJobCard } from "@/components/UrgentJobCard";
@@ -189,8 +190,8 @@ function EmptyDashboard({
   showSpinner?: boolean;
 }) {
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#101410]">
-      <header className="sticky top-0 z-30 border-b border-[#ddd8cd] bg-[#f6f4ef]/95 backdrop-blur">
+    <main className="min-h-screen bg-[#f6f4ef] text-[var(--ink)]">
+      <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-[#f6f4ef]/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link href="/" aria-label="Artizan Moris home">
             <ArtisanMuLogo subtitle="Artisan dashboard" />
@@ -205,7 +206,7 @@ function EmptyDashboard({
       </header>
 
       <section className="mx-auto grid min-h-[calc(100vh-74px)] max-w-3xl place-items-center px-4 py-8 sm:px-6">
-        <div className="w-full rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+        <div className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-soft)] p-5 shadow-sm sm:p-6">
           <div className="flex size-12 items-center justify-center rounded-lg bg-[#0d1612] text-white">
             {showSpinner ? (
               <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
@@ -214,17 +215,17 @@ function EmptyDashboard({
             )}
           </div>
           <h1 className="mt-4 text-2xl font-semibold">{title}</h1>
-          <p className="mt-2 text-sm leading-6 text-[#5f6a64]">{copy}</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{copy}</p>
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
             <Link
               href="/login"
-              className="inline-flex h-11 items-center justify-center rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white"
+              className="inline-flex h-11 items-center justify-center rounded-md bg-[var(--green)] px-4 text-sm font-semibold text-white"
             >
               {actionLabel}
             </Link>
             <Link
               href="/"
-              className="inline-flex h-11 items-center justify-center rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]"
+              className="inline-flex h-11 items-center justify-center rounded-md border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[#0d1612]"
             >
               Back to marketplace
             </Link>
@@ -250,8 +251,8 @@ function PendingArtisanDashboard({
         : "Your application is waiting for admin validation. Job notifications and the full dashboard stay locked until approval.";
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#101410]">
-      <header className="border-b border-[#ddd8cd] bg-[#fffdf8]">
+    <main className="min-h-screen bg-[#f6f4ef] text-[var(--ink)]">
+      <header className="border-b border-[var(--line)] bg-[var(--surface-soft)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Link href="/" aria-label="Artizan Moris home">
             <ArtisanMuLogo subtitle="Application status" />
@@ -259,7 +260,7 @@ function PendingArtisanDashboard({
           <button
             type="button"
             onClick={onSignOut}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-3 text-sm font-semibold text-[#0d1612]"
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-white px-3 text-sm font-semibold text-[#0d1612]"
           >
             <LogOut className="size-4" aria-hidden="true" />
             Sign out
@@ -268,7 +269,7 @@ function PendingArtisanDashboard({
       </header>
 
       <section className="mx-auto grid min-h-[calc(100vh-73px)] max-w-5xl place-items-center px-4 py-6 sm:px-6">
-        <div className="grid w-full gap-4 rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 shadow-sm sm:grid-cols-[120px_minmax(0,1fr)] sm:p-6">
+        <div className="grid w-full gap-4 rounded-lg border border-[var(--line)] bg-[var(--surface-soft)] p-5 shadow-sm sm:grid-cols-[120px_minmax(0,1fr)] sm:p-6">
           <div className="relative size-28 overflow-hidden rounded-lg bg-[#ddd8cd]">
             <Image
               src={artisan.image}
@@ -283,15 +284,15 @@ function PendingArtisanDashboard({
               <ShieldCheck className="size-3.5" aria-hidden="true" />
               {artisan.verificationStatus === "pending" ? "Pending review" : artisan.verificationStatus || "Pending review"}
             </span>
-            <h1 className="mt-3 text-2xl font-semibold text-[#101410]">{artisan.name}</h1>
-            <p className="mt-1 text-sm text-[#5f6a64]">
+            <h1 className="mt-3 text-2xl font-semibold text-[var(--ink)]">{artisan.name}</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">
               {artisan.trade} - {artisan.town}, {artisan.district}
             </p>
-            <p className="mt-3 text-sm leading-6 text-[#4d5651]">{statusCopy}</p>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{statusCopy}</p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <Link
                 href="/"
-                className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]"
+                className="inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[#0d1612]"
               >
                 Back to marketplace
               </Link>
@@ -310,6 +311,14 @@ function PendingArtisanDashboard({
 }
 
 export function ArtisanDashboard() {
+  const { language, copy } = useLanguage();
+  const dc = copy.dashboard;
+  const tabLabel: Record<DashboardTab, string> = {
+    jobs: dc.tabJobs,
+    profile: dc.tabProfile,
+    reviews: dc.tabReviews,
+    settings: dc.tabSettings,
+  };
   const [activeTab, setActiveTab] = useState<DashboardTab>("jobs");
   const [artisan, setArtisan] = useState<Artisan | null>(null);
   const [status, setStatus] = useState<DashboardStatus>("loading");
@@ -925,8 +934,8 @@ export function ArtisanDashboard() {
   const deactivated = Boolean(artisan?.deactivatedAt);
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] pb-20 text-[#101410] md:pb-0">
-      <header className="sticky top-0 z-30 border-b border-[#ddd8cd] bg-[#f6f4ef]/95 backdrop-blur">
+    <main className="min-h-screen bg-[#f6f4ef] pb-20 text-[var(--ink)] md:pb-0">
+      <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-[#f6f4ef]/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link href="/" aria-label="Artizan Moris home">
             <ArtisanMuLogo subtitle="Artisan dashboard" />
@@ -938,10 +947,10 @@ export function ArtisanDashboard() {
             title="Set your working hours"
             className={`inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold ${
               deactivated
-                ? "border border-[#ddd8cd] bg-white text-[#9f4a4a]"
+                ? "border border-[var(--line)] bg-white text-[#9f4a4a]"
                 : openNow
-                  ? "bg-[#0d8b66] text-white"
-                  : "border border-[#ddd8cd] bg-white text-[#5f6a64]"
+                  ? "bg-[var(--green)] text-white"
+                  : "border border-[var(--line)] bg-white text-[var(--muted)]"
             }`}
           >
             {!deactivated && openNow ? (
@@ -954,7 +963,7 @@ export function ArtisanDashboard() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="hidden h-11 items-center gap-2 rounded-md border border-[#ddd8cd] bg-[#fffdf8] px-3 text-sm font-semibold text-[#0d1612] sm:inline-flex"
+            className="hidden h-11 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface-soft)] px-3 text-sm font-semibold text-[#0d1612] sm:inline-flex"
           >
             <LogOut className="size-4" aria-hidden="true" />
             Sign out
@@ -962,7 +971,7 @@ export function ArtisanDashboard() {
         </div>
       </header>
 
-      <section className="border-b border-[#ddd8cd] bg-[#fffdf8]">
+      <section className="border-b border-[var(--line)] bg-[var(--surface-soft)]">
         <div className="mx-auto grid max-w-7xl gap-4 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="flex min-w-0 gap-4">
             <div className="relative size-24 shrink-0 overflow-hidden rounded-lg bg-[#ddd8cd] sm:size-28">
@@ -977,15 +986,15 @@ export function ArtisanDashboard() {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold text-[#101410] sm:text-3xl">
+                <h1 className="text-2xl font-semibold text-[var(--ink)] sm:text-3xl">
                   {artisan.name}
                 </h1>
-                <span className="inline-flex items-center gap-1 rounded-md bg-[#e8f6f1] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
+                <span className="inline-flex items-center gap-1 rounded-md bg-[#e8f6f1] px-2 py-1 text-xs font-semibold text-[var(--green-strong)]">
                   <ShieldCheck className="size-3.5" aria-hidden="true" />
                   {artisan.verified ? "Verified" : "Pending"}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-[#5f6a64]">
+              <p className="mt-1 text-sm text-[var(--muted)]">
                 {artisan.trade} - {artisan.town}, {artisan.district}
               </p>
               <div className="mt-3 flex flex-wrap gap-2 text-sm">
@@ -993,21 +1002,21 @@ export function ArtisanDashboard() {
                   <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
                   {artisan.reviews > 0 ? `${artisan.rating} rating` : "New"}
                 </span>
-                <span className="rounded-md bg-[#eef5f3] px-2.5 py-1.5 text-[#0d7c5c]">
+                <span className="rounded-md bg-[var(--green-soft)] px-2.5 py-1.5 text-[var(--green-strong)]">
                   {artisan.reviews} reviews
                 </span>
-                <span className="rounded-md bg-[#f2eee4] px-2.5 py-1.5 text-[#4d5651]">
+                <span className="rounded-md bg-[#f2eee4] px-2.5 py-1.5 text-[var(--muted)]">
                   Quote private
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-[#d8d1c3] bg-[#f8f4ea] p-4">
+          <div className="rounded-lg border border-[#d8d1c3] bg-[var(--surface-soft)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm text-[#5f6a64]">Today</p>
-                <p className="text-2xl font-semibold text-[#101410]">{jobNotifications.length} leads</p>
+                <p className="text-sm text-[var(--muted)]">Today</p>
+                <p className="text-2xl font-semibold text-[var(--ink)]">{jobNotifications.length} leads</p>
               </div>
               <div className="flex size-12 items-center justify-center rounded-md bg-[#0d1612] text-white">
                 <Gauge className="size-5" aria-hidden="true" />
@@ -1051,11 +1060,11 @@ export function ArtisanDashboard() {
                   className={`inline-flex h-11 items-center gap-2 rounded-md px-4 text-sm font-semibold ${
                     selected
                       ? "bg-[#0d1612] text-white"
-                      : "border border-[#ddd8cd] bg-[#fffdf8] text-[#4d5651]"
+                      : "border border-[var(--line)] bg-[var(--surface-soft)] text-[var(--muted)]"
                   }`}
                 >
                   <Icon className="size-4" aria-hidden="true" />
-                  {item.label}
+                  {tabLabel[item.id]}
                 </button>
               );
             })}
@@ -1063,10 +1072,10 @@ export function ArtisanDashboard() {
 
           {activeTab === "jobs" ? (
             <div className="mt-0 grid gap-3 md:mt-4">
-              <div className="flex flex-col gap-3 rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="font-semibold text-[#101410]">Targeted leads</h2>
-                  <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                  <h2 className="font-semibold text-[var(--ink)]">{dc.targetedLeadsTitle}</h2>
+                  <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
                     Only requests matched to your verified profile appear here.
                   </p>
                 </div>
@@ -1074,7 +1083,7 @@ export function ArtisanDashboard() {
                   type="button"
                   onClick={loadTargetedJobs}
                   disabled={jobsLoading}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612] disabled:cursor-wait disabled:opacity-70"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[#0d1612] disabled:cursor-wait disabled:opacity-70"
                 >
                   {jobsLoading ? (
                     <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -1092,9 +1101,9 @@ export function ArtisanDashboard() {
               ) : null}
 
               {jobsLoading && !jobNotifications.length ? (
-                <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
-                  <LoaderCircle className="size-5 animate-spin text-[#0d8b66]" aria-hidden="true" />
-                  <h2 className="mt-3 text-lg font-semibold text-[#101410]">Checking new leads</h2>
+                <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-5 text-[var(--muted)] shadow-sm">
+                  <LoaderCircle className="size-5 animate-spin text-[var(--green)]" aria-hidden="true" />
+                  <h2 className="mt-3 text-lg font-semibold text-[var(--ink)]">Checking new leads</h2>
                   <p className="mt-2 text-sm leading-6">Loading your assigned ArtisanMu requests.</p>
                 </article>
               ) : jobNotifications.length ? (
@@ -1117,11 +1126,11 @@ export function ArtisanDashboard() {
                   />
                 ))
               ) : (
-                <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
-                  <div className="flex size-11 items-center justify-center rounded-md bg-[#eef5f3] text-[#0d7c5c]">
+                <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-5 text-[var(--muted)] shadow-sm">
+                  <div className="flex size-11 items-center justify-center rounded-md bg-[var(--green-soft)] text-[var(--green-strong)]">
                     <RefreshCcw className="size-5" aria-hidden="true" />
                   </div>
-                  <h2 className="mt-4 text-lg font-semibold text-[#101410]">No open leads yet</h2>
+                  <h2 className="mt-4 text-lg font-semibold text-[var(--ink)]">No open leads yet</h2>
                   <p className="mt-2 text-sm leading-6">
                     Keep your profile online. New matching requests will appear here when clients post work in your trade and service area.
                   </p>
@@ -1131,7 +1140,7 @@ export function ArtisanDashboard() {
               {/* ── My claimed jobs ──────────────────────────────────── */}
               {claimedJobs.length > 0 ? (
                 <div className="mt-2 grid gap-3">
-                  <div className="rounded-lg border border-[#0d8b66]/30 bg-[#eef5f3] p-4">
+                  <div className="rounded-lg border border-[#0d8b66]/30 bg-[var(--green-soft)] p-4">
                     <h2 className="font-semibold text-[#0d5c44]">My claimed jobs</h2>
                     <p className="mt-1 text-sm leading-5 text-[#3a6655]">
                       Jobs you have accepted. If you can&apos;t complete one, release it so another artisan can help.
@@ -1145,7 +1154,7 @@ export function ArtisanDashboard() {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#0d8b66] px-2.5 py-0.5 text-xs font-semibold text-white">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--green)] px-2.5 py-0.5 text-xs font-semibold text-white">
                               Claimed
                             </span>
                             {(notification.urgency || notification.job.urgency) === "urgent" ? (
@@ -1153,7 +1162,7 @@ export function ArtisanDashboard() {
                                 Urgent
                               </span>
                             ) : null}
-                            <span className="text-xs text-[#8c9490]">
+                            <span className="text-xs text-[var(--muted)]">
                               Claimed{" "}
                               {new Date(notification.createdAt).toLocaleDateString("en-MU", {
                                 day: "numeric",
@@ -1161,15 +1170,15 @@ export function ArtisanDashboard() {
                               })}
                             </span>
                           </div>
-                          <p className="mt-2 font-medium text-[#101410]">
+                          <p className="mt-2 font-medium text-[var(--ink)]">
                             {notification.job.category || artisan.trade}
                           </p>
                           {notification.job.description ? (
-                            <p className="mt-1 line-clamp-2 text-sm text-[#5f6a64]">
+                            <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">
                               {notification.job.description}
                             </p>
                           ) : null}
-                          <div className="mt-2 flex flex-wrap gap-3 text-xs text-[#8c9490]">
+                          <div className="mt-2 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
                             {notification.job.district || notification.job.town ? (
                               <span>
                                 {notification.job.town
@@ -1194,7 +1203,7 @@ export function ArtisanDashboard() {
                               void handleUnclaim(notification.job.id);
                             }
                           }}
-                          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-3 text-sm font-semibold text-[#0d1612] transition hover:border-[#E24B4A]/50 hover:bg-[#E24B4A]/5 hover:text-[#9f2f2e] disabled:cursor-wait disabled:opacity-60"
+                          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-[var(--line)] bg-white px-3 text-sm font-semibold text-[#0d1612] transition hover:border-[#E24B4A]/50 hover:bg-[#E24B4A]/5 hover:text-[#9f2f2e] disabled:cursor-wait disabled:opacity-60"
                         >
                           {unclaimingId === notification.job.id ? (
                             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -1209,10 +1218,10 @@ export function ArtisanDashboard() {
                 </div>
               ) : null}
 
-              <div className="mt-2 flex flex-col gap-3 rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-2 flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="font-semibold text-[#101410]">Job board — all open jobs</h2>
-                  <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                  <h2 className="font-semibold text-[var(--ink)]">{dc.jobBoardTitle}</h2>
+                  <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
                     Every open request across Mauritius. Claim any one to reveal the client&apos;s WhatsApp — first come, first served.
                   </p>
                 </div>
@@ -1220,7 +1229,7 @@ export function ArtisanDashboard() {
                   type="button"
                   onClick={loadOpenJobs}
                   disabled={openJobsLoading}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612] disabled:cursor-wait disabled:opacity-70"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[#0d1612] disabled:cursor-wait disabled:opacity-70"
                 >
                   {openJobsLoading ? (
                     <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -1238,9 +1247,9 @@ export function ArtisanDashboard() {
               ) : null}
 
               {openJobsLoading && !openJobs.length ? (
-                <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
-                  <LoaderCircle className="size-5 animate-spin text-[#0d8b66]" aria-hidden="true" />
-                  <h2 className="mt-3 text-lg font-semibold text-[#101410]">Loading the job board</h2>
+                <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-5 text-[var(--muted)] shadow-sm">
+                  <LoaderCircle className="size-5 animate-spin text-[var(--green)]" aria-hidden="true" />
+                  <h2 className="mt-3 text-lg font-semibold text-[var(--ink)]">Loading the job board</h2>
                   <p className="mt-2 text-sm leading-6">Fetching all open requests across Mauritius.</p>
                 </article>
               ) : boardJobs.length ? (
@@ -1265,11 +1274,11 @@ export function ArtisanDashboard() {
                   />
                 ))
               ) : (
-                <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 text-[#4d5651] shadow-sm">
-                  <div className="flex size-11 items-center justify-center rounded-md bg-[#eef5f3] text-[#0d7c5c]">
+                <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-5 text-[var(--muted)] shadow-sm">
+                  <div className="flex size-11 items-center justify-center rounded-md bg-[var(--green-soft)] text-[var(--green-strong)]">
                     <Wrench className="size-5" aria-hidden="true" />
                   </div>
-                  <h2 className="mt-4 text-lg font-semibold text-[#101410]">No open jobs right now</h2>
+                  <h2 className="mt-4 text-lg font-semibold text-[var(--ink)]">No open jobs right now</h2>
                   <p className="mt-2 text-sm leading-6">
                     When clients post new work anywhere in Mauritius, it appears here for you to claim.
                   </p>
@@ -1280,11 +1289,11 @@ export function ArtisanDashboard() {
 
           {activeTab === "profile" ? (
             <div className="mt-0 grid gap-3 md:mt-4 md:grid-cols-2">
-              <article id="profile-editor" className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm md:col-span-2">
+              <article id="profile-editor" className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm md:col-span-2">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h2 className="font-semibold text-[#101410]">Public profile filters</h2>
-                    <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                    <h2 className="font-semibold text-[var(--ink)]">Public profile filters</h2>
+                    <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
                       Keep your service area and tags accurate so clients can find you faster.
                     </p>
                   </div>
@@ -1292,7 +1301,7 @@ export function ArtisanDashboard() {
                     type="button"
                     onClick={handleProfileSave}
                     disabled={profileSaving}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--green)] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
                   >
                     {profileSaving ? (
                       <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -1304,7 +1313,7 @@ export function ArtisanDashboard() {
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <label className="block text-sm font-medium text-[#101410]">
+                  <label className="block text-sm font-medium text-[var(--ink)]">
                     Town or village
                     <input
                       value={profileForm.town}
@@ -1315,7 +1324,7 @@ export function ArtisanDashboard() {
                       className="mt-2 h-11 w-full rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none focus:border-[#0d8b66]"
                     />
                   </label>
-                  <label className="block text-sm font-medium text-[#101410]">
+                  <label className="block text-sm font-medium text-[var(--ink)]">
                     District or island
                     <select
                       value={profileForm.district}
@@ -1333,7 +1342,7 @@ export function ArtisanDashboard() {
                       ))}
                     </select>
                   </label>
-                  <label className="block text-sm font-medium text-[#101410] md:col-span-2">
+                  <label className="block text-sm font-medium text-[var(--ink)] md:col-span-2">
                     Bio
                     <textarea
                       value={profileForm.bio}
@@ -1345,7 +1354,7 @@ export function ArtisanDashboard() {
                       className="mt-2 w-full resize-none rounded-md border border-[#d8d1c3] bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-[#0d8b66]"
                     />
                   </label>
-                  <label className="block text-sm font-medium text-[#101410]">
+                  <label className="block text-sm font-medium text-[var(--ink)]">
                     Preferred contact
                     <select
                       value={profileForm.contactPreference}
@@ -1361,9 +1370,9 @@ export function ArtisanDashboard() {
                   </label>
                 </div>
 
-                <fieldset className="mt-4 grid gap-2 rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
-                  <legend className="px-1 text-sm font-medium text-[#101410]">Skills &amp; services</legend>
-                  <p className="text-xs leading-5 text-[#5f6a64]">
+                <fieldset className="mt-4 grid gap-2 rounded-lg border border-[var(--line)] bg-[var(--surface-soft)] p-3">
+                  <legend className="px-1 text-sm font-medium text-[var(--ink)]">Skills &amp; services</legend>
+                  <p className="text-xs leading-5 text-[var(--muted)]">
                     Pick from the suggestions or type your own. These help clients find you.
                   </p>
                   <TagInput
@@ -1373,6 +1382,7 @@ export function ArtisanDashboard() {
                       setProfileMessage("");
                     }}
                     options={serviceTagOptions}
+                    language={language}
                   />
                 </fieldset>
 
@@ -1383,11 +1393,11 @@ export function ArtisanDashboard() {
                 ) : null}
               </article>
 
-              <article id="working-hours" className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm md:col-span-2">
+              <article id="working-hours" className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm md:col-span-2">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h2 className="font-semibold text-[#101410]">Working hours</h2>
-                    <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                    <h2 className="font-semibold text-[var(--ink)]">Working hours</h2>
+                    <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
                       Set when you normally work. Clients see you as online only during these hours.
                     </p>
                   </div>
@@ -1397,7 +1407,7 @@ export function ArtisanDashboard() {
                       setProfileForm((current) => ({ ...current, workingHours: defaultWeekHours() }));
                       setProfileMessage("");
                     }}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-3 text-sm font-semibold text-[#0d1612]"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--line)] bg-white px-3 text-sm font-semibold text-[#0d1612]"
                   >
                     Use 08:00–17:00, Mon–Sat
                   </button>
@@ -1406,8 +1416,8 @@ export function ArtisanDashboard() {
                 <p
                   className={`mt-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-semibold ${
                     isOpenNow(profileForm.workingHours)
-                      ? "bg-[#e8f6f1] text-[#0d7c5c]"
-                      : "bg-[#f2eee4] text-[#5f6a64]"
+                      ? "bg-[#e8f6f1] text-[var(--green-strong)]"
+                      : "bg-[#f2eee4] text-[var(--muted)]"
                   }`}
                 >
                   {isOpenNow(profileForm.workingHours) ? (
@@ -1427,7 +1437,7 @@ export function ArtisanDashboard() {
                         key={key}
                         className="flex flex-wrap items-center gap-3 rounded-md border border-[#eee8dc] bg-white px-3 py-2"
                       >
-                        <label className="flex w-32 cursor-pointer items-center gap-2 text-sm font-medium text-[#101410]">
+                        <label className="flex w-32 cursor-pointer items-center gap-2 text-sm font-medium text-[var(--ink)]">
                           <input
                             type="checkbox"
                             checked={enabled}
@@ -1445,7 +1455,7 @@ export function ArtisanDashboard() {
                               className="h-10 rounded-md border border-[#d8d1c3] bg-white px-2 outline-none focus:border-[#0d8b66]"
                               aria-label={`${label} opening time`}
                             />
-                            <span className="text-[#5f6a64]">to</span>
+                            <span className="text-[var(--muted)]">to</span>
                             <input
                               type="time"
                               value={slot.close}
@@ -1466,7 +1476,7 @@ export function ArtisanDashboard() {
                   type="button"
                   onClick={handleProfileSave}
                   disabled={profileSaving}
-                  className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
+                  className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--green)] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
                 >
                   {profileSaving ? (
                     <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -1477,16 +1487,16 @@ export function ArtisanDashboard() {
                 </button>
               </article>
 
-              <article id="portfolio-editor" className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm md:col-span-2">
+              <article id="portfolio-editor" className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm md:col-span-2">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h2 className="font-semibold text-[#101410]">Portfolio showcase</h2>
-                    <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                    <h2 className="font-semibold text-[var(--ink)]">Portfolio showcase</h2>
+                    <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
                       Add recent work photos that clients can view on your public profile.
                     </p>
                   </div>
-                  <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]">
-                    <ImagePlus className="size-4 text-[#0d8b66]" aria-hidden="true" />
+                  <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[#0d1612]">
+                    <ImagePlus className="size-4 text-[var(--green)]" aria-hidden="true" />
                     Choose photos
                     <input
                       type="file"
@@ -1502,7 +1512,7 @@ export function ArtisanDashboard() {
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                  <p className="rounded-md bg-[#f8f4ea] px-3 py-2 text-sm text-[#4d5651]">
+                  <p className="rounded-md bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--muted)]">
                     {portfolioFiles.length
                       ? `${portfolioFiles.length} selected: ${portfolioFiles.map((file) => file.name).join(", ")}`
                       : `${artisan.portfolioImages.length} portfolio photos live`}
@@ -1511,7 +1521,7 @@ export function ArtisanDashboard() {
                     type="button"
                     onClick={handlePortfolioUpload}
                     disabled={portfolioSaving || !portfolioFiles.length}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#93a198]"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--green)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#93a198]"
                   >
                     {portfolioSaving ? (
                       <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -1531,7 +1541,7 @@ export function ArtisanDashboard() {
                 <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                   {artisan.portfolioImages.length ? (
                     artisan.portfolioImages.map((photo, index) => (
-                      <div key={photo} className="group relative aspect-square overflow-hidden rounded-lg border border-[#ddd8cd] bg-[#f8f4ea]">
+                      <div key={photo} className="group relative aspect-square overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface-soft)]">
                         <button
                           type="button"
                           onClick={() => setLightboxPhoto(photo)}
@@ -1562,7 +1572,7 @@ export function ArtisanDashboard() {
                       </div>
                     ))
                   ) : (
-                    <div className="col-span-full rounded-lg border border-dashed border-[#cfc6b6] bg-[#f8f4ea] p-5 text-sm leading-6 text-[#5f6a64]">
+                    <div className="col-span-full rounded-lg border border-dashed border-[#cfc6b6] bg-[var(--surface-soft)] p-5 text-sm leading-6 text-[var(--muted)]">
                       Your approved work photos will appear here.
                     </div>
                   )}
@@ -1605,20 +1615,20 @@ export function ArtisanDashboard() {
               </article>
 
               {profileCards.map(([title, value, Icon, action]) => (
-                <article key={title as string} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
+                <article key={title as string} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h2 className="font-semibold text-[#101410]">{title as string}</h2>
-                      <p className="mt-1 text-sm text-[#5f6a64]">{value as string}</p>
+                      <h2 className="font-semibold text-[var(--ink)]">{title as string}</h2>
+                      <p className="mt-1 text-sm text-[var(--muted)]">{value as string}</p>
                     </div>
-                    <span className="flex size-10 items-center justify-center rounded-md bg-[#eef5f3] text-[#0d7c5c]">
+                    <span className="flex size-10 items-center justify-center rounded-md bg-[var(--green-soft)] text-[var(--green-strong)]">
                       <Icon className="size-4" aria-hidden="true" />
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleProfileCardAction(action as string)}
-                    className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border border-[#ddd8cd] bg-white text-sm font-semibold text-[#0d1612] disabled:cursor-wait disabled:opacity-70"
+                    className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border border-[var(--line)] bg-white text-sm font-semibold text-[#0d1612] disabled:cursor-wait disabled:opacity-70"
                   >
                     {action as string}
                   </button>
@@ -1637,27 +1647,27 @@ export function ArtisanDashboard() {
                 ) : null}
                 {reviewsForArtisan.length ? (
                   reviewsForArtisan.map((review) => (
-                    <article key={review.id} className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
+                    <article key={review.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <div className="flex items-center gap-2">
                             <Star className="size-4 fill-[#c79b55] text-[#c79b55]" aria-hidden="true" />
-                            <h2 className="font-semibold text-[#101410]">
+                            <h2 className="font-semibold text-[var(--ink)]">
                               {review.rating}/5 from {review.client}
                             </h2>
                           </div>
-                          <p className="mt-1 text-sm text-[#5f6a64]">{review.age} ago</p>
+                          <p className="mt-1 text-sm text-[var(--muted)]">{review.age} ago</p>
                         </div>
-                        <span className="w-fit rounded-md bg-[#e8f6f1] px-2 py-1 text-xs font-semibold text-[#0d7c5c]">
+                        <span className="w-fit rounded-md bg-[#e8f6f1] px-2 py-1 text-xs font-semibold text-[var(--green-strong)]">
                           {handledReviewIds.includes(review.id) ? "Handled" : review.status}
                         </span>
                       </div>
-                      <p className="mt-3 text-sm leading-6 text-[#4d5651]">{review.comment}</p>
+                      <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{review.comment}</p>
                       <div className="mt-4 grid gap-2 sm:grid-cols-2">
                         <button
                           type="button"
                           onClick={() => setReviewMessage("Reply composer will open after client messaging is enabled.")}
-                          className="inline-flex h-11 items-center justify-center rounded-md border border-[#ddd8cd] bg-white text-sm font-semibold text-[#0d1612]"
+                          className="inline-flex h-11 items-center justify-center rounded-md border border-[var(--line)] bg-white text-sm font-semibold text-[#0d1612]"
                         >
                           Reply
                         </button>
@@ -1683,32 +1693,32 @@ export function ArtisanDashboard() {
                   </article>
                   ))
                 ) : (
-                  <article className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-5 shadow-sm">
+                  <article className="rounded-lg border border-[var(--line)] bg-[var(--surface-soft)] p-5 shadow-sm">
                     <Star className="size-5 text-[#c79b55]" aria-hidden="true" />
-                    <h2 className="mt-3 text-lg font-semibold text-[#101410]">No reviews yet</h2>
-                    <p className="mt-2 text-sm leading-6 text-[#5f6a64]">
+                    <h2 className="mt-3 text-lg font-semibold text-[var(--ink)]">No reviews yet</h2>
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                       Client reviews and replies will appear here after completed jobs are connected.
                     </p>
                   </article>
                 )}
               </div>
 
-              <aside className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
-                <h2 className="font-semibold text-[#101410]">Comment threads</h2>
+              <aside className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm">
+                <h2 className="font-semibold text-[var(--ink)]">Comment threads</h2>
                 <div className="mt-3 grid gap-3">
                   {commentsForArtisan.length ? (
                     commentsForArtisan.map((thread) => (
-                      <article key={thread.id} className="rounded-md border border-[#ddd8cd] bg-[#f8f4ea] p-3">
-                        <div className="flex items-center gap-2 font-semibold text-[#101410]">
+                      <article key={thread.id} className="rounded-md border border-[var(--line)] bg-[var(--surface-soft)] p-3">
+                        <div className="flex items-center gap-2 font-semibold text-[var(--ink)]">
                           <MessageSquareText className="size-4 text-[#234f7a]" aria-hidden="true" />
                           {thread.job}
                         </div>
                         <p className="mt-1 text-xs text-[#6c756f]">{thread.status}</p>
-                        <p className="mt-2 text-sm leading-5 text-[#4d5651]">{thread.lastMessage}</p>
+                        <p className="mt-2 text-sm leading-5 text-[var(--muted)]">{thread.lastMessage}</p>
                       </article>
                     ))
                   ) : (
-                    <p className="rounded-md border border-[#ddd8cd] bg-[#f8f4ea] p-3 text-sm leading-5 text-[#5f6a64]">
+                    <p className="rounded-md border border-[var(--line)] bg-[var(--surface-soft)] p-3 text-sm leading-5 text-[var(--muted)]">
                       No comment threads yet.
                     </p>
                   )}
@@ -1735,7 +1745,7 @@ export function ArtisanDashboard() {
                   key={label}
                   type="button"
                   onClick={action}
-                  className="flex min-h-12 items-center justify-between rounded-lg border border-[#ddd8cd] bg-[#fffdf8] px-4 text-left text-sm font-semibold text-[#101410] shadow-sm transition hover:border-[#0d8b66]/40"
+                  className="flex min-h-12 items-center justify-between rounded-lg border border-[var(--line)] bg-[var(--surface-soft)] px-4 text-left text-sm font-semibold text-[var(--ink)] shadow-sm transition hover:border-[#0d8b66]/40"
                 >
                   {label}
                   <ChevronRight className="size-4 text-[#6c756f]" aria-hidden="true" />
@@ -1743,9 +1753,9 @@ export function ArtisanDashboard() {
               ))}
 
               {/* Account status */}
-              <div className="mt-2 rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 shadow-sm">
-                <h2 className="font-semibold text-[#101410]">Account status</h2>
-                <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+              <div className="mt-2 rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm">
+                <h2 className="font-semibold text-[var(--ink)]">Account status</h2>
+                <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
                   {artisan.deactivatedAt
                     ? "Your profile is currently hidden from the public listing. Reactivate to appear in search results again."
                     : "Your profile is visible to clients. Deactivate to temporarily hide it without losing any data."}
@@ -1761,7 +1771,7 @@ export function ArtisanDashboard() {
                       type="button"
                       disabled={accountWorking}
                       onClick={() => void handleAccountManage("reactivate")}
-                      className="inline-flex h-10 items-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white transition hover:bg-[#0a7559] disabled:cursor-wait disabled:opacity-70"
+                      className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--green)] px-4 text-sm font-semibold text-white transition hover:bg-[#0a7559] disabled:cursor-wait disabled:opacity-70"
                     >
                       {accountWorking ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
                       Reactivate profile
@@ -1775,7 +1785,7 @@ export function ArtisanDashboard() {
                           void handleAccountManage("deactivate");
                         }
                       }}
-                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612] transition hover:border-[#0d8b66]/40 disabled:cursor-wait disabled:opacity-70"
+                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[#0d1612] transition hover:border-[#0d8b66]/40 disabled:cursor-wait disabled:opacity-70"
                     >
                       {accountWorking ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
                       Deactivate profile
@@ -1787,7 +1797,7 @@ export function ArtisanDashboard() {
               {/* Danger zone — delete account */}
               <div className="rounded-lg border border-[#E24B4A]/30 bg-[#fff8f8] p-4 shadow-sm">
                 <h2 className="font-semibold text-[#9f2f2e]">Delete account</h2>
-                <p className="mt-1 text-sm leading-5 text-[#5f6a64]">
+                <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
                   Permanently removes your profile, portfolio photos, reviews, and data. This cannot be undone.
                   Any jobs you have claimed will be released back to the open board.
                 </p>
@@ -1816,7 +1826,7 @@ export function ArtisanDashboard() {
                       <button
                         type="button"
                         onClick={() => { setAccountAction(""); setDeleteConfirmText(""); }}
-                        className="inline-flex h-10 items-center rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]"
+                        className="inline-flex h-10 items-center rounded-md border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[#0d1612]"
                       >
                         Cancel
                       </button>
@@ -1837,24 +1847,24 @@ export function ArtisanDashboard() {
         </section>
 
         <aside className="min-w-0 lg:sticky lg:top-20 lg:self-start">
-          <div className="rounded-lg border border-[#d8d1c3] bg-[#fffdf8] p-4 shadow-sm">
+          <div className="rounded-lg border border-[#d8d1c3] bg-[var(--surface-soft)] p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-[#0d8b66]">Next actions</p>
-                <h2 className="text-xl font-semibold text-[#101410]">Keep profile active</h2>
+                <p className="text-sm font-medium text-[var(--green)]">Next actions</p>
+                <h2 className="text-xl font-semibold text-[var(--ink)]">Keep profile active</h2>
               </div>
               <Sparkles className="size-5 text-[#c79b55]" aria-hidden="true" />
             </div>
 
             <div className="mt-4 grid gap-3">
               {profileTasks.map(([title, copy, Icon]) => (
-                <article key={title as string} className="flex gap-3 rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-white text-[#0d8b66]">
+                <article key={title as string} className="flex gap-3 rounded-lg border border-[var(--line)] bg-[var(--surface-soft)] p-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-white text-[var(--green)]">
                     <Icon className="size-4" aria-hidden="true" />
                   </span>
                   <div>
-                    <p className="font-semibold text-[#101410]">{title as string}</p>
-                    <p className="mt-1 text-sm leading-5 text-[#5f6a64]">{copy as string}</p>
+                    <p className="font-semibold text-[var(--ink)]">{title as string}</p>
+                    <p className="mt-1 text-sm leading-5 text-[var(--muted)]">{copy as string}</p>
                   </div>
                 </article>
               ))}
@@ -1873,7 +1883,7 @@ export function ArtisanDashboard() {
         </aside>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[#ddd8cd] bg-[#fffdf8] px-2 py-2 shadow-lg md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[var(--line)] bg-[var(--surface-soft)] px-2 py-2 shadow-lg md:hidden">
         {dashboardTabs.map((item) => {
           const Icon = item.icon;
           const selected = activeTab === item.id;
@@ -1883,7 +1893,7 @@ export function ArtisanDashboard() {
               type="button"
               onClick={() => setActiveTab(item.id)}
               className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-xs font-semibold ${
-                selected ? "bg-[#0d1612] text-white" : "text-[#5f6a64]"
+                selected ? "bg-[#0d1612] text-white" : "text-[var(--muted)]"
               }`}
             >
               <Icon className="size-4" aria-hidden="true" />
