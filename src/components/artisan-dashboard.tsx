@@ -674,7 +674,7 @@ export function ArtisanDashboard() {
       active = false;
       subscription.unsubscribe();
     };
-  }, [loadTargetedJobs, loadOpenJobs, supabase]);
+  }, [loadTargetedJobs, loadOpenJobs, loadClaimedJobs, supabase]);
 
 
   async function handleProfileSave() {
