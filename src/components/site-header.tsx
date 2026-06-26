@@ -39,9 +39,9 @@ export function SiteHeader() {
                 key={tab.href}
                 href={tab.href}
                 aria-current={isActive(tab.href) ? "page" : undefined}
-                className={`relative rounded-full px-4 py-2 text-sm font-semibold transition ${
+                className={`relative rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-150 ${
                   isActive(tab.href)
-                    ? "bg-[#e7f5ef] text-[#0a5e46]"
+                    ? "border-b-2 border-[#C6A87C] text-[#C6A87C] bg-transparent"
                     : "text-[#4d5651] hover:bg-white hover:text-[#0d1612]"
                 }`}
               >
@@ -56,7 +56,7 @@ export function SiteHeader() {
               <select
                 value={language}
                 onChange={(event) => setLanguage(event.target.value as Language)}
-                className="bg-transparent text-sm font-medium outline-none"
+                className="bg-transparent text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[#0d8b66]"
                 aria-label="Language"
               >
                 {languageOptions.map((option) => (
@@ -68,14 +68,14 @@ export function SiteHeader() {
             </label>
             <Link
               href="/login"
-              className="hidden h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-3 text-sm font-medium text-[#0d1612] shadow-sm transition hover:border-[#0d8b66] sm:flex"
+              className="hidden h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-3 text-sm font-medium text-[#0d1612] shadow-sm transition-colors duration-150 hover:border-[#0d8b66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d8b66] sm:flex"
             >
               <LogIn className="size-4" aria-hidden="true" />
               {copy.nav.login}
             </Link>
             <Link
               href="/artisan"
-              className="hidden h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-3 text-sm font-medium text-[#0d1612] shadow-sm transition hover:border-[#0d8b66] xl:flex"
+              className="hidden h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-3 text-sm font-medium text-[#0d1612] shadow-sm transition-colors duration-150 hover:border-[#0d8b66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d8b66] md:flex"
             >
               <UserCheck className="size-4" aria-hidden="true" />
               {copy.nav.artisan}
@@ -104,12 +104,12 @@ export function SiteHeader() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-xs font-semibold transition ${
+              className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-xs font-semibold transition-all duration-150 ${
                 item.primary
-                  ? "bg-[#0d8b66] text-white"
+                  ? "bg-[#0d8b66] text-white hover:bg-[#0b7a5a] active:scale-95"
                   : active
                     ? "text-[#0a5e46]"
-                    : "text-[#5d6863]"
+                    : "text-[#5d6863] hover:bg-[#f2eee4] hover:text-[#0d1612]"
               }`}
             >
               <Icon className="size-4" aria-hidden="true" />

@@ -27,8 +27,10 @@ export function LoginAccessPanel() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState("");
+  const [noticeType, setNoticeType] = useState<"info" | "success" | "error">("info");
   const [checking, setChecking] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     const supabase = getBrowserSupabase();
@@ -38,6 +40,7 @@ export function LoginAccessPanel() {
       if (!supabase) {
         const missing = getMissingBrowserSupabaseEnv().join(", ");
         setNotice(`Sign-in needs ${missing} configured before it can work.`);
+        setNoticeType("error");
         setChecking(false);
         return;
       }
@@ -80,6 +83,7 @@ export function LoginAccessPanel() {
     if (!supabase) {
       const missing = getMissingBrowserSupabaseEnv().join(", ");
       setNotice(`Sign-in is not configured yet. Missing: ${missing}.`);
+      setNoticeType("error");
       return;
     }
 
@@ -93,6 +97,7 @@ export function LoginAccessPanel() {
 
     if (error || !data.user) {
       setNotice("We could not sign you in. Check your email and password.");
+      setNoticeType("error");
       setPassword("");
       setSubmitting(false);
       return;
@@ -102,7 +107,8 @@ export function LoginAccessPanel() {
 
     if (!linked) {
       await supabase.auth.signOut();
-      setNotice("This account isn't linked to an artisan profile yet. Create one with “Join as an artisan”.");
+      setNotice("This account isn’t linked to an artisan profile yet. Create one with “Join as an artisan”.");
+      setNoticeType("error");
       setPassword("");
       setSubmitting(false);
       return;
@@ -110,6 +116,43 @@ export function LoginAccessPanel() {
 
     window.location.assign("/artisan/");
   }
+
+  async function handleForgotPassword() {
+    const supabase = getBrowserSupabase();
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail) {
+      setNotice("Enter your email address above, then click Forgot password.");
+      setNoticeType("info");
+      return;
+    }
+
+    if (!supabase) {
+      setNotice("Password reset is not available right now.");
+      setNoticeType("error");
+      return;
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/reset-password`,
+    });
+
+    if (error) {
+      setNotice("Could not send reset email. Try again shortly.");
+      setNoticeType("error");
+    } else {
+      setResetSent(true);
+      setNotice(`Reset link sent to ${cleanEmail}. Check your inbox.`);
+      setNoticeType("success");
+    }
+  }
+
+  const noticeColors =
+    noticeType === "success"
+      ? "border-[#0d8b66]/30 bg-[#e7f5ef] text-[#0a5e46]"
+      : noticeType === "error"
+        ? "border-[#E24B4A]/30 bg-[#fdecec] text-[#9f2f2e]"
+        : "border-[#d7c292] bg-[#fff8e8] text-[#78511c]";
 
   return (
     <main className="relative min-h-screen overflow-hidden px-4 py-8 text-[#16201b] sm:py-12">
@@ -128,7 +171,7 @@ export function LoginAccessPanel() {
         <div className="mb-5 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#e3ddd1] bg-white/80 px-3 text-sm font-semibold text-[#0d1612] backdrop-blur transition hover:border-[#0d8b66]"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#e3ddd1] bg-white/80 px-3 text-sm font-semibold text-[#0d1612] backdrop-blur transition-colors duration-150 hover:border-[#0d8b66]"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
             Home
@@ -158,7 +201,7 @@ export function LoginAccessPanel() {
                 setNotice("");
               }}
               aria-pressed={mode === "signin"}
-              className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full text-sm font-semibold transition ${
+              className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d8b66] ${
                 mode === "signin" ? "bg-white text-[#0a5e46] shadow-sm" : "text-[#5d6863] hover:text-[#0d1612]"
               }`}
             >
@@ -172,7 +215,7 @@ export function LoginAccessPanel() {
                 setNotice("");
               }}
               aria-pressed={mode === "signup"}
-              className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full text-sm font-semibold transition ${
+              className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d8b66] ${
                 mode === "signup" ? "bg-white text-[#0a5e46] shadow-sm" : "text-[#5d6863] hover:text-[#0d1612]"
               }`}
             >
@@ -185,11 +228,12 @@ export function LoginAccessPanel() {
             <form onSubmit={handleSubmit} className="mt-6 grid gap-4" noValidate>
               <label className="block text-sm font-medium text-[#101410]">
                 Email
-                <span className="mt-2 flex h-12 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3 focus-within:border-[#0d8b66]">
+                <span className="mt-2 flex h-12 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3 transition-colors duration-150 focus-within:border-[#0d8b66] focus-within:ring-2 focus-within:ring-[#0d8b66]/20">
                   <Mail className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
                   <input
                     type="email"
                     autoComplete="email"
+                    required
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     className="min-w-0 flex-1 bg-transparent text-sm outline-none"
@@ -200,11 +244,12 @@ export function LoginAccessPanel() {
 
               <label className="block text-sm font-medium text-[#101410]">
                 Password
-                <span className="mt-2 flex h-12 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3 focus-within:border-[#0d8b66]">
+                <span className="mt-2 flex h-12 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3 transition-colors duration-150 focus-within:border-[#0d8b66] focus-within:ring-2 focus-within:ring-[#0d8b66]/20">
                   <LockKeyhole className="size-4 shrink-0 text-[#234f7a]" aria-hidden="true" />
                   <input
                     type="password"
                     autoComplete="current-password"
+                    required
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     className="min-w-0 flex-1 bg-transparent text-sm outline-none"
@@ -213,8 +258,19 @@ export function LoginAccessPanel() {
                 </span>
               </label>
 
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  disabled={resetSent}
+                  onClick={handleForgotPassword}
+                  className="text-xs font-medium text-[#0a5e46] underline-offset-2 transition-colors duration-150 hover:underline disabled:opacity-50"
+                >
+                  {resetSent ? "Reset email sent" : "Forgot password?"}
+                </button>
+              </div>
+
               {notice ? (
-                <p role="status" className="rounded-xl border border-[#d7c292] bg-[#fff8e8] px-3 py-2 text-sm font-medium text-[#78511c]">
+                <p role="status" className={`rounded-xl border px-3 py-2 text-sm font-medium ${noticeColors}`}>
                   {notice}
                 </p>
               ) : null}
@@ -234,7 +290,7 @@ export function LoginAccessPanel() {
           ) : (
             <div className="mt-6">
               {notice ? (
-                <p role="status" className="mb-4 rounded-xl border border-[#d7c292] bg-[#fff8e8] px-3 py-2 text-sm font-medium text-[#78511c]">
+                <p role="status" className={`mb-4 rounded-xl border px-3 py-2 text-sm font-medium ${noticeColors}`}>
                   {notice}
                 </p>
               ) : null}
