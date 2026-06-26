@@ -1,5 +1,15 @@
-import { Hammer, HardHat, KeyRound, Leaf, PaintRoller, PlugZap, Snowflake, Wrench } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
 import { tradeImages } from "@/lib/mock-data";
+import {
+  PlumberIcon,
+  ElectricianIcon,
+  PainterIcon,
+  CarpenterIcon,
+  MasonIcon,
+  ACTechIcon,
+  LocksmithIcon,
+  GardenerIcon,
+} from "@/components/trade-icons";
 
 export const brandName = "Artizan Moris";
 export const allTradesLabel = "All trades";
@@ -332,7 +342,7 @@ export const marketplaceCopy = {
       errDistrict: "Choisissez votre zone pour qu'on sache quels artisans sont proches.",
       errPhone: "Verifiez votre numero — ca doit etre un mobile mauricien commencant par 5, 7 ou 8.",
       errPhotoType: "Veuillez choisir un fichier image.",
-      errPhotoSize: "Cette photo est un peu grande. Essayez une capture d'ecran ou reduisez la taille — moins de 5 Mo ca marche.",
+      errPhotoSize: "Cette photo est un peu grande. Essayez une screenshot ou reduisez la taille — moins de 5 Mo ca marche.",
       errPost: "La demande n'a pas pu etre postee.",
       errFailed: "Un probleme de notre cote. Vos informations sont sauvegardees — tapez pour reessayer.",
       back: "Retour",
@@ -575,15 +585,17 @@ export const tabLabels: Record<Language, { home: string; how: string; browse: st
   mfe: { home: "Akey", how: "Kouma sa marse", browse: "Get artizan" },
 };
 
-export const popularTrades: { value: string; icon: typeof Wrench; labels: Record<Language, string> }[] = [
-  { value: "Plumber", icon: Wrench, labels: { en: "Plumber", fr: "Plombier", mfe: "Plonbie" } },
-  { value: "Electrician", icon: PlugZap, labels: { en: "Electrician", fr: "Electricien", mfe: "Elektrisien" } },
-  { value: "Painter", icon: PaintRoller, labels: { en: "Painter", fr: "Peintre", mfe: "Pintur" } },
-  { value: "Carpenter", icon: Hammer, labels: { en: "Carpenter", fr: "Menuisier", mfe: "Menwizie" } },
-  { value: "Mason", icon: HardHat, labels: { en: "Mason", fr: "Macon", mfe: "Mason" } },
-  { value: "AC technician", icon: Snowflake, labels: { en: "AC technician", fr: "Climatisation", mfe: "Klimatizasion" } },
-  { value: "Locksmith", icon: KeyRound, labels: { en: "Locksmith", fr: "Serrurier", mfe: "Serurie" } },
-  { value: "Gardener", icon: Leaf, labels: { en: "Gardener", fr: "Jardinier", mfe: "Zardinie" } },
+type TradeIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
+export const popularTrades: { value: string; icon: TradeIcon; labels: Record<Language, string> }[] = [
+  { value: "Plumber", icon: PlumberIcon, labels: { en: "Plumber", fr: "Plombier", mfe: "Plonbie" } },
+  { value: "Electrician", icon: ElectricianIcon, labels: { en: "Electrician", fr: "Electricien", mfe: "Elektrisien" } },
+  { value: "Painter", icon: PainterIcon, labels: { en: "Painter", fr: "Peintre", mfe: "Pintur" } },
+  { value: "Carpenter", icon: CarpenterIcon, labels: { en: "Carpenter", fr: "Menuisier", mfe: "Menwizie" } },
+  { value: "Mason", icon: MasonIcon, labels: { en: "Mason", fr: "Macon", mfe: "Mason" } },
+  { value: "AC technician", icon: ACTechIcon, labels: { en: "AC technician", fr: "Climatisation", mfe: "Klimatizasion" } },
+  { value: "Locksmith", icon: LocksmithIcon, labels: { en: "Locksmith", fr: "Serrurier", mfe: "Serurie" } },
+  { value: "Gardener", icon: GardenerIcon, labels: { en: "Gardener", fr: "Jardinier", mfe: "Zardinie" } },
 ];
 
 export const heroStats: { value: number; suffix: string; labels: Record<Language, string> }[] = [
