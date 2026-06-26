@@ -99,21 +99,29 @@ export function HowItWorksView() {
               return (
                 <div
                   key={item.q}
-                  className={`reveal reveal-d${(index % 4) + 1} overflow-hidden rounded-2xl border border-[#e3ddd1] bg-white shadow-sm transition hover:border-[#0d8b66]/40`}
+                  className={`reveal reveal-d${Math.min(index + 1, 5)} overflow-hidden rounded-2xl border border-[#e3ddd1] bg-white shadow-sm transition-colors hover:border-[#0d8b66]/40`}
                 >
                   <button
                     type="button"
                     aria-expanded={isOpen}
                     onClick={() => setOpenFaq(isOpen ? -1 : index)}
-                    className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+                    className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0d8b66]"
                   >
                     <span className="text-base font-semibold text-[#101410]">{item.q}</span>
                     <ChevronDown
-                      className={`size-5 shrink-0 text-[#0d8b66] transition ${isOpen ? "rotate-180" : ""}`}
+                      className={`size-5 shrink-0 text-[#0d8b66] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                       aria-hidden="true"
                     />
                   </button>
-                  {isOpen ? <p className="px-5 pb-5 text-sm leading-6 text-[#5d6863]">{item.a}</p> : null}
+                  <div
+                    className={`grid transition-all duration-200 ease-in-out ${
+                      isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <p className="px-5 pb-5 text-sm leading-6 text-[#5d6863]">{item.a}</p>
+                    </div>
+                  </div>
                 </div>
               );
             })}

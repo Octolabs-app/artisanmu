@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;700&display=swap");
 
 :root {
   /* Warm neutral surface + clear dark ink */
@@ -23,6 +24,11 @@
   --blue: #234f7a;
   --rose: #9f4a4a;
 
+  /* Brand gold design token (Octolabs identity #C6A87C) */
+  --color-gold: #C6A87C;
+  --color-gold-soft: rgba(198, 168, 124, 0.12);
+  --color-gold-border: rgba(198, 168, 124, 0.3);
+
   /* Urgency accent */
   --urgent: #e24b4a;
   --urgent-soft: #fdecec;
@@ -36,7 +42,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Jura", "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
 }
 
@@ -59,7 +65,7 @@ body {
     var(--background);
   background-attachment: fixed;
   color: var(--foreground);
-  font-family: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Jura", "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
 }
 
 button,
@@ -97,6 +103,10 @@ button {
   line-height: 1;
   transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
 
 .btn-primary {
   background: var(--primary);
@@ -107,6 +117,9 @@ button {
 .btn-primary:hover {
   background: var(--primary-hover);
   transform: translateY(-1px);
+}
+.btn-primary:active {
+  transform: translateY(1px);
 }
 .btn-primary:disabled {
   opacity: 0.6;
@@ -123,6 +136,11 @@ button {
 .btn-secondary:hover {
   border-color: var(--green);
   color: var(--green-strong);
+}
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Strong, accessible focus states everywhere */
@@ -176,6 +194,10 @@ textarea:focus-visible,
   0% { transform: translateX(-120%) skewX(-18deg); }
   100% { transform: translateX(220%) skewX(-18deg); }
 }
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
 
 /* ── Motion utilities ── */
 .animate-float { animation: floatY 6s ease-in-out infinite; }
@@ -227,9 +249,21 @@ textarea:focus-visible,
 }
 .shine:hover::after { animation: shimmerSweep 0.9s ease; }
 
+/* Skeleton shimmer loader — use with .skeleton class */
+.skeleton {
+  background: linear-gradient(90deg, #e8e3db 25%, #f0ece5 50%, #e8e3db 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
 /* Lift + tilt interactions */
-.hover-lift { transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s, border-color 0.3s; }
-.hover-lift:hover { transform: translateY(-6px); }
+.hover-lift {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.3s ease, color 0.3s ease, background-color 0.3s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px -8px rgba(13, 22, 18, 0.18);
+}
 
 /* ── Scroll reveal ── */
 .reveal {
@@ -245,6 +279,14 @@ textarea:focus-visible,
 .reveal-d3 { transition-delay: 0.21s; }
 .reveal-d4 { transition-delay: 0.28s; }
 .reveal-d5 { transition-delay: 0.35s; }
+.reveal-d6 { transition-delay: 0.42s; }
+.reveal-d7 { transition-delay: 0.49s; }
+.reveal-d8 { transition-delay: 0.56s; }
+
+/* No-JS fallback — reveal elements are visible without scripts */
+@media (scripting: none) {
+  .reveal { opacity: 1; transform: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html {

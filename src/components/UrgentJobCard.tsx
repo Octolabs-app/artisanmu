@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock3, Lock, MessageCircle, MessageSquareText, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Clock3, Loader2, Lock, MessageCircle, MessageSquareText, ShieldCheck } from "lucide-react";
 import { ArtisanMuFunctionError, invokeUserFunction } from "@/lib/artisanmu-functions";
 
 type UrgentJob = {
@@ -133,12 +133,14 @@ export function UrgentJobCard({
           </span>
           <div>
             <p className="font-semibold text-[#101410]">{contact?.display_name || customerName}</p>
-            <p className="text-[#5f6a64]">Contact revealed after claim</p>
+            {!contact && (
+              <p className="text-[#5f6a64]">Contact revealed after claim</p>
+            )}
           </div>
         </div>
 
         {error ? (
-          <div className="mt-3 rounded-md border border-[#E24B4A]/30 bg-[#E24B4A]/10 px-3 py-2 text-sm text-[#9f2f2e]">
+          <div role="alert" className="mt-3 rounded-md border border-[#E24B4A]/30 bg-[#E24B4A]/10 px-3 py-2 text-sm text-[#9f2f2e]">
             {error}
           </div>
         ) : null}
@@ -147,13 +149,13 @@ export function UrgentJobCard({
           type="button"
           onClick={claimJob}
           disabled={claiming || Boolean(contact)}
-          className={`mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold ${
+          className={`mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition-all duration-200 ${
             contact
               ? "bg-[#e8f6f1] text-[#0d7c5c]"
               : isUrgent
                 ? "bg-[#E24B4A] text-white hover:bg-[#cf3f3e]"
                 : "bg-[#0d1612] text-white hover:bg-[#17251e]"
-          } disabled:cursor-default disabled:opacity-90`}
+          } disabled:cursor-not-allowed disabled:opacity-60`}
         >
           {contact ? (
             <>
@@ -162,7 +164,11 @@ export function UrgentJobCard({
             </>
           ) : (
             <>
-              <ShieldCheck className="size-4" aria-hidden="true" />
+              {claiming ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <ShieldCheck className="size-4" aria-hidden="true" />
+              )}
               {claiming ? "Accepting..." : "Accept this job"}
             </>
           )}
@@ -173,7 +179,7 @@ export function UrgentJobCard({
             <button
               type="button"
               onClick={() => window.open(contact.whatsapp_deep_link, "_blank", "noopener,noreferrer")}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white hover:bg-[#0b7758]"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#0b7758]"
             >
               <MessageCircle className="size-4" aria-hidden="true" />
               WhatsApp
@@ -182,7 +188,7 @@ export function UrgentJobCard({
               <button
                 type="button"
                 onClick={() => onOpenThread(job.id)}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612] transition-colors duration-150 hover:bg-[#f2eee4]"
               >
                 <MessageSquareText className="size-4" aria-hidden="true" />
                 In-app message

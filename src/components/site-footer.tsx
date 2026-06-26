@@ -17,51 +17,51 @@ export function SiteFooter() {
           <p className="mt-3 max-w-xs text-sm leading-6 text-[#cbd4ce]">{copy.footer.tagline}</p>
           <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-[#cbd4ce]">
             <MapPinned className="size-3.5 text-[#3fbf95]" aria-hidden="true" />
-            Mauritius
+            <span role="status" aria-label="Based in Mauritius">Mauritius</span>
           </span>
         </div>
 
-        <div>
+        <nav aria-label="Product links">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#8a978f]">{copy.footer.cols.product}</p>
           <ul className="mt-4 grid gap-2.5 text-sm text-[#cbd4ce]">
             <li>
-              <Link href="/post" className="transition hover:text-white">
+              <Link href="/post" className="transition-colors duration-150 hover:text-white">
                 {copy.footer.links.post}
               </Link>
             </li>
             <li>
-              <Link href="/browse" className="transition hover:text-white">
+              <Link href="/browse" className="transition-colors duration-150 hover:text-white">
                 {copy.footer.links.browse}
               </Link>
             </li>
             <li>
-              <Link href="/how-it-works" className="transition hover:text-white">
-                {copy.hero.ctaSecondary}
+              <Link href="/how-it-works" className="transition-colors duration-150 hover:text-white">
+                {copy.footer.links.howItWorks ?? copy.hero.ctaSecondary}
               </Link>
             </li>
             <li>
-              <Link href="/artisan" className="transition hover:text-white">
+              <Link href="/artisan" className="transition-colors duration-150 hover:text-white">
                 {copy.footer.links.artisan}
               </Link>
             </li>
           </ul>
-        </div>
+        </nav>
 
-        <div>
+        <nav aria-label="Company links">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#8a978f]">{copy.footer.cols.company}</p>
           <ul className="mt-4 grid gap-2.5 text-sm text-[#cbd4ce]">
             <li>
-              <Link href="/login" className="transition hover:text-white">
+              <Link href="/login" className="transition-colors duration-150 hover:text-white">
                 {copy.footer.links.login}
               </Link>
             </li>
             <li>
-              <a href="mailto:hello@octolabs.app" className="transition hover:text-white">
+              <a href="mailto:hello@octolabs.app" className="transition-colors duration-150 hover:text-white">
                 hello@octolabs.app
               </a>
             </li>
           </ul>
-        </div>
+        </nav>
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-[#8a978f] sm:flex-row sm:items-center sm:justify-between sm:px-6">
