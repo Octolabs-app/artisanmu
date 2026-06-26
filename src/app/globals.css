@@ -101,10 +101,19 @@ button {
   font-size: 0.9375rem;
   font-weight: 600;
   line-height: 1;
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+  transform: translateY(0);
+  transition:
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn:hover {
+  transform: translateY(-1px);
 }
 .btn:active {
-  transform: translateY(1px);
+  transform: translateY(0) scale(0.98);
   box-shadow: none;
 }
 
@@ -119,7 +128,7 @@ button {
   transform: translateY(-1px);
 }
 .btn-primary:active {
-  transform: translateY(1px);
+  transform: translateY(0) scale(0.98);
 }
 .btn-primary:disabled {
   opacity: 0.6;
@@ -131,11 +140,16 @@ button {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgba(13, 22, 18, 0.04);
+  box-shadow: none;
 }
 .btn-secondary:hover {
   border-color: var(--green);
   color: var(--green-strong);
+  box-shadow: 0 4px 14px -4px rgba(13, 139, 102, 0.18);
+  transform: translateY(-1px);
+}
+.btn-secondary:active {
+  transform: translateY(0) scale(0.98);
 }
 .btn-secondary:disabled {
   opacity: 0.6;
@@ -153,6 +167,43 @@ textarea:focus-visible,
   outline: 2px solid var(--green);
   outline-offset: 2px;
   border-radius: 0.5rem;
+  transition: outline-offset 0.15s ease;
+}
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline-offset: 3px;
+}
+
+/* ── CSS View Transitions for page navigation ── */
+@view-transition {
+  navigation: auto;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+::view-transition-old(root) {
+  animation: 180ms ease-in fade-out;
+}
+
+::view-transition-new(root) {
+  animation: 220ms ease-out fade-in;
+}
+
+/* Page-level enter animation */
+.page-enter {
+  animation: fadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ───────────────────────────────────────────────
@@ -197,6 +248,10 @@ textarea:focus-visible,
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Motion utilities ── */
@@ -247,41 +302,65 @@ textarea:focus-visible,
   transform: translateX(-120%) skewX(-18deg);
   pointer-events: none;
 }
-.shine:hover::after { animation: shimmerSweep 0.9s ease; }
+.shine:hover::after { animation: shimmerSweep 0.75s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* Skeleton shimmer loader — use with .skeleton class */
 .skeleton {
   background: linear-gradient(90deg, #e8e3db 25%, #f0ece5 50%, #e8e3db 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 1.8s ease-in-out infinite;
 }
 
 /* Lift + tilt interactions */
 .hover-lift {
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.3s ease, color 0.3s ease, background-color 0.3s ease;
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease,
+    color 0.25s ease,
+    background-color 0.25s ease;
 }
 .hover-lift:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 32px -8px rgba(13, 22, 18, 0.18);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px -6px rgba(13, 22, 18, 0.14);
+}
+
+/* ── Card hover lift — reusable ── */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.10);
+}
+
+/* ── Stat count-up animation ── */
+.animate-count-up {
+  animation: count-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ── Scroll reveal ── */
 .reveal {
   opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(18px) scale(0.985);
+  transition:
+    opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
-.reveal.is-visible { opacity: 1; transform: none; }
-.reveal-scale { transform: translateY(28px) scale(0.96); }
-.reveal-d1 { transition-delay: 0.07s; }
-.reveal-d2 { transition-delay: 0.14s; }
-.reveal-d3 { transition-delay: 0.21s; }
-.reveal-d4 { transition-delay: 0.28s; }
-.reveal-d5 { transition-delay: 0.35s; }
-.reveal-d6 { transition-delay: 0.42s; }
-.reveal-d7 { transition-delay: 0.49s; }
-.reveal-d8 { transition-delay: 0.56s; }
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.reveal-scale { transform: translateY(18px) scale(0.96); }
+.reveal-d1 { transition-delay: 0.05s; }
+.reveal-d2 { transition-delay: 0.10s; }
+.reveal-d3 { transition-delay: 0.15s; }
+.reveal-d4 { transition-delay: 0.20s; }
+.reveal-d5 { transition-delay: 0.25s; }
+.reveal-d6 { transition-delay: 0.30s; }
+.reveal-d7 { transition-delay: 0.35s; }
+.reveal-d8 { transition-delay: 0.40s; }
 
 /* No-JS fallback — reveal elements are visible without scripts */
 @media (scripting: none) {
@@ -300,4 +379,10 @@ textarea:focus-visible,
   /* Never leave revealed content hidden when motion is off */
   .reveal { opacity: 1; transform: none; }
   .blob { animation: none; }
+  .hover-lift:hover { transform: none; }
+  .btn-primary:hover { transform: none; }
+  .btn-secondary:hover { transform: none; }
+  .btn:hover { transform: none; }
+  .btn:active { transform: none; }
+  .card-hover:hover { transform: none; }
 }
