@@ -23,11 +23,27 @@ export function useReveal(deps: unknown[] = []) {
           }
         });
       },
-      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0, rootMargin: "0px 0px -40px 0px" },
     );
 
     nodes.forEach((node) => observer.observe(node));
-    return () => observer.disconnect();
+
+    // Elements already in the viewport at page load may not fire the observer.
+    // A single rAF pass force-reveals anything whose top is already on screen.
+    const rafId = requestAnimationFrame(() => {
+      nodes.forEach((node) => {
+        const rect = node.getBoundingClientRect();
+        if (rect.top < window.innerHeight - 40 && rect.bottom > 0) {
+          node.classList.add("is-visible");
+          observer.unobserve(node);
+        }
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Globe2, Home, LogIn, MessageCircle, Search, UserCheck } from "lucide-react";
+import { Briefcase, Globe2, Home, LogIn, MessageCircle, Search, UserCheck } from "lucide-react";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { useLanguage } from "@/components/language-context";
 import { languageOptions, tabLabels, type Language } from "@/lib/copy";
@@ -19,6 +19,7 @@ export function SiteHeader() {
   const tabs = [
     { href: "/", label: tabLabels[language].home },
     { href: "/how-it-works", label: tabLabels[language].how },
+    { href: "/jobs", label: "Jobs" },
     { href: "/browse", label: tabLabels[language].browse },
   ];
 
@@ -93,7 +94,7 @@ export function SiteHeader() {
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[#e3ddd1] bg-white px-2 py-2 shadow-lg lg:hidden">
         {[
           { href: "/", icon: Home, label: tabLabels[language].home },
-          { href: "/browse", icon: Search, label: copy.bottomNav.browse },
+          { href: "/jobs", icon: Briefcase, label: "Jobs" },
           { href: "/post", icon: MessageCircle, label: copy.bottomNav.request, primary: true },
           { href: "/login", icon: LogIn, label: copy.bottomNav.login },
         ].map((item) => {

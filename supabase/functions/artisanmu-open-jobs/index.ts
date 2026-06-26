@@ -16,7 +16,7 @@ import {
 // successful claim, reusing the shared decryptPhone crypto core.
 
 type OpenJobsBody = {
-  action?: "list" | "claim" | "unclaim";
+  action?: "public_list" | "list" | "claim" | "unclaim";
   job_id?: string;
 };
 
@@ -82,9 +82,42 @@ Deno.serve(async (request: Request) => {
   try {
     const body = await readJsonBody<OpenJobsBody>(request);
     const action = body.action || "list";
-    const { artisan, authUserId } = await requireArtisan(request);
     const supabase = getAdminSupabase();
     const now = new Date().toISOString();
+
+    // Public list — no auth required. Returns only safe, non-contact fields.
+    if (action === "public_list") {
+      const { data, error } = await supabase
+        .from("job_requests")
+        .select("id,category,description,district,urgency,created_at")
+        .eq("status", "open")
+        .gt("expires_at", now)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw new HttpError(500, "public_list_failed", error.message);
+
+      const jobs = ((data || []) as Array<{
+        id: string;
+        category: string | null;
+        description: string | null;
+        district: string | null;
+        urgency: string | null;
+        created_at: string;
+      }>).map((job) => ({
+        id: job.id,
+        trade: job.category || "Other",
+        description: job.description || "",
+        district: job.district || "Mauritius",
+        urgency: job.urgency || "planned",
+        createdAt: job.created_at,
+      }));
+
+      return jsonResponse({ success: true, jobs });
+    }
+
+    // All other actions require a verified artisan session.
+    const { artisan, authUserId } = await requireArtisan(request);
 
     if (action === "list") {
       const { data, error } = await supabase
@@ -192,8 +225,7 @@ Deno.serve(async (request: Request) => {
     const message = `Bonjour ${displayName}, je suis ${artisan.nom} via Artizan Moris. Je peux vous aider avec: ${job.description}`;
 
     // Record the claim in job_notifications so it also surfaces in the artisan's
-    // existing claimed-jobs view. Reuse a row if the artisan was already targeted,
-    // otherwise insert one (urgency + match_reason are NOT NULL).
+    // existing claimed-jobs view.
     const { data: existing } = await supabase
       .from("job_notifications")
       .select("id")
