@@ -36,7 +36,7 @@ export function SiteFooter() {
             </li>
             <li>
               <Link href="/how-it-works" className="transition-colors duration-150 hover:text-white">
-                {copy.footer.links.howItWorks ?? copy.hero.ctaSecondary}
+                {copy.hero.ctaSecondary}
               </Link>
             </li>
             <li>
