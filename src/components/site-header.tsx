@@ -19,7 +19,7 @@ export function SiteHeader() {
   const tabs = [
     { href: "/", label: tabLabels[language].home },
     { href: "/how-it-works", label: tabLabels[language].how },
-    { href: "/jobs", label: tabLabels[language].jobs, newTab: true },
+    { href: "/jobs", label: tabLabels[language].jobs },
     { href: "/browse", label: tabLabels[language].browse },
   ];
 
@@ -39,10 +39,9 @@ export function SiteHeader() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                {...(tab.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                aria-current={!tab.newTab && isActive(tab.href) ? "page" : undefined}
+                aria-current={isActive(tab.href) ? "page" : undefined}
                 className={`relative rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-150 ${
-                  !tab.newTab && isActive(tab.href)
+                  isActive(tab.href)
                     ? "border-b-2 border-[#C6A87C] text-[#C6A87C] bg-transparent"
                     : "text-[#4d5651] hover:bg-white hover:text-[#0d1612]"
                 }`}
@@ -95,17 +94,16 @@ export function SiteHeader() {
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[#e3ddd1] bg-white px-2 py-2 shadow-lg lg:hidden">
         {[
           { href: "/", icon: Home, label: tabLabels[language].home },
-          { href: "/jobs", icon: Briefcase, label: tabLabels[language].jobs, newTab: true },
+          { href: "/jobs", icon: Briefcase, label: tabLabels[language].jobs },
           { href: "/post", icon: MessageCircle, label: copy.bottomNav.request, primary: true },
           { href: "/login", icon: LogIn, label: copy.bottomNav.login },
         ].map((item) => {
           const Icon = item.icon;
-          const active = !item.newTab && isActive(item.href);
+          const active = isActive(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              {...(item.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               aria-current={active ? "page" : undefined}
               className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-xs font-semibold transition-all duration-150 ${
                 item.primary
