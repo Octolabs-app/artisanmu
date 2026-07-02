@@ -19,7 +19,7 @@ export function SiteHeader() {
   const tabs = [
     { href: "/", label: tabLabels[language].home },
     { href: "/how-it-works", label: tabLabels[language].how },
-    { href: "/jobs", label: "Jobs", newTab: true },
+    { href: "/jobs", label: tabLabels[language].jobs, newTab: true },
     { href: "/browse", label: tabLabels[language].browse },
   ];
 
@@ -95,7 +95,7 @@ export function SiteHeader() {
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[#e3ddd1] bg-white px-2 py-2 shadow-lg lg:hidden">
         {[
           { href: "/", icon: Home, label: tabLabels[language].home },
-          { href: "/jobs", icon: Briefcase, label: "Jobs", newTab: true },
+          { href: "/jobs", icon: Briefcase, label: tabLabels[language].jobs, newTab: true },
           { href: "/post", icon: MessageCircle, label: copy.bottomNav.request, primary: true },
           { href: "/login", icon: LogIn, label: copy.bottomNav.login },
         ].map((item) => {

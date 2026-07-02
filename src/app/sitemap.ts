@@ -4,12 +4,13 @@ export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://artizanmoris.octolabs.app";
-  const lastModified = new Date("2026-06-16");
+  const lastModified = new Date("2026-07-02");
 
   const marketing = [
     { path: "", changeFrequency: "daily" as const, priority: 1 },
     { path: "/post", changeFrequency: "weekly" as const, priority: 0.9 },
     { path: "/browse", changeFrequency: "daily" as const, priority: 0.8 },
+    { path: "/jobs", changeFrequency: "daily" as const, priority: 0.8 },
     { path: "/how-it-works", changeFrequency: "monthly" as const, priority: 0.6 },
   ];
 

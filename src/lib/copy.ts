@@ -579,10 +579,10 @@ export const languageOptions: { value: Language; label: string }[] = [
   { value: "mfe", label: "Morisien" },
 ];
 
-export const tabLabels: Record<Language, { home: string; how: string; browse: string }> = {
-  en: { home: "Home", how: "How it works", browse: "Browse artisans" },
-  fr: { home: "Accueil", how: "Comment ca marche", browse: "Parcourir" },
-  mfe: { home: "Akey", how: "Kouma sa marse", browse: "Get artizan" },
+export const tabLabels: Record<Language, { home: string; how: string; jobs: string; browse: string }> = {
+  en: { home: "Home", how: "How it works", jobs: "Jobs", browse: "Browse artisans" },
+  fr: { home: "Accueil", how: "Comment ca marche", jobs: "Travaux", browse: "Parcourir" },
+  mfe: { home: "Akey", how: "Kouma sa marse", jobs: "Travay", browse: "Get artizan" },
 };
 
 type TradeIcon = ComponentType<SVGProps<SVGSVGElement>>;
