@@ -7,6 +7,7 @@ import {
   optionsResponse,
   readJsonBody,
   requireString,
+  telLink,
   whatsappDeepLink,
 } from "../_shared/artisanmu.ts";
 
@@ -29,6 +30,7 @@ type JobRow = {
   customer_display_name: string | null;
   status: string;
   urgency: string | null;
+  contact_method: string | null;
   created_at: string;
   expires_at: string | null;
 };
@@ -42,6 +44,7 @@ const listColumns = [
   "customer_display_name",
   "status",
   "urgency",
+  "contact_method",
   "created_at",
   "expires_at",
 ].join(",");
@@ -89,7 +92,7 @@ Deno.serve(async (request: Request) => {
     if (action === "public_list") {
       const { data, error } = await supabase
         .from("job_requests")
-        .select("id,category,description,district,urgency,created_at")
+        .select("id,category,description,district,urgency,contact_method,created_at")
         .eq("status", "open")
         .gt("expires_at", now)
         .order("created_at", { ascending: false })
@@ -103,6 +106,7 @@ Deno.serve(async (request: Request) => {
         description: string | null;
         district: string | null;
         urgency: string | null;
+        contact_method: string | null;
         created_at: string;
       }>).map((job) => ({
         id: job.id,
@@ -110,6 +114,7 @@ Deno.serve(async (request: Request) => {
         description: job.description || "",
         district: job.district || "Mauritius",
         urgency: job.urgency || "planned",
+        contactMethod: job.contact_method || "whatsapp",
         createdAt: job.created_at,
       }));
 
@@ -141,6 +146,7 @@ Deno.serve(async (request: Request) => {
         district: job.district || job.town || "Mauritius",
         client: job.customer_display_name || "Client",
         urgency: job.urgency || "planned",
+        contactMethod: job.contact_method || "whatsapp",
         createdAt: job.created_at,
         expiresAt: job.expires_at,
       }));
@@ -206,7 +212,7 @@ Deno.serve(async (request: Request) => {
       .eq("id", jobId)
       .eq("status", "open")
       .gt("expires_at", now)
-      .select("id,description,customer_display_name,urgency,whatsapp_encrypted,whatsapp_iv")
+      .select("id,description,customer_display_name,urgency,contact_method,whatsapp_encrypted,whatsapp_iv")
       .maybeSingle();
 
     if (claimError) {
@@ -271,11 +277,16 @@ Deno.serve(async (request: Request) => {
       }),
     ]);
 
+    // Clients without WhatsApp are contacted by phone: the claim returns a
+    // tel: link instead of a wa.me deep link.
+    const contactMethod = job.contact_method === "call" ? "call" : "whatsapp";
     return jsonResponse({
       success: true,
       contact: {
         display_name: displayName,
-        whatsapp_deep_link: whatsappDeepLink(phone, message),
+        method: contactMethod,
+        phone_link: telLink(phone),
+        whatsapp_deep_link: contactMethod === "whatsapp" ? whatsappDeepLink(phone, message) : null,
       },
     });
   } catch (error) {

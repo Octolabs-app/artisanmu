@@ -42,12 +42,33 @@ const portfolioMarker = "/storage/v1/object/public/portfolios/";
 
 type AdminContentBody = {
   admin_password?: string;
-  action?: "list_reviews" | "delete_review" | "set_review_visibility" | "delete_artisan_photo" | "deactivate_artisan" | "reactivate_artisan" | "delete_artisan";
+  action?:
+    | "list_reviews"
+    | "delete_review"
+    | "set_review_visibility"
+    | "delete_artisan_photo"
+    | "deactivate_artisan"
+    | "reactivate_artisan"
+    | "delete_artisan"
+    | "list_ads"
+    | "create_ad"
+    | "update_ad"
+    | "delete_ad";
   artisan_id?: number | string;
   review_id?: number | string;
   photo_url?: string;
   is_visible?: boolean;
+  // house ads
+  ad_id?: string;
+  title?: string;
+  body?: string;
+  href?: string;
+  image_url?: string;
+  placement?: string;
+  active?: boolean;
 };
+
+const adPlacements = ["browse", "post", "jobs", "home"];
 
 function serviceKey() {
   const direct = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SECRET_KEY");
@@ -333,6 +354,94 @@ Deno.serve(async (request: Request) => {
       }
 
       return json({ success: true, deleted: true, artisan_id: artisanId });
+    }
+
+    /* ── House ads (site_ads) ─────────────────────────────────────── */
+
+    if (action === "list_ads") {
+      const { data, error } = await admin
+        .from("site_ads")
+        .select("id, title, body, href, image_url, placement, active, created_at")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) return json({ error: "ads_list_failed", message: error.message }, 500);
+      return json({ success: true, ads: data || [] });
+    }
+
+    if (action === "create_ad") {
+      const title = typeof body.title === "string" ? body.title.trim() : "";
+      const placement = typeof body.placement === "string" ? body.placement.trim() : "";
+      if (!title || title.length > 80) {
+        return json({ error: "invalid_title", message: "Ad title is required (max 80 chars)." }, 400);
+      }
+      if (!adPlacements.includes(placement)) {
+        return json({ error: "invalid_placement", message: "Placement must be browse, post, jobs, or home." }, 400);
+      }
+
+      const { data, error } = await admin
+        .from("site_ads")
+        .insert({
+          title,
+          body: typeof body.body === "string" ? body.body.trim().slice(0, 200) : "",
+          href: typeof body.href === "string" ? body.href.trim().slice(0, 300) : "",
+          image_url: typeof body.image_url === "string" ? body.image_url.trim().slice(0, 300) : "",
+          placement,
+          active: body.active !== false,
+        })
+        .select("id, title, body, href, image_url, placement, active, created_at")
+        .single();
+      if (error || !data) return json({ error: "ad_create_failed", message: error?.message || "Insert failed." }, 500);
+
+      await admin.from("audit_logs").insert({
+        event: "admin_ad_create",
+        metadata: { source: "artisanmu-admin-content", ad_id: data.id, placement },
+      });
+      return json({ success: true, ad: data });
+    }
+
+    if (action === "update_ad") {
+      const adId = typeof body.ad_id === "string" ? body.ad_id.trim() : "";
+      if (!adId) return json({ error: "invalid_ad_id", message: "A valid ad id is required." }, 400);
+
+      const updates: Record<string, unknown> = {};
+      if (typeof body.title === "string" && body.title.trim()) updates.title = body.title.trim().slice(0, 80);
+      if (typeof body.body === "string") updates.body = body.body.trim().slice(0, 200);
+      if (typeof body.href === "string") updates.href = body.href.trim().slice(0, 300);
+      if (typeof body.image_url === "string") updates.image_url = body.image_url.trim().slice(0, 300);
+      if (typeof body.placement === "string" && adPlacements.includes(body.placement)) updates.placement = body.placement;
+      if (typeof body.active === "boolean") updates.active = body.active;
+      if (!Object.keys(updates).length) {
+        return json({ error: "nothing_to_update", message: "Provide at least one field to update." }, 400);
+      }
+
+      const { data, error } = await admin
+        .from("site_ads")
+        .update(updates)
+        .eq("id", adId)
+        .select("id, title, body, href, image_url, placement, active, created_at")
+        .maybeSingle();
+      if (error) return json({ error: "ad_update_failed", message: error.message }, 500);
+      if (!data) return json({ error: "ad_not_found", message: "Ad was not found." }, 404);
+
+      await admin.from("audit_logs").insert({
+        event: "admin_ad_update",
+        metadata: { source: "artisanmu-admin-content", ad_id: adId, updates: Object.keys(updates) },
+      });
+      return json({ success: true, ad: data });
+    }
+
+    if (action === "delete_ad") {
+      const adId = typeof body.ad_id === "string" ? body.ad_id.trim() : "";
+      if (!adId) return json({ error: "invalid_ad_id", message: "A valid ad id is required." }, 400);
+
+      const { error } = await admin.from("site_ads").delete().eq("id", adId);
+      if (error) return json({ error: "ad_delete_failed", message: error.message }, 500);
+
+      await admin.from("audit_logs").insert({
+        event: "admin_ad_delete",
+        metadata: { source: "artisanmu-admin-content", ad_id: adId },
+      });
+      return json({ success: true, ad_id: adId });
     }
 
     return json({ error: "invalid_action", message: "Admin content action is not supported." }, 400);

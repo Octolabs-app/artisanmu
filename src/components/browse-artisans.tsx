@@ -20,6 +20,7 @@ import {
   Star,
   X,
 } from "lucide-react";
+import { AdBanner } from "@/components/ad-banner";
 import { ArtisanReviews } from "@/components/artisan-reviews";
 import { useLanguage } from "@/components/language-context";
 import { useReveal } from "@/components/use-reveal";
@@ -534,6 +535,8 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
               )
             ) : null}
           </div>
+
+          <AdBanner placement="browse" className="mt-6" />
         </div>
       </section>
 

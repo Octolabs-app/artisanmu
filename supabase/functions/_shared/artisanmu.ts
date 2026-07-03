@@ -201,6 +201,16 @@ export function whatsappDeepLink(phone: string, message: string) {
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }
 
+export function telLink(phone: string) {
+  return `tel:${phone.replace(/[^\d+]/g, "")}`;
+}
+
+export const allowedContactMethods = ["whatsapp", "call"];
+
+export function normalizeContactMethod(value: unknown) {
+  return value === "call" ? "call" : "whatsapp";
+}
+
 export function requireString(value: unknown, field: string) {
   if (typeof value !== "string" || !value.trim()) {
     throw new HttpError(400, `missing_${field}`, `${field} is required.`);

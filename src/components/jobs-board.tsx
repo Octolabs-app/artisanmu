@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Briefcase, Clock3, MapPin, RotateCcw, Wrench } from "lucide-react";
+import { Briefcase, Clock3, MapPin, Phone, RotateCcw, Wrench } from "lucide-react";
+import { AdBanner } from "@/components/ad-banner";
 import { useLanguage } from "@/components/language-context";
 import { popularTrades, type Language } from "@/lib/copy";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
@@ -13,6 +14,7 @@ type PublicJob = {
   description: string;
   district: string;
   urgency: "urgent" | "planned";
+  contactMethod?: "whatsapp" | "call";
   createdAt: string;
 };
 
@@ -34,6 +36,7 @@ const jobsCopy: Record<
     claiming: string;
     claimed: string;
     verifiedOnly: string;
+    prefersCall: string;
     emptyTitle: string;
     emptyBody: string;
     postCta: string;
@@ -62,6 +65,7 @@ const jobsCopy: Record<
     claiming: "Claiming…",
     claimed: "Claimed ✓",
     verifiedOnly: "Verified artisans only",
+    prefersCall: "Prefers a call",
     emptyTitle: "No open jobs right now",
     emptyBody: "New requests appear here as clients post them.",
     postCta: "Post a job",
@@ -89,6 +93,7 @@ const jobsCopy: Record<
     claiming: "Acceptation…",
     claimed: "Accepte ✓",
     verifiedOnly: "Artisans verifies uniquement",
+    prefersCall: "Prefere un appel",
     emptyTitle: "Aucun travail ouvert pour le moment",
     emptyBody: "Les nouvelles demandes apparaissent ici des que les clients les postent.",
     postCta: "Poster un travail",
@@ -116,6 +121,7 @@ const jobsCopy: Record<
     claiming: "Pe pran…",
     claimed: "Fini pran ✓",
     verifiedOnly: "Zis artizan verifye",
+    prefersCall: "Prefer enn apel",
     emptyTitle: "Pena travay ouver la",
     emptyBody: "Bann nouvo demann paret isi kan kliyan poste zot.",
     postCta: "Poste enn travay",
@@ -222,9 +228,10 @@ export function JobsBoard() {
       });
       const json = await res.json();
 
-      if (json.success && json.contact?.whatsapp_deep_link) {
+      const contactLink = json.contact?.whatsapp_deep_link || json.contact?.phone_link;
+      if (json.success && contactLink) {
         setClaimed((prev) => new Set([...prev, jobId]));
-        window.open(json.contact.whatsapp_deep_link, "_blank", "noopener,noreferrer");
+        window.open(contactLink, "_blank", "noopener,noreferrer");
         showToast(jc.toastClaimed);
       } else if (json.reason === "already_claimed") {
         showToast(jc.toastTaken);
@@ -326,6 +333,12 @@ export function JobsBoard() {
                       <MapPin className="size-3.5" aria-hidden="true" />
                       {job.district}
                     </span>
+                    {job.contactMethod === "call" ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#fff4e0] px-2.5 py-1 text-sm font-semibold text-[#78511c]">
+                        <Phone className="size-3.5" aria-hidden="true" />
+                        {jc.prefersCall}
+                      </span>
+                    ) : null}
                   </div>
 
                   {/* Description */}
@@ -359,6 +372,8 @@ export function JobsBoard() {
           })}
         </div>
       )}
+
+      <AdBanner placement="jobs" className="mt-8" />
 
       <p className="mt-10 text-center text-sm text-[#5d6863]">
         {jc.joinLead}{" "}

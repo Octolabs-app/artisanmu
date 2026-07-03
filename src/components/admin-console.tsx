@@ -22,9 +22,12 @@ import {
   EyeOff,
   ImageIcon,
   Inbox,
+  LogOut,
   Mail,
   MapPin,
   Megaphone,
+  Plus,
+  Power,
   MessageCircle,
   Phone,
   RefreshCw,
@@ -550,18 +553,122 @@ function ReviewCard({
   );
 }
 
-/* ─────────────────────────── ads (honest panel) ─────────────────────────── */
+/* ─────────────────────────── ads (house ads + AdSense) ─────────────────────────── */
 
-const adSurfaces = [
-  { id: "search-results", name: "Search results", surface: "/browse", desc: "Below the artisan results list." },
-  { id: "request-panel", name: "Request panel", surface: "/post", desc: "Beside the job request form." },
+type SiteAd = {
+  id: string;
+  title: string;
+  body: string;
+  href: string;
+  image_url: string;
+  placement: string;
+  active: boolean;
+  created_at: string;
+};
+
+const adPlacementOptions = [
+  { value: "browse", label: "Browse artisans — /browse" },
+  { value: "jobs", label: "Job board — /jobs" },
+  { value: "post", label: "Post a job — /post" },
+  { value: "home", label: "Homepage — /" },
 ];
 
-function AdsPanel() {
+function AdsPanel({ adminPassword }: { adminPassword: string }) {
   const adsenseConfigured = Boolean(process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID);
+  const [ads, setAds] = useState<SiteAd[]>([]);
+  const [loadingAds, setLoadingAds] = useState(true);
+  const [adsError, setAdsError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [mutatingAd, setMutatingAd] = useState("");
+  const [adForm, setAdForm] = useState({ title: "", body: "", href: "", placement: "browse" });
+
+  const loadAds = useCallback(async () => {
+    setLoadingAds(true);
+    setAdsError("");
+    try {
+      const payload = await invokePublicFunction<{ success?: boolean; ads?: SiteAd[]; message?: string }>(
+        "artisanmu-admin-content",
+        { admin_password: adminPassword, action: "list_ads" },
+      );
+      setAds(payload.ads || []);
+    } catch (error) {
+      setAdsError(error instanceof Error ? error.message : "Could not load ads.");
+    } finally {
+      setLoadingAds(false);
+    }
+  }, [adminPassword]);
+
+  useEffect(() => {
+    void loadAds();
+  }, [loadAds]);
+
+  async function createAd() {
+    if (!adForm.title.trim()) {
+      setAdsError("Give the ad a title first.");
+      return;
+    }
+    setSaving(true);
+    setAdsError("");
+    try {
+      const payload = await invokePublicFunction<{ success?: boolean; ad?: SiteAd; message?: string }>(
+        "artisanmu-admin-content",
+        {
+          admin_password: adminPassword,
+          action: "create_ad",
+          title: adForm.title,
+          body: adForm.body,
+          href: adForm.href,
+          placement: adForm.placement,
+        },
+      );
+      if (payload.ad) {
+        setAds((current) => [payload.ad as SiteAd, ...current]);
+        setAdForm({ title: "", body: "", href: "", placement: adForm.placement });
+      }
+    } catch (error) {
+      setAdsError(error instanceof Error ? error.message : "Could not create the ad.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleAd(ad: SiteAd) {
+    setMutatingAd(ad.id);
+    try {
+      const payload = await invokePublicFunction<{ success?: boolean; ad?: SiteAd }>(
+        "artisanmu-admin-content",
+        { admin_password: adminPassword, action: "update_ad", ad_id: ad.id, active: !ad.active },
+      );
+      if (payload.ad) {
+        setAds((current) => current.map((item) => (item.id === ad.id ? (payload.ad as SiteAd) : item)));
+      }
+    } catch (error) {
+      setAdsError(error instanceof Error ? error.message : "Could not update the ad.");
+    } finally {
+      setMutatingAd("");
+    }
+  }
+
+  async function deleteAd(ad: SiteAd) {
+    if (!window.confirm(`Delete the ad "${ad.title}"? This cannot be undone.`)) return;
+    setMutatingAd(ad.id);
+    try {
+      await invokePublicFunction("artisanmu-admin-content", {
+        admin_password: adminPassword,
+        action: "delete_ad",
+        ad_id: ad.id,
+      });
+      setAds((current) => current.filter((item) => item.id !== ad.id));
+    } catch (error) {
+      setAdsError(error instanceof Error ? error.message : "Could not delete the ad.");
+    } finally {
+      setMutatingAd("");
+    }
+  }
 
   return (
     <div className="grid gap-4">
+      {/* AdSense status */}
       <div
         className={`rounded-2xl border p-5 shadow-sm ${
           adsenseConfigured ? "border-[var(--green)]/30 bg-[var(--green-soft)]" : "border-[var(--line)] bg-[var(--surface)]"
@@ -569,59 +676,155 @@ function AdsPanel() {
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span
-              className={`flex size-10 items-center justify-center rounded-xl ${
-                adsenseConfigured ? "bg-white text-[var(--green-strong)]" : "bg-[var(--green-soft)] text-[var(--green-strong)]"
-              }`}
-            >
+            <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--green-soft)] text-[var(--green-strong)]">
               <Megaphone className="size-5" aria-hidden="true" />
             </span>
             <div>
               <h3 className="text-base font-semibold text-[var(--ink)]">Google AdSense</h3>
-              <p className="text-sm text-[var(--muted)]">Banner monetization across the public site.</p>
+              <p className="text-sm text-[var(--muted)]">Automatic banner monetization (optional).</p>
             </div>
           </div>
           <StatusBadge status={adsenseConfigured ? "Live" : "Inactive"} />
         </div>
-        <p className="mt-4 text-sm leading-6 text-[#3f4a45]">
-          {adsenseConfigured
-            ? "AdSense is configured. Live ads render inside the placements below and on the public pages."
-            : "Ads are switched off. To turn them on, set the build-time env var "}
-          {!adsenseConfigured ? (
+        {!adsenseConfigured ? (
+          <p className="mt-3 text-sm leading-6 text-[#3f4a45]">
+            To enable AdSense set{" "}
             <code className="rounded-md bg-[#f0ece3] px-1.5 py-0.5 font-mono text-xs text-[var(--ink)]">
               NEXT_PUBLIC_ADSENSE_CLIENT_ID
-            </code>
-          ) : null}
-          {!adsenseConfigured ? " in the host, then redeploy. No code change is needed." : ""}
-        </p>
+            </code>{" "}
+            in the host and redeploy. House ads below work independently and are live now.
+          </p>
+        ) : null}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {adSurfaces.map((surface) => (
-          <article key={surface.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <h4 className="font-semibold text-[var(--ink)]">{surface.name}</h4>
-              <StatusBadge status={adsenseConfigured ? "Live" : "Inactive"} />
-            </div>
-            <p className="mt-1 text-sm text-[var(--muted)]">{surface.desc}</p>
-            <Link
-              href={surface.surface}
-              target="_blank"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--green-strong)] hover:underline"
+      {/* Create house ad */}
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-sm">
+        <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--ink)]">
+          <Plus className="size-4 text-[var(--green-strong)]" aria-hidden="true" />
+          New house ad
+        </h3>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Sell banner spots to local businesses (Rs 2,000 / month) — no AdSense needed. Active ads
+          render instantly on the chosen page.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm font-medium text-[var(--ink)]">
+            Title
+            <input
+              value={adForm.title}
+              onChange={(event) => setAdForm((current) => ({ ...current, title: event.target.value }))}
+              maxLength={80}
+              className="mt-1.5 h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm outline-none focus:border-[var(--green)]"
+              placeholder="e.g. Espace Maison — Quincaillerie"
+            />
+          </label>
+          <label className="block text-sm font-medium text-[var(--ink)]">
+            Placement
+            <select
+              value={adForm.placement}
+              onChange={(event) => setAdForm((current) => ({ ...current, placement: event.target.value }))}
+              className="mt-1.5 h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm outline-none focus:border-[var(--green)]"
             >
-              View {surface.surface}
-              <ExternalLink className="size-3.5" aria-hidden="true" />
-            </Link>
-            {adsenseConfigured ? (
-              <AdBanner className="mt-3" placement={surface.id} format="auto" compact />
-            ) : (
-              <div className="mt-3 flex min-h-20 items-center justify-center rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-soft)] text-xs font-medium text-[var(--muted)]">
-                Ad slot — inactive
-              </div>
-            )}
-          </article>
-        ))}
+              {adPlacementOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-[var(--ink)] sm:col-span-2">
+            Text (optional)
+            <input
+              value={adForm.body}
+              onChange={(event) => setAdForm((current) => ({ ...current, body: event.target.value }))}
+              maxLength={200}
+              className="mt-1.5 h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm outline-none focus:border-[var(--green)]"
+              placeholder="Short pitch shown under the title"
+            />
+          </label>
+          <label className="block text-sm font-medium text-[var(--ink)] sm:col-span-2">
+            Link (optional)
+            <input
+              value={adForm.href}
+              onChange={(event) => setAdForm((current) => ({ ...current, href: event.target.value }))}
+              maxLength={300}
+              inputMode="url"
+              className="mt-1.5 h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm outline-none focus:border-[var(--green)]"
+              placeholder="https://..."
+            />
+          </label>
+        </div>
+        <button
+          type="button"
+          onClick={createAd}
+          disabled={saving || !adForm.title.trim()}
+          className="btn btn-primary mt-4 h-11 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saving ? "Publishing…" : "Publish ad"}
+        </button>
       </div>
+
+      {adsError ? <ErrorState message={adsError} onRetry={loadAds} /> : null}
+
+      {/* House ads list */}
+      {loadingAds ? (
+        <LoadingList />
+      ) : ads.length ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {ads.map((ad) => (
+            <article key={ad.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h4 className="truncate font-semibold text-[var(--ink)]">{ad.title}</h4>
+                  {ad.body ? <p className="mt-0.5 text-sm leading-5 text-[var(--muted)]">{ad.body}</p> : null}
+                </div>
+                <StatusBadge status={ad.active ? "Live" : "Paused"} />
+              </div>
+              <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+                <span className="rounded-full bg-[var(--surface-soft)] px-2 py-1 font-semibold">
+                  {adPlacementOptions.find((option) => option.value === ad.placement)?.label || ad.placement}
+                </span>
+                {ad.href ? (
+                  <a
+                    href={ad.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-[var(--green-strong)] hover:underline"
+                  >
+                    Link <ExternalLink className="size-3" aria-hidden="true" />
+                  </a>
+                ) : null}
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleAd(ad)}
+                  disabled={mutatingAd === ad.id}
+                  className="btn btn-secondary h-9 flex-1 px-3 text-xs disabled:opacity-60"
+                >
+                  <Power className="size-3.5" aria-hidden="true" />
+                  {ad.active ? "Pause" : "Activate"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteAd(ad)}
+                  disabled={mutatingAd === ad.id}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[#e4bbb4] bg-white px-3 text-xs font-semibold text-[var(--rose)] transition hover:bg-[#fff4f2] disabled:opacity-60"
+                >
+                  <Trash2 className="size-3.5" aria-hidden="true" />
+                  Delete
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={Megaphone}
+          title="No house ads yet"
+          copy="Publish your first local sponsor above — it appears on the public page the moment it is live."
+        />
+      )}
 
       <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-5">
         <h4 className="flex items-center gap-2 font-semibold text-[var(--ink)]">
@@ -954,7 +1157,7 @@ function ArtisanDetailModal({
 
 /* ─────────────────────────── main console ─────────────────────────── */
 
-export function AdminConsole({ adminPassword }: { adminPassword: string }) {
+export function AdminConsole({ adminPassword, onLogout }: { adminPassword: string; onLogout?: () => void }) {
   const [activeTab, setActiveTab] = useState<AdminTab>("review");
   const [query, setQuery] = useState("");
   const [artisanStatusFilter, setArtisanStatusFilter] = useState<"all" | "approved" | "rejected" | "removed">("all");
@@ -1349,6 +1552,17 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
               <ArrowLeft className="size-4" aria-hidden="true" />
               <span className="hidden sm:inline">Site</span>
             </Link>
+            {onLogout ? (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="btn btn-secondary h-10 px-3 text-sm"
+                aria-label="Log out of admin"
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Log out</span>
+              </button>
+            ) : null}
           </div>
         </div>
       </header>
@@ -1786,7 +2000,7 @@ export function AdminConsole({ adminPassword }: { adminPassword: string }) {
         ) : null}
 
         {/* ── ADS ── */}
-        {activeTab === "ads" ? <div className="mt-5"><AdsPanel /></div> : null}
+        {activeTab === "ads" ? <div className="mt-5"><AdsPanel adminPassword={adminPassword} /></div> : null}
       </div>
 
       {detailArtisan ? (

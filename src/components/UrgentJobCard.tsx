@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock3, Loader2, Lock, MessageCircle, MessageSquareText, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Clock3, Loader2, Lock, MessageCircle, MessageSquareText, Phone, ShieldCheck } from "lucide-react";
 import { ArtisanMuFunctionError, invokeUserFunction } from "@/lib/artisanmu-functions";
 
 type UrgentJob = {
@@ -16,7 +16,9 @@ type UrgentJob = {
 
 type ClaimContact = {
   display_name: string;
-  whatsapp_deep_link: string;
+  method?: "whatsapp" | "call";
+  whatsapp_deep_link?: string | null;
+  phone_link?: string | null;
 };
 
 type UrgentJobCardProps = {
@@ -178,11 +180,21 @@ export function UrgentJobCard({
           <div className={`mt-3 grid gap-2 ${onOpenThread ? "sm:grid-cols-2" : ""}`}>
             <button
               type="button"
-              onClick={() => window.open(contact.whatsapp_deep_link, "_blank", "noopener,noreferrer")}
+              onClick={() =>
+                window.open(
+                  contact.whatsapp_deep_link || contact.phone_link || "#",
+                  "_blank",
+                  "noopener,noreferrer",
+                )
+              }
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#0b7758]"
             >
-              <MessageCircle className="size-4" aria-hidden="true" />
-              WhatsApp
+              {contact.whatsapp_deep_link ? (
+                <MessageCircle className="size-4" aria-hidden="true" />
+              ) : (
+                <Phone className="size-4" aria-hidden="true" />
+              )}
+              {contact.whatsapp_deep_link ? "WhatsApp" : "Call client"}
             </button>
             {onOpenThread ? (
               <button

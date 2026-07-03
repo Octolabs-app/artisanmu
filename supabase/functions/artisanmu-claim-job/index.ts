@@ -7,6 +7,7 @@ import {
   optionsResponse,
   readJsonBody,
   requireString,
+  telLink,
   whatsappDeepLink,
 } from "../_shared/artisanmu.ts";
 
@@ -75,7 +76,7 @@ Deno.serve(async (request: Request) => {
       .eq("id", jobId)
       .eq("status", "open")
       .gt("expires_at", now)
-      .select("id,description,customer_display_name,whatsapp_encrypted,whatsapp_iv")
+      .select("id,description,customer_display_name,contact_method,whatsapp_encrypted,whatsapp_iv")
       .maybeSingle();
 
     if (claimError) {
@@ -122,11 +123,14 @@ Deno.serve(async (request: Request) => {
       }),
     ]);
 
+    const contactMethod = job.contact_method === "call" ? "call" : "whatsapp";
     return jsonResponse({
       success: true,
       contact: {
         display_name: displayName,
-        whatsapp_deep_link: whatsappDeepLink(phone, message),
+        method: contactMethod,
+        phone_link: telLink(phone),
+        whatsapp_deep_link: contactMethod === "whatsapp" ? whatsappDeepLink(phone, message) : null,
       },
     });
   } catch (error) {

@@ -11,6 +11,7 @@ import {
   HttpError,
   jsonResponse,
   matchingDistricts,
+  normalizeContactMethod,
   normalizeMauritiusWhatsapp,
   optionsResponse,
   readJsonBody,
@@ -25,6 +26,7 @@ type CreateJobBody = {
   trade?: string;
   district?: string;
   whatsapp_number?: string;
+  contact_method?: string;
   photo_url?: string;
   expiry_days?: number;
 };
@@ -74,6 +76,7 @@ Deno.serve(async (request: Request) => {
     }
 
     const supabase = getAdminSupabase();
+    const contactMethod = normalizeContactMethod(body.contact_method);
     const e164Phone = normalizeMauritiusWhatsapp(body.whatsapp_number);
     const [phoneHash, encryptedPhone] = await Promise.all([
       hashPhone(e164Phone),
@@ -122,6 +125,7 @@ Deno.serve(async (request: Request) => {
         photo_storage_path: photoPath,
         status: "open",
         urgency,
+        contact_method: contactMethod,
         expires_at: expiresAt,
       })
       .select("id")
@@ -164,6 +168,7 @@ Deno.serve(async (request: Request) => {
         district,
         trade,
         has_photo: Boolean(photoPath),
+        contact_method: contactMethod,
         targeted_artisan_count: targets.length,
       },
     });

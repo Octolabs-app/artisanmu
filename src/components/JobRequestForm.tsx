@@ -21,12 +21,14 @@ import { districtOptions, tradeOptions } from "@/lib/service-options";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
 
 type Urgency = "urgent" | "planned";
+type ContactMethod = "whatsapp" | "call";
 
 type FormState = {
   urgency: Urgency | "";
   description: string;
   trade: string;
   district: string;
+  contactMethod: ContactMethod;
   whatsappNumber: string;
   photoFile: File | null;
 };
@@ -46,6 +48,7 @@ const initialForm: FormState = {
   description: "",
   trade: "Plumber",
   district: "",
+  contactMethod: "whatsapp",
   whatsappNumber: "",
   photoFile: null,
 };
@@ -189,6 +192,7 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
         description: form.description.trim(),
         trade: form.trade,
         district: form.district,
+        contact_method: form.contactMethod,
         whatsapp_number: `+230${localPhone}`,
         photo_url: photoPath,
       });
@@ -400,8 +404,40 @@ export function JobRequestForm({ initialTrade }: JobRequestFormProps = {}) {
 
       {step === 3 ? (
         <div className="mt-4 grid gap-4">
+          <fieldset>
+            <legend className="text-sm font-medium text-[#101410]">{t.contactMethodLabel}</legend>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                aria-pressed={form.contactMethod === "whatsapp"}
+                onClick={() => updateForm({ contactMethod: "whatsapp" })}
+                className={`rounded-md border p-3 text-left transition ${
+                  form.contactMethod === "whatsapp"
+                    ? "border-[#0d8b66] bg-[#e8f6f1] ring-2 ring-[#0d8b66]/15"
+                    : "border-[#ddd8cd] bg-white hover:border-[#0d8b66]/60"
+                }`}
+              >
+                <span className="block text-sm font-semibold text-[#101410]">{t.contactWhatsapp}</span>
+                <span className="mt-0.5 block text-xs leading-4 text-[#5f6a64]">{t.contactWhatsappHint}</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={form.contactMethod === "call"}
+                onClick={() => updateForm({ contactMethod: "call" })}
+                className={`rounded-md border p-3 text-left transition ${
+                  form.contactMethod === "call"
+                    ? "border-[#0d8b66] bg-[#e8f6f1] ring-2 ring-[#0d8b66]/15"
+                    : "border-[#ddd8cd] bg-white hover:border-[#0d8b66]/60"
+                }`}
+              >
+                <span className="block text-sm font-semibold text-[#101410]">{t.contactCall}</span>
+                <span className="mt-0.5 block text-xs leading-4 text-[#5f6a64]">{t.contactCallHint}</span>
+              </button>
+            </div>
+          </fieldset>
+
           <label className="block text-sm font-medium text-[#101410]">
-            {t.whatsappLabel}
+            {form.contactMethod === "whatsapp" ? t.whatsappLabel : t.phoneLabel}
             <span className="mt-2 flex h-12 overflow-hidden rounded-md border border-[#d8d1c3] bg-white focus-within:border-[#0d8b66]">
               <span className="flex items-center border-r border-[#eee8dc] bg-[#f8f4ea] px-3 text-sm font-semibold text-[#4d5651]">
                 +230
