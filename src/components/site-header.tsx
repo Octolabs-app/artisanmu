@@ -27,7 +27,7 @@ export function SiteHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-[#e3ddd1] bg-[#f7f4ee]/85 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-[#e3ddd1] bg-[#f7f4ee]/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link href="/" className="rounded-lg">
             <ArtisanMuLogo subtitle="Mauritius home services" />

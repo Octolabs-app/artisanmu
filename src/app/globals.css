@@ -221,10 +221,12 @@ textarea:focus-visible,
   from { opacity: 0; transform: translateY(26px); }
   to { opacity: 1; transform: none; }
 }
-@keyframes blobMorph {
-  0%, 100% { border-radius: 42% 58% 63% 37% / 42% 38% 62% 58%; transform: translate3d(0, 0, 0) rotate(0deg); }
-  33% { border-radius: 66% 34% 38% 62% / 57% 63% 37% 43%; transform: translate3d(4%, -3%, 0) rotate(8deg); }
-  66% { border-radius: 38% 62% 56% 44% / 49% 36% 64% 51%; transform: translate3d(-3%, 3%, 0) rotate(-6deg); }
+/* Transform-only drift: border-radius/filter changes would repaint the
+   blurred layer every frame (main-thread jank on large elements). */
+@keyframes blobDrift {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  33% { transform: translate3d(4%, -3%, 0) rotate(8deg) scale(1.05); }
+  66% { transform: translate3d(-3%, 3%, 0) rotate(-6deg) scale(0.97); }
 }
 @keyframes marquee {
   from { transform: translateX(0); }
@@ -267,10 +269,11 @@ textarea:focus-visible,
 
 .blob {
   position: absolute;
+  border-radius: 42% 58% 63% 37% / 42% 38% 62% 58%;
   filter: blur(8px);
   opacity: 0.55;
-  animation: blobMorph 20s ease-in-out infinite;
-  will-change: transform, border-radius;
+  animation: blobDrift 20s ease-in-out infinite;
+  will-change: transform;
 }
 
 .gradient-text {
@@ -385,4 +388,64 @@ textarea:focus-visible,
   .btn:hover { transform: none; }
   .btn:active { transform: none; }
   .card-hover:hover { transform: none; }
+}
+
+/* ── How-it-works interactive story ── */
+@keyframes storyDrip {
+  0% { transform: translateY(0); opacity: 0; }
+  15% { opacity: 1; }
+  80% { transform: translateY(52px); opacity: 1; }
+  100% { transform: translateY(58px); opacity: 0; }
+}
+@keyframes storyPuddle {
+  from { transform: scaleX(0.2); opacity: 0; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+@keyframes storyPing {
+  0% { transform: scale(0.4); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes storyPop {
+  0% { transform: scale(0) translateY(8px); opacity: 0; }
+  70% { transform: scale(1.15) translateY(-2px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes storyBubble {
+  0% { transform: translateY(14px) scale(0.9); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes storyStamp {
+  0% { transform: scale(2.4) rotate(-14deg); opacity: 0; }
+  60% { transform: scale(0.92) rotate(-8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-8deg); opacity: 1; }
+}
+@keyframes storyConfetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(72px) rotate(320deg); opacity: 0; }
+}
+@keyframes storyWrench {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(-24deg); }
+  70% { transform: rotate(10deg); }
+}
+.story-drip { animation: storyDrip 1.6s ease-in infinite; }
+.story-drip-2 { animation-delay: 0.55s; }
+.story-drip-3 { animation-delay: 1.1s; }
+.story-puddle { transform-origin: center; animation: storyPuddle 1.4s ease-out both; }
+.story-ping { transform-origin: center; animation: storyPing 1.8s ease-out infinite; }
+.story-pop { animation: storyPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.story-bubble { animation: storyBubble 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.story-stamp { animation: storyStamp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.story-confetti { animation: storyConfetti 1.3s ease-in both; }
+.story-wrench { transform-origin: 80% 20%; animation: storyWrench 1.2s ease-in-out 2; }
+.story-d1 { animation-delay: 0.35s; }
+.story-d2 { animation-delay: 0.85s; }
+.story-d3 { animation-delay: 1.35s; }
+.story-d4 { animation-delay: 1.9s; }
+.story-d5 { animation-delay: 2.4s; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Hide loop-only particles; everything else freezes visible via the
+     global animation override above. */
+  .story-drip, .story-ping, .story-confetti { display: none; }
 }
