@@ -121,6 +121,23 @@ function normalizePortfolioPaths(value: unknown) {
   return paths;
 }
 
+// Visitors who already signed in (e.g. Google OAuth) send their JWT; the
+// application then links to that auth user instead of creating a new one.
+async function resolveLinkedUser(request: Request) {
+  const authHeader = request.headers.get("Authorization") || "";
+  if (!/^bearer\s+/i.test(authHeader)) return null;
+
+  const token = authHeader.replace(/^bearer\s+/i, "").trim();
+  if (!token) return null;
+
+  const { data, error } = await getAdminSupabase().auth.getUser(token);
+  if (error || !data.user?.email) {
+    throw new HttpError(401, "invalid_session", "Your session expired. Sign in again and retry.");
+  }
+
+  return { id: data.user.id, email: data.user.email.toLowerCase() };
+}
+
 function initialsForName(name: string) {
   return name
     .split(" ")
@@ -140,10 +157,11 @@ Deno.serve(async (request: Request) => {
   let createdUserId = "";
 
   try {
+    const linkedUser = await resolveLinkedUser(request);
     const body = await readJsonBody<RegisterArtisanBody>(request);
     const name = normalizeName(body.name);
-    const email = normalizeEmail(body.email);
-    const password = normalizePassword(body.password);
+    const email = linkedUser ? linkedUser.email : normalizeEmail(body.email);
+    const password = linkedUser ? "" : normalizePassword(body.password);
     const whatsapp = normalizeMauritiusWhatsapp(body.whatsapp);
     const trade = requireString(body.trade, "trade");
     const district = canonicalDistrict(requireString(body.district, "district"));
@@ -175,23 +193,44 @@ Deno.serve(async (request: Request) => {
       throw new HttpError(409, "application_exists", "An artisan application already exists for this email.");
     }
 
-    const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        source: "artisanmu-self-registration",
-        name,
-        trade,
-        district,
-      },
-    });
+    let authUserId: string;
 
-    if (userError || !userData.user) {
-      throw new HttpError(409, "auth_user_create_failed", userError?.message || "Could not create artisan login.");
+    if (linkedUser) {
+      const { data: existingLink, error: linkLookupError } = await supabase
+        .from("artisans")
+        .select("id")
+        .eq("auth_user_id", linkedUser.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (linkLookupError) {
+        throw new HttpError(500, "application_lookup_failed", linkLookupError.message);
+      }
+      if (existingLink) {
+        throw new HttpError(409, "application_exists", "This account already has an artisan profile.");
+      }
+
+      authUserId = linkedUser.id;
+    } else {
+      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          source: "artisanmu-self-registration",
+          name,
+          trade,
+          district,
+        },
+      });
+
+      if (userError || !userData.user) {
+        throw new HttpError(409, "auth_user_create_failed", userError?.message || "Could not create artisan login.");
+      }
+
+      createdUserId = userData.user.id;
+      authUserId = createdUserId;
     }
-
-    createdUserId = userData.user.id;
 
     const photoUrls = portfolioPaths.map((path) => storagePublicUrl("portfolios", path));
     const { data: artisan, error: artisanError } = await supabase
@@ -199,7 +238,7 @@ Deno.serve(async (request: Request) => {
       .insert({
         nom: name,
         tel: whatsapp,
-        nic: `SELF-REG-${createdUserId.slice(0, 8)}`,
+        nic: `SELF-REG-${authUserId.slice(0, 8)}`,
         metier: trade,
         ville: town,
         district,
@@ -209,7 +248,7 @@ Deno.serve(async (request: Request) => {
         avatar: photoUrls[0] || null,
         photos: JSON.stringify(photoUrls),
         initiales: initialsForName(name),
-        auth_user_id: createdUserId,
+        auth_user_id: authUserId,
         application_email: email,
         verification_notes: portfolioPaths.length ? null : "Application created before work photos finished uploading.",
         is_verified: false,
@@ -221,8 +260,11 @@ Deno.serve(async (request: Request) => {
       .single();
 
     if (artisanError || !artisan) {
-      await supabase.auth.admin.deleteUser(createdUserId);
-      createdUserId = "";
+      // Only remove auth users this request created — never a linked account.
+      if (createdUserId) {
+        await supabase.auth.admin.deleteUser(createdUserId);
+        createdUserId = "";
+      }
       throw new HttpError(500, "profile_create_failed", artisanError?.message || "Could not create artisan profile.");
     }
 
@@ -231,7 +273,8 @@ Deno.serve(async (request: Request) => {
       event: "artisan_application_created",
       metadata: {
         source: "artisanmu-register-artisan",
-        auth_user: createdUserId,
+        auth_user: authUserId,
+        linked_existing_session: Boolean(linkedUser),
         application_email: email,
         portfolio_count: photoUrls.length,
         service_tags: serviceTags,

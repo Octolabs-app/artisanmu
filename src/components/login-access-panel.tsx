@@ -9,6 +9,29 @@ import { getBrowserSupabase, getMissingBrowserSupabaseEnv } from "@/lib/supabase
 
 type Mode = "signin" | "signup";
 
+function GoogleMark({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.88c2.27-2.09 3.58-5.17 3.58-8.81Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.88-3.01c-1.07.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.72-4.95H1.27v3.11A12 12 0 0 0 12 24Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.28 14.28A7.2 7.2 0 0 1 4.9 12c0-.79.14-1.56.38-2.28V6.61H1.27a12 12 0 0 0 0 10.78l4.01-3.11Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.77c1.76 0 3.34.61 4.59 1.8l3.44-3.44A11.98 11.98 0 0 0 1.27 6.61l4.01 3.11C6.22 6.88 8.87 4.77 12 4.77Z"
+      />
+    </svg>
+  );
+}
+
 async function hasLinkedArtisanProfile(userId: string) {
   const supabase = getBrowserSupabase();
   if (!supabase) return false;
@@ -31,6 +54,7 @@ export function LoginAccessPanel() {
   const [checking, setChecking] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     const supabase = getBrowserSupabase();
@@ -115,6 +139,34 @@ export function LoginAccessPanel() {
     }
 
     window.location.assign("/artisan/");
+  }
+
+  async function handleGoogleSignIn() {
+    const supabase = getBrowserSupabase();
+
+    if (!supabase) {
+      const missing = getMissingBrowserSupabaseEnv().join(", ");
+      setNotice(`Sign-in is not configured yet. Missing: ${missing}.`);
+      setNoticeType("error");
+      return;
+    }
+
+    setGoogleLoading(true);
+    setNotice("");
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth-callback/`,
+      },
+    });
+
+    if (error) {
+      setNotice("Google sign-in could not start. Try again in a moment.");
+      setNoticeType("error");
+      setGoogleLoading(false);
+    }
+    // On success the browser navigates to Google, so the loading state stays on.
   }
 
   async function handleForgotPassword() {
@@ -224,8 +276,23 @@ export function LoginAccessPanel() {
             </button>
           </div>
 
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={checking || googleLoading}
+            className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-xl border border-[#e3ddd1] bg-white text-sm font-semibold text-[#0d1612] transition-all duration-150 hover:border-[#0d8b66] hover:shadow-sm active:scale-[0.99] disabled:opacity-60"
+          >
+            <GoogleMark className="size-4.5 shrink-0" />
+            {googleLoading ? "Opening Google…" : "Continue with Google"}
+          </button>
+          <div className="mt-4 flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-[#8a938d]" aria-hidden="true">
+            <span className="h-px flex-1 bg-[#e3ddd1]" />
+            or {mode === "signin" ? "use your email" : "register with email"}
+            <span className="h-px flex-1 bg-[#e3ddd1]" />
+          </div>
+
           {mode === "signin" ? (
-            <form onSubmit={handleSubmit} className="mt-6 grid gap-4" noValidate>
+            <form onSubmit={handleSubmit} className="mt-4 grid gap-4" noValidate>
               <label className="block text-sm font-medium text-[#101410]">
                 Email
                 <span className="mt-2 flex h-12 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-[#fbf8f1] px-3 transition-colors duration-150 focus-within:border-[#0d8b66] focus-within:ring-2 focus-within:ring-[#0d8b66]/20">
@@ -288,7 +355,7 @@ export function LoginAccessPanel() {
               </p>
             </form>
           ) : (
-            <div className="mt-6">
+            <div className="mt-4">
               {notice ? (
                 <p role="status" className={`mb-4 rounded-xl border px-3 py-2 text-sm font-medium ${noticeColors}`}>
                   {notice}

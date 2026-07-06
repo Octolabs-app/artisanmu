@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   BriefcaseBusiness,
   CheckCircle2,
@@ -104,6 +104,30 @@ export function ArtisanRegistrationForm() {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [success, setSuccess] = useState("");
   const [photoStatus, setPhotoStatus] = useState("");
+  // When the visitor already signed in (e.g. with Google) but has no artisan
+  // profile yet, the application links to that account instead of creating one.
+  const [linkedEmail, setLinkedEmail] = useState("");
+
+  useEffect(() => {
+    const supabase = getBrowserSupabase();
+    if (!supabase) return;
+
+    let active = true;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (active && user?.email) setLinkedEmail(user.email);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleUseDifferentAccount() {
+    const supabase = getBrowserSupabase();
+    if (supabase) await supabase.auth.signOut();
+    setLinkedEmail("");
+  }
 
   const localPhone = localWhatsapp(form.whatsapp);
   const fileSummary = useMemo(() => {
@@ -119,8 +143,10 @@ export function ArtisanRegistrationForm() {
 
   function validateForm() {
     if (form.name.trim().length < 2) return "Enter your full name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return "Enter a valid email address.";
-    if (form.password.length < 8) return "Use a password with at least 8 characters.";
+    if (!linkedEmail) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return "Enter a valid email address.";
+      if (form.password.length < 8) return "Use a password with at least 8 characters.";
+    }
     if (!/^[24579]\d{7}$/.test(localPhone)) return "Enter a valid Mauritius phone number.";
     if (!form.district) return "Choose your district.";
     if (form.town.trim().length < 2) return "Enter your town or village.";
@@ -147,10 +173,8 @@ export function ArtisanRegistrationForm() {
       const filesToUpload = form.files;
       const email = form.email.trim();
       const password = form.password;
-      const payload = await invokePublicFunction<{ success?: boolean; message?: string }>("artisanmu-register-artisan", {
+      const registrationBody = {
         name: form.name.trim(),
-        email,
-        password,
         whatsapp: `+230${localPhone}`,
         trade: form.trade,
         district: form.district,
@@ -159,7 +183,16 @@ export function ArtisanRegistrationForm() {
         // Skills + services are one list now; mirror into the legacy specialties field.
         specialties: form.serviceTags.join(", "),
         service_tags: form.serviceTags,
-      });
+      };
+      // Signed-in visitors (Google) link the profile to their session; everyone
+      // else registers with email + password.
+      const payload = linkedEmail
+        ? await invokeUserFunction<{ success?: boolean; message?: string }>("artisanmu-register-artisan", registrationBody)
+        : await invokePublicFunction<{ success?: boolean; message?: string }>("artisanmu-register-artisan", {
+            ...registrationBody,
+            email,
+            password,
+          });
 
       if (!payload.success) {
         throw new Error(payload.message || "Application could not be submitted.");
@@ -175,9 +208,11 @@ export function ArtisanRegistrationForm() {
         throw new Error("Application was created, but photo upload is not configured for this build.");
       }
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) {
-        throw new Error(`Application was created, but photos could not attach yet: ${signInError.message}`);
+      if (!linkedEmail) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          throw new Error(`Application was created, but photos could not attach yet: ${signInError.message}`);
+        }
       }
 
       // Record whether this number is on WhatsApp (default is WhatsApp at registration).
@@ -253,33 +288,51 @@ export function ArtisanRegistrationForm() {
           />
         </label>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-          <label className="block text-sm font-medium text-[#101410]">
-            Email
-            <span className="mt-2 flex h-11 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3 focus-within:border-[#0d8b66]">
-              <Mail className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
-              <input
-                value={form.email}
-                onChange={(event) => updateForm({ email: event.target.value })}
-                type="email"
-                autoComplete="email"
-                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                placeholder="you@example.com"
-              />
+        {linkedEmail ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#b9dfcf] bg-[#e8f6f1] px-3 py-2.5">
+            <span className="flex min-w-0 items-center gap-2 text-sm text-[#0d7c5c]">
+              <Mail className="size-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">
+                Your profile links to <strong className="font-semibold">{linkedEmail}</strong>
+              </span>
             </span>
-          </label>
-          <label className="block text-sm font-medium text-[#101410]">
-            Password
-            <input
-              value={form.password}
-              onChange={(event) => updateForm({ password: event.target.value })}
-              type="password"
-              autoComplete="new-password"
-              className="mt-2 h-11 w-full rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none focus:border-[#0d8b66]"
-              placeholder="8+ characters"
-            />
-          </label>
-        </div>
+            <button
+              type="button"
+              onClick={handleUseDifferentAccount}
+              className="text-xs font-semibold text-[#0a5e46] underline-offset-2 hover:underline"
+            >
+              Use a different account
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <label className="block text-sm font-medium text-[#101410]">
+              Email
+              <span className="mt-2 flex h-11 items-center gap-2 rounded-md border border-[#d8d1c3] bg-white px-3 focus-within:border-[#0d8b66]">
+                <Mail className="size-4 shrink-0 text-[#0d8b66]" aria-hidden="true" />
+                <input
+                  value={form.email}
+                  onChange={(event) => updateForm({ email: event.target.value })}
+                  type="email"
+                  autoComplete="email"
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  placeholder="you@example.com"
+                />
+              </span>
+            </label>
+            <label className="block text-sm font-medium text-[#101410]">
+              Password
+              <input
+                value={form.password}
+                onChange={(event) => updateForm({ password: event.target.value })}
+                type="password"
+                autoComplete="new-password"
+                className="mt-2 h-11 w-full rounded-md border border-[#d8d1c3] bg-white px-3 text-sm outline-none focus:border-[#0d8b66]"
+                placeholder="8+ characters"
+              />
+            </label>
+          </div>
+        )}
 
         <label className="block text-sm font-medium text-[#101410]">
           Phone number
