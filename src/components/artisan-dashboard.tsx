@@ -29,6 +29,7 @@ import {
 import { useLanguage } from "@/components/language-context";
 import { AdBanner } from "@/components/ad-banner";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
+import { NotificationBell, notifyLead, type BellItem } from "@/components/notification-bell";
 import { UrgentJobCard } from "@/components/UrgentJobCard";
 import { TagInput } from "@/components/tag-input";
 import { commentThreads, reviewItems } from "@/lib/admin-data";
@@ -354,8 +355,17 @@ export function ArtisanDashboard() {
   const [accountWorking, setAccountWorking] = useState(false);
   const [accountMessage, setAccountMessage] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [toasts, setToasts] = useState<Array<{ id: number; title: string; body: string }>>([]);
 
   const supabase = useMemo(() => getBrowserSupabase(), []);
+
+  const pushToast = useCallback((title: string, body: string) => {
+    const id = Date.now() + Math.random();
+    setToasts((current) => [...current.slice(-2), { id, title, body }]);
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 7000);
+  }, []);
 
   const reviewsForArtisan = useMemo(
     () => (artisan ? reviewItems.filter((review) => review.artisan === artisan.name) : []),
@@ -470,21 +480,31 @@ export function ArtisanDashboard() {
       })
       .filter((row): row is DashboardNotification => Boolean(row));
 
+    // Leads stay "pending" (unread) until the artisan opens the bell — the
+    // unread badge would be useless if loading the page marked everything read.
     setJobNotifications(notifications);
-
-    const unreadIds = rows
-      .filter((row) => row.status === "pending")
-      .map((row) => row.id);
-
-    if (unreadIds.length) {
-      await supabase
-        .from("job_notifications")
-        .update({ status: "read", read_at: new Date().toISOString() })
-        .in("id", unreadIds);
-    }
-
     setJobsLoading(false);
   }, [supabase]);
+
+  const markLeadsSeen = useCallback(async () => {
+    if (!supabase) return;
+
+    const unreadIds = jobNotifications
+      .filter((notification) => notification.status === "pending")
+      .map((notification) => notification.id);
+    if (!unreadIds.length) return;
+
+    setJobNotifications((current) =>
+      current.map((notification) =>
+        notification.status === "pending" ? { ...notification, status: "read" as JobNotificationStatus } : notification,
+      ),
+    );
+
+    await supabase
+      .from("job_notifications")
+      .update({ status: "read", read_at: new Date().toISOString() })
+      .in("id", unreadIds);
+  }, [supabase, jobNotifications]);
 
   const loadClaimedJobs = useCallback(async () => {
     if (!supabase) return;
@@ -675,6 +695,60 @@ export function ArtisanDashboard() {
       subscription.unsubscribe();
     };
   }, [loadTargetedJobs, loadOpenJobs, loadClaimedJobs, supabase]);
+
+  // Live lead alerts: refresh lists + notify the moment a job_notifications row
+  // lands for this artisan (Supabase Realtime, RLS-scoped to own rows).
+  useEffect(() => {
+    if (!supabase || !artisan || !artisan.verified || artisan.verificationStatus !== "approved") return;
+
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (cancelled || !user) return;
+
+      channel = supabase
+        .channel(`job-notifications-${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "job_notifications", filter: `auth_user_id=eq.${user.id}` },
+          () => {
+            void loadTargetedJobs();
+            pushToast("New job lead", "A client just posted a request matching your profile.");
+            notifyLead("New job lead — Artizan Moris", "A client just posted a request matching your profile. Open your dashboard to claim it.");
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "job_notifications", filter: `auth_user_id=eq.${user.id}` },
+          () => {
+            void loadTargetedJobs();
+            void loadClaimedJobs();
+          },
+        )
+        .subscribe();
+    });
+
+    return () => {
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
+    };
+  }, [supabase, artisan, loadTargetedJobs, loadClaimedJobs, pushToast]);
+
+  const bellItems = useMemo<BellItem[]>(
+    () =>
+      jobNotifications.map((notification) => ({
+        id: notification.id,
+        title: notification.job.category || "Job request",
+        meta: [notification.job.town || notification.job.district, notification.job.description]
+          .filter(Boolean)
+          .join(" · "),
+        urgent: (notification.urgency || notification.job.urgency) === "urgent",
+        unread: notification.status === "pending",
+        createdAt: notification.createdAt,
+      })),
+    [jobNotifications],
+  );
 
 
   async function handleProfileSave() {
@@ -935,39 +1009,63 @@ export function ArtisanDashboard() {
 
   return (
     <main className="min-h-screen bg-[#f6f4ef] pb-20 text-[var(--ink)] md:pb-0">
+      {toasts.length ? (
+        <div className="pointer-events-none fixed bottom-24 right-4 z-50 grid w-[min(92vw,320px)] gap-2 md:bottom-6">
+          {toasts.map((toast) => (
+            <div
+              key={toast.id}
+              role="status"
+              className="page-enter pointer-events-auto rounded-xl border-l-4 border-[var(--green)] bg-white p-3 shadow-[0_18px_40px_-20px_rgba(13,22,18,0.5)]"
+            >
+              <p className="text-sm font-semibold text-[var(--ink)]">{toast.title}</p>
+              <p className="mt-0.5 text-xs leading-5 text-[var(--muted)]">{toast.body}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-[#f6f4ef]/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link href="/" aria-label="Artizan Moris home">
             <ArtisanMuLogo subtitle="Artisan dashboard" />
           </Link>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("profile")}
-            title="Set your working hours"
-            className={`inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold ${
-              deactivated
-                ? "border border-[var(--line)] bg-white text-[#9f4a4a]"
-                : openNow
-                  ? "bg-[var(--green)] text-white"
-                  : "border border-[var(--line)] bg-white text-[var(--muted)]"
-            }`}
-          >
-            {!deactivated && openNow ? (
-              <CheckCircle2 className="size-4" aria-hidden="true" />
-            ) : (
-              <PauseCircle className="size-4" aria-hidden="true" />
-            )}
-            {deactivated ? "Deactivated" : openNow ? "Open now" : "Closed"}
-          </button>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="hidden h-11 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface-soft)] px-3 text-sm font-semibold text-[#0d1612] sm:inline-flex"
-          >
-            <LogOut className="size-4" aria-hidden="true" />
-            Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell
+              items={bellItems}
+              onOpen={() => void markLeadsSeen()}
+              onItemClick={() => {
+                setActiveTab("jobs");
+                document.getElementById("targeted-leads")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setActiveTab("profile")}
+              title="Set your working hours"
+              className={`inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold ${
+                deactivated
+                  ? "border border-[var(--line)] bg-white text-[#9f4a4a]"
+                  : openNow
+                    ? "bg-[var(--green)] text-white"
+                    : "border border-[var(--line)] bg-white text-[var(--muted)]"
+              }`}
+            >
+              {!deactivated && openNow ? (
+                <CheckCircle2 className="size-4" aria-hidden="true" />
+              ) : (
+                <PauseCircle className="size-4" aria-hidden="true" />
+              )}
+              {deactivated ? "Deactivated" : openNow ? "Open now" : "Closed"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="hidden h-11 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface-soft)] px-3 text-sm font-semibold text-[#0d1612] sm:inline-flex"
+            >
+              <LogOut className="size-4" aria-hidden="true" />
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -1072,7 +1170,7 @@ export function ArtisanDashboard() {
 
           {activeTab === "jobs" ? (
             <div className="mt-0 grid gap-3 md:mt-4">
-              <div className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div id="targeted-leads" className="flex scroll-mt-24 flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-soft)] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="font-semibold text-[var(--ink)]">{dc.targetedLeadsTitle}</h2>
                   <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
