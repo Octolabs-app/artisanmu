@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
@@ -9,6 +10,8 @@ import {
   Clock,
   HeartHandshake,
   Images,
+  List,
+  Map as MapIcon,
   MapPin,
   MessageCircle,
   Phone,
@@ -36,7 +39,15 @@ import { mapSupabaseArtisan, publicArtisanSelect, type SupabaseArtisanProfile } 
 import { districts, trades } from "@/lib/mock-data";
 import { districtMatchesSelection, localizeTag, serviceTagOptions, tradeMatchesSelection } from "@/lib/service-options";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
+import { resolveCoords } from "@/lib/mu-geo";
 import type { Artisan } from "@/lib/types";
+import type { MapPin as MuMapPin } from "@/components/mu-map";
+
+// Leaflet is browser-only and heavy — load it only when the map view opens.
+const MuMap = dynamic(() => import("@/components/mu-map").then((mod) => mod.MuMap), {
+  ssr: false,
+  loading: () => <div className="skeleton h-[420px] rounded-2xl" />,
+});
 
 function buildWhatsAppLink(artisan: Artisan | null) {
   if (!artisan?.phone) return "#";
@@ -98,6 +109,7 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
   const [urgent, setUrgent] = useState(true);
   const [modalArtisanId, setModalArtisanId] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [resultsView, setResultsView] = useState<"list" | "map">("list");
   const displayArtisans = refreshedArtisans || artisans;
   const hasAnyArtisans = displayArtisans.length > 0;
 
@@ -175,6 +187,25 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
 
   const modalArtisan = filteredArtisans.find((artisan) => artisan.id === modalArtisanId) || null;
   const availableCount = filteredArtisans.filter((artisan) => artisan.available).length;
+
+  const mapPins = useMemo<MuMapPin[]>(
+    () =>
+      filteredArtisans.flatMap((artisan) => {
+        const coords = resolveCoords(artisan.town, artisan.district, String(artisan.id));
+        if (!coords) return [];
+        return [
+          {
+            id: String(artisan.id),
+            lat: coords.lat,
+            lng: coords.lng,
+            title: artisan.name,
+            subtitle: `${artisan.trade} · ${artisan.town || artisan.district}`,
+            actionLabel: copy.browse.view,
+          },
+        ];
+      }),
+    [filteredArtisans, copy],
+  );
   const activeFilterCount =
     (query.trim() ? 1 : 0) +
     (selectedTrade !== allTradesLabel ? 1 : 0) +
@@ -364,7 +395,7 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                   {copy.browse.readyHeading(filteredArtisans.length)}
                 </h2>
               </div>
-              <div className="flex flex-wrap gap-2 text-xs text-[#5d6863]">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[#5d6863]">
                 {availableCount ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e3ddd1] bg-white px-2.5 py-1.5">
                     <ShieldCheck className="size-3.5 text-[#0d8b66]" aria-hidden="true" />
@@ -373,11 +404,41 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                 ) : null}
                 <span className="rounded-full border border-[#e3ddd1] bg-white px-2.5 py-1.5">{copy.browse.sortedEta}</span>
                 <span className="rounded-full border border-[#e3ddd1] bg-white px-2.5 py-1.5">{copy.browse.verifiedFirst}</span>
+                <div className="flex rounded-full border border-[#e3ddd1] bg-white p-0.5" role="group" aria-label="Results view">
+                  <button
+                    type="button"
+                    onClick={() => setResultsView("list")}
+                    aria-pressed={resultsView === "list"}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-150 ${
+                      resultsView === "list" ? "bg-[#0d8b66] text-white" : "text-[#5d6863] hover:text-[#0d1612]"
+                    }`}
+                  >
+                    <List className="size-3.5" aria-hidden="true" />
+                    {copy.browse.listView}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResultsView("map")}
+                    aria-pressed={resultsView === "map"}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-150 ${
+                      resultsView === "map" ? "bg-[#0d8b66] text-white" : "text-[#5d6863] hover:text-[#0d1612]"
+                    }`}
+                  >
+                    <MapIcon className="size-3.5" aria-hidden="true" />
+                    {copy.browse.mapView}
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {resultsView === "map" && filteredArtisans.length ? (
+            <div className="mt-4">
+              <MuMap pins={mapPins} onPinAction={(id) => setModalArtisanId(id)} className="h-[420px] sm:h-[480px]" />
+            </div>
+          ) : null}
+
+          <div className={`mt-4 grid gap-3 lg:grid-cols-2 ${resultsView === "map" ? "hidden" : ""}`}>
             {filteredArtisans.map((artisan) => {
               const skills = Array.from(new Set([...artisan.serviceTags, ...artisan.specialties]));
               const visibleTags = skills.slice(0, 4);

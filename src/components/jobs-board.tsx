@@ -1,12 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Briefcase, Clock3, MapPin, Phone, RotateCcw, Wrench } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Briefcase, Clock3, Map as MapIcon, MapPin, Phone, RotateCcw, Wrench } from "lucide-react";
 import { AdBanner } from "@/components/ad-banner";
 import { useLanguage } from "@/components/language-context";
 import { popularTrades, type Language } from "@/lib/copy";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
+import { resolveCoords } from "@/lib/mu-geo";
+import type { MapPin as MuMapPin } from "@/components/mu-map";
+
+// Leaflet is browser-only and heavy — load it only when the map is opened.
+const MuMap = dynamic(() => import("@/components/mu-map").then((mod) => mod.MuMap), {
+  ssr: false,
+  loading: () => <div className="skeleton h-[320px] rounded-2xl" />,
+});
 
 type PublicJob = {
   id: string;
@@ -41,6 +50,9 @@ const jobsCopy: Record<
     emptyBody: string;
     postCta: string;
     refresh: string;
+    showMap: string;
+    hideMap: string;
+    mapAction: string;
     joinLead: string;
     joinCta: string;
     toastClaimed: string;
@@ -70,6 +82,9 @@ const jobsCopy: Record<
     emptyBody: "New requests appear here as clients post them.",
     postCta: "Post a job",
     refresh: "Refresh",
+    showMap: "Show map",
+    hideMap: "Hide map",
+    mapAction: "See job",
     joinLead: "Not registered yet?",
     joinCta: "Join as an artisan →",
     toastClaimed: "Job claimed! Opening WhatsApp…",
@@ -98,6 +113,9 @@ const jobsCopy: Record<
     emptyBody: "Les nouvelles demandes apparaissent ici des que les clients les postent.",
     postCta: "Poster un travail",
     refresh: "Actualiser",
+    showMap: "Voir la carte",
+    hideMap: "Masquer la carte",
+    mapAction: "Voir le travail",
     joinLead: "Pas encore inscrit ?",
     joinCta: "Devenir artisan →",
     toastClaimed: "Travail accepte ! Ouverture de WhatsApp…",
@@ -126,6 +144,9 @@ const jobsCopy: Record<
     emptyBody: "Bann nouvo demann paret isi kan kliyan poste zot.",
     postCta: "Poste enn travay",
     refresh: "Aktyalize",
+    showMap: "Get kart",
+    hideMap: "Kasiet kart",
+    mapAction: "Get travay",
     joinLead: "Pankor anrezistre?",
     joinCta: "Vinn enn artizan →",
     toastClaimed: "Travay pran! Pe ouver WhatsApp…",
@@ -155,6 +176,7 @@ export function JobsBoard() {
   const [claiming, setClaiming] = useState<string | null>(null);
   const [claimed, setClaimed] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState("");
+  const [showMap, setShowMap] = useState(false);
 
   const loadJobs = useCallback(
     async (isRefresh = false) => {
@@ -247,6 +269,30 @@ export function JobsBoard() {
     }
   }
 
+  const mapPins = useMemo<MuMapPin[]>(
+    () =>
+      jobs.flatMap((job) => {
+        const coords = resolveCoords(null, job.district, job.id);
+        if (!coords) return [];
+        return [
+          {
+            id: job.id,
+            lat: coords.lat,
+            lng: coords.lng,
+            title: job.trade,
+            subtitle: job.district,
+            color: job.urgency === "urgent" ? "var(--urgent)" : "var(--green)",
+            actionLabel: jc.mapAction,
+          },
+        ];
+      }),
+    [jobs, jc],
+  );
+
+  function scrollToJob(id: string) {
+    document.getElementById(`job-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
       {/* Page header */}
@@ -259,16 +305,33 @@ export function JobsBoard() {
             {jc.introTail}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void loadJobs(true)}
-          disabled={refreshing}
-          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-4 text-sm font-semibold text-[#0d1612] shadow-sm transition hover:border-[#0d8b66] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RotateCcw className={`size-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
-          {jc.refresh}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setShowMap((current) => !current)}
+            aria-pressed={showMap}
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-4 text-sm font-semibold text-[#0d1612] shadow-sm transition hover:border-[#0d8b66]"
+          >
+            <MapIcon className="size-4" aria-hidden="true" />
+            {showMap ? jc.hideMap : jc.showMap}
+          </button>
+          <button
+            type="button"
+            onClick={() => void loadJobs(true)}
+            disabled={refreshing}
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-4 text-sm font-semibold text-[#0d1612] shadow-sm transition hover:border-[#0d8b66] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RotateCcw className={`size-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
+            {jc.refresh}
+          </button>
+        </div>
       </div>
+
+      {showMap && jobs.length ? (
+        <div className="mb-6">
+          <MuMap pins={mapPins} onPinAction={scrollToJob} className="h-[320px] sm:h-[380px]" />
+        </div>
+      ) : null}
 
       {/* Toast */}
       {toast && (
@@ -304,7 +367,8 @@ export function JobsBoard() {
             return (
               <article
                 key={job.id}
-                className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition-shadow hover:shadow-md ${
+                id={`job-${job.id}`}
+                className={`scroll-mt-24 overflow-hidden rounded-2xl border bg-white shadow-sm transition-shadow hover:shadow-md ${
                   isUrgent ? "border-[#E24B4A]/30" : "border-[#e3ddd1]"
                 }`}
               >
