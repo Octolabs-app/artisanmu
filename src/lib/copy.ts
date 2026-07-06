@@ -119,6 +119,7 @@ export const marketplaceCopy = {
       title: "Good to know",
       items: [
         { q: "Is it free to post a job?", a: "Yes. Posting a job on Artizan Moris is completely free. You only arrange payment directly with the artisan you choose." },
+        { q: "How quickly will I hear back?", a: "Urgent jobs are shown to matching artisans immediately, and most replies come within the hour during the day. Planned jobs stay visible for three days so artisans can respond around their schedule." },
         { q: "How do artisans reach me?", a: "Your WhatsApp number stays private. Artisans who accept your job contact you through a protected link — they never see your number directly." },
         { q: "Are the artisans verified?", a: "Every artisan is identity-checked before they can be matched to a job, and verified profiles are clearly badged." },
         { q: "Which areas do you cover?", a: "All of Mauritius, from Port Louis to Rodrigues. Just pick your closest area when you post." },
@@ -309,6 +310,7 @@ export const marketplaceCopy = {
       title: "Bon a savoir",
       items: [
         { q: "Est-ce gratuit de poster un travail ?", a: "Oui. Poster un travail sur Artizan Moris est totalement gratuit. Vous reglez le paiement directement avec l'artisan choisi." },
+        { q: "En combien de temps aurai-je une reponse ?", a: "Les travaux urgents sont montres immediatement aux artisans correspondants, et la plupart des reponses arrivent dans l'heure en journee. Les travaux planifies restent visibles trois jours pour laisser les artisans repondre selon leur emploi du temps." },
         { q: "Comment les artisans me contactent ?", a: "Votre numero WhatsApp reste prive. Les artisans qui acceptent votre travail vous contactent via un lien protege — ils ne voient jamais votre numero directement." },
         { q: "Les artisans sont-ils verifies ?", a: "Chaque artisan est verifie avant d'etre propose, et les profils verifies sont clairement identifies." },
         { q: "Quelles regions couvrez-vous ?", a: "Tout Maurice, de Port-Louis a Rodrigues. Choisissez simplement la region la plus proche quand vous postez." },
@@ -499,6 +501,7 @@ export const marketplaceCopy = {
       title: "Bon pou kone",
       items: [
         { q: "Eski gartis pou poste enn travay?", a: "Wi. Poste enn travay lor Artizan Moris net gartis. Ou aranz peyman direk ar artizan ki ou swazir." },
+        { q: "Dan komie letan mo pou gagn enn repons?", a: "Bann travay irzan afise deswit ar bann artizan ki matche, ek laplipar repons vini dan enn ertan pandan lazourne. Bann travay planifie res afise trwa zour pou les bann artizan reponn dapre zot lorer." },
         { q: "Kouma bann artizan kontak mwa?", a: "Ou nimero WhatsApp res prive. Bann artizan ki aksepte ou travay kontak ou via enn lien protze — zot pa kapav get ou nimero direk." },
         { q: "Eski bann artizan verifye?", a: "Sak artizan verifye avan ki li kapav gagn enn travay, ek bann profil verifye ena enn badz kler." },
         { q: "Ki landrwa zot kouver?", a: "Tou Moris, depi Port-Louis ziska Rodrig. Swazir zis landrwa pli pre kan ou poste." },

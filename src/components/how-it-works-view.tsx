@@ -34,12 +34,14 @@ const storyCopy: Record<
     searching: string;
     verified: string;
     artisanTrade: string;
+    responded: string;
     bubbleClient: string;
     fixed: string;
     replay: string;
     prev: string;
     next: string;
     yourTurn: string;
+    skip: string;
   }
 > = {
   en: {
@@ -51,12 +53,14 @@ const storyCopy: Record<
     searching: "Finding artisans near you…",
     verified: "Verified",
     artisanTrade: "Plumber · Curepipe",
+    responded: "3 artisans responded — you choose",
     bubbleClient: "Great! 4pm today?",
     fixed: "Fixed!",
     replay: "Replay",
     prev: "Previous step",
     next: "Next step",
     yourTurn: "Your turn — it takes 2 minutes",
+    skip: "Skip the story — post your job now",
   },
   fr: {
     badge: "Voyez comment ca marche",
@@ -67,12 +71,14 @@ const storyCopy: Record<
     searching: "Recherche d'artisans pres de vous…",
     verified: "Verifie",
     artisanTrade: "Plombier · Curepipe",
+    responded: "3 artisans ont repondu — a vous de choisir",
     bubbleClient: "Super ! 16h aujourd'hui ?",
     fixed: "Repare !",
     replay: "Rejouer",
     prev: "Etape precedente",
     next: "Etape suivante",
     yourTurn: "A vous — ca prend 2 minutes",
+    skip: "Passer l'histoire — postez votre travail",
   },
   mfe: {
     badge: "Get kouma sa marse",
@@ -83,12 +89,14 @@ const storyCopy: Record<
     searching: "Pe rod artizan pre kot ou…",
     verified: "Verifye",
     artisanTrade: "Plonbie · Curepipe",
+    responded: "3 artizan finn reponn — ou swazir",
     bubbleClient: "Top! 4er tanto?",
     fixed: "Fini repare!",
     replay: "Rezwe",
     prev: "Step avan",
     next: "Prosen step",
     yourTurn: "Ou tour aster — 2 minit selman",
+    skip: "Sote zistwar-la — poste ou travay aster",
   },
 };
 
@@ -196,18 +204,27 @@ function SceneChat({ sc }: { sc: (typeof storyCopy)["en"] }) {
   ];
   return (
     <div className="relative flex h-full w-full flex-col justify-center gap-2 px-5" aria-hidden="true">
+      {/* match status beat: responses arrived, the client picks one */}
+      <div className="story-pop mb-1 flex items-center gap-2 self-center rounded-full border border-[#0d8b66]/25 bg-white px-3 py-1.5 shadow-sm">
+        <span className="flex -space-x-1.5">
+          <span className="flex size-5 items-center justify-center rounded-full border-2 border-white bg-[#0d8b66] text-[9px] font-bold text-white">R</span>
+          <span className="flex size-5 items-center justify-center rounded-full border-2 border-white bg-[#C6A87C] text-[9px] font-bold text-white">S</span>
+          <span className="flex size-5 items-center justify-center rounded-full border-2 border-white bg-[#234f7a] text-[9px] font-bold text-white">D</span>
+        </span>
+        <span className="text-xs font-semibold text-[#0a5e46]">{sc.responded}</span>
+      </div>
       {/* chat bubbles */}
-      <div className="story-bubble max-w-[75%] self-start rounded-2xl rounded-bl-sm bg-[#e7f5ef] px-3.5 py-2 text-sm font-medium text-[#0a3d2e] shadow-sm">
+      <div className="story-bubble story-d1 max-w-[75%] self-start rounded-2xl rounded-bl-sm bg-[#e7f5ef] px-3.5 py-2 text-sm font-medium text-[#0a3d2e] shadow-sm">
         Mo kapav vini aster! 🔧
       </div>
-      <div className="story-bubble story-d1 max-w-[75%] self-end rounded-2xl rounded-br-sm bg-white px-3.5 py-2 text-sm font-medium text-[#16201b] shadow-sm ring-1 ring-[#e3ddd1]">
+      <div className="story-bubble story-d2 max-w-[75%] self-end rounded-2xl rounded-br-sm bg-white px-3.5 py-2 text-sm font-medium text-[#16201b] shadow-sm ring-1 ring-[#e3ddd1]">
         {sc.bubbleClient}
       </div>
-      <div className="story-bubble story-d2 max-w-[75%] self-start rounded-2xl rounded-bl-sm bg-[#e7f5ef] px-3.5 py-2 text-sm font-medium text-[#0a3d2e] shadow-sm">
+      <div className="story-bubble story-d3 max-w-[75%] self-start rounded-2xl rounded-bl-sm bg-[#e7f5ef] px-3.5 py-2 text-sm font-medium text-[#0a3d2e] shadow-sm">
         Deal. A taler! 👍
       </div>
       {/* fixed badge */}
-      <div className="story-pop story-d3 mt-3 flex items-center gap-2 self-center rounded-full border-2 border-[#0d8b66] bg-white px-4 py-2 shadow-md">
+      <div className="story-pop story-d4 mt-3 flex items-center gap-2 self-center rounded-full border-2 border-[#0d8b66] bg-white px-4 py-2 shadow-md">
         <svg viewBox="0 0 24 24" className="story-wrench size-5" fill="none">
           <path
             d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-2.4 2.6-2.6Z"
@@ -323,7 +340,14 @@ function HowStory() {
             <MessageCircle className="size-4" aria-hidden="true" />
             {sc.yourTurn}
           </Link>
-        ) : null}
+        ) : (
+          <Link
+            href="/post"
+            className="mt-5 w-fit text-sm font-semibold text-[#0a5e46] underline-offset-4 transition-colors duration-150 hover:underline"
+          >
+            {sc.skip} →
+          </Link>
+        )}
 
         <div className="mt-6 flex items-center gap-3">
           <button
