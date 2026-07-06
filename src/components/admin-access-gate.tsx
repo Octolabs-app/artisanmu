@@ -29,7 +29,7 @@ export function AdminAccessGate() {
       stored = "";
     }
     if (!stored) {
-      setRestoring(false);
+      queueMicrotask(() => setRestoring(false));
       return;
     }
     invokePublicFunction("artisanmu-admin-artisans", { admin_password: stored, action: "list" })

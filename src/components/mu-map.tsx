@@ -38,8 +38,11 @@ export function MuMap({
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LayerGroup | null>(null);
   const actionRef = useRef(onPinAction);
-  actionRef.current = onPinAction;
   const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    actionRef.current = onPinAction;
+  }, [onPinAction]);
 
   useEffect(() => {
     let disposed = false;

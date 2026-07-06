@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, Globe2, Home, LogIn, MessageCircle, Search, UserCheck } from "lucide-react";
+import { Briefcase, Globe2, Home, LogIn, MessageCircle, UserCheck } from "lucide-react";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { useLanguage } from "@/components/language-context";
 import { languageOptions, tabLabels, type Language } from "@/lib/copy";

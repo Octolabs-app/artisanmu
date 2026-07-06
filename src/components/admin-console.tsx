@@ -41,7 +41,6 @@ import {
   X,
 } from "lucide-react";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
-import { AdBanner } from "@/components/ad-banner";
 import { invokePublicFunction } from "@/lib/artisanmu-functions";
 
 const adminTabs = [
@@ -599,7 +598,7 @@ function AdsPanel({ adminPassword }: { adminPassword: string }) {
   }, [adminPassword]);
 
   useEffect(() => {
-    void loadAds();
+    queueMicrotask(() => void loadAds());
   }, [loadAds]);
 
   async function createAd() {

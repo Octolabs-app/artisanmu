@@ -177,6 +177,8 @@ export function JobsBoard() {
   const [claimed, setClaimed] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState("");
   const [showMap, setShowMap] = useState(false);
+  // Captured when jobs load so "x min ago" stays pure during render.
+  const [nowTs, setNowTs] = useState(0);
 
   const loadJobs = useCallback(
     async (isRefresh = false) => {
@@ -188,7 +190,10 @@ export function JobsBoard() {
           body: JSON.stringify({ action: "public_list" }),
         });
         const json = await res.json();
-        if (json.success) setJobs(json.jobs ?? []);
+        if (json.success) {
+          setJobs(json.jobs ?? []);
+          setNowTs(Date.now());
+        }
       } catch {
         setToast(jobsCopy[language].toastLoadError);
       } finally {
@@ -200,7 +205,7 @@ export function JobsBoard() {
   );
 
   useEffect(() => {
-    void loadJobs();
+    queueMicrotask(() => void loadJobs());
     // Keep the board fresh while the tab stays open.
     const interval = window.setInterval(() => void loadJobs(), 30000);
     const onFocus = () => void loadJobs();
@@ -212,7 +217,7 @@ export function JobsBoard() {
   }, [loadJobs]);
 
   function timeAgo(iso: string) {
-    const diff = Date.now() - new Date(iso).getTime();
+    const diff = nowTs - new Date(iso).getTime();
     const mins = Math.max(0, Math.floor(diff / 60_000));
     if (mins < 60) return jc.minsAgo(mins);
     const hours = Math.floor(mins / 60);
@@ -234,7 +239,7 @@ export function JobsBoard() {
     } = await supabase.auth.getSession();
 
     if (!session) {
-      window.location.href = "/login#jobs";
+      window.location.assign("/login#jobs");
       return;
     }
 
