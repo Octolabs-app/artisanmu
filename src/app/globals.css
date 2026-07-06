@@ -505,3 +505,11 @@ textarea:focus-visible,
   border: 1px solid var(--line);
   box-shadow: 0 18px 40px -20px rgba(13, 22, 18, 0.45);
 }
+
+/* ── Registration success (redirect beat) ── */
+@keyframes regSuccessPop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.reg-success-pop { animation: regSuccessPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }

@@ -1,4 +1,5 @@
 import {
+  adjacentDistricts,
   allowedDistricts,
   allowedTrades,
   allowedUrgency,
@@ -100,12 +101,26 @@ Deno.serve(async (request: Request) => {
     }
 
     const districts = matchingDistricts(district);
+    const nearbyDistricts = adjacentDistricts(district);
     const trades = tradeAliases(trade);
-    const targets = ((targetPool || []) as ArtisanTarget[]).filter((artisan) => {
-      const districtMatch = districts.includes(artisan.district || "") || districts.includes(artisan.ville || "");
-      const tradeMatch = trade === "Other" || trades.includes(artisan.metier || "");
-      return districtMatch && tradeMatch && artisan.auth_user_id;
-    });
+    // Each target is tagged primary (same district) or nearby (adjacent district,
+    // same trade only) so the artisan sees why the lead reached them.
+    const targets = ((targetPool || []) as ArtisanTarget[])
+      .map((artisan) => {
+        if (!artisan.auth_user_id) return null;
+        const tradeMatch = trade === "Other" || trades.includes(artisan.metier || "");
+        if (!tradeMatch) return null;
+
+        const inPrimary =
+          districts.includes(artisan.district || "") || districts.includes(artisan.ville || "");
+        // Nearby only for specific trades — never blast a whole region for "Other".
+        const inNearby =
+          trade !== "Other" && nearbyDistricts.includes(canonicalDistrict(artisan.district || ""));
+
+        if (!inPrimary && !inNearby) return null;
+        return { artisan, proximity: inPrimary ? "primary" : "nearby" };
+      })
+      .filter((entry): entry is { artisan: ArtisanTarget; proximity: string } => entry !== null);
 
     const { data: job, error: jobError } = await supabase
       .from("job_requests")
@@ -137,7 +152,7 @@ Deno.serve(async (request: Request) => {
 
     if (targets.length) {
       const { error: notificationError } = await supabase.from("job_notifications").insert(
-        targets.map((artisan) => ({
+        targets.map(({ artisan, proximity }) => ({
           job_id: job.id,
           artisan_id: artisan.id,
           auth_user_id: artisan.auth_user_id,
@@ -146,6 +161,7 @@ Deno.serve(async (request: Request) => {
           match_reason: {
             district,
             trade,
+            proximity,
             matched_on: {
               district: artisan.district,
               town: artisan.ville,
@@ -160,6 +176,9 @@ Deno.serve(async (request: Request) => {
       }
     }
 
+    const primaryCount = targets.filter((entry) => entry.proximity === "primary").length;
+    const nearbyCount = targets.length - primaryCount;
+
     await supabase.from("job_events").insert({
       job_id: job.id,
       event: "created",
@@ -170,12 +189,14 @@ Deno.serve(async (request: Request) => {
         has_photo: Boolean(photoPath),
         contact_method: contactMethod,
         targeted_artisan_count: targets.length,
+        primary_artisan_count: primaryCount,
+        nearby_artisan_count: nearbyCount,
       },
     });
 
     return jsonResponse({
       id: job.id,
-      artisan_count_nearby: targets.length,
+      artisan_count_nearby: nearbyCount,
       targeted_artisan_count: targets.length,
       estimated_response_minutes: urgency === "urgent" ? 18 : 90,
     });

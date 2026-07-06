@@ -104,6 +104,7 @@ export function ArtisanRegistrationForm() {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [success, setSuccess] = useState("");
   const [photoStatus, setPhotoStatus] = useState("");
+  const [redirecting, setRedirecting] = useState(false);
   // When the visitor already signed in (e.g. with Google) but has no artisan
   // profile yet, the application links to that account instead of creating one.
   const [linkedEmail, setLinkedEmail] = useState("");
@@ -244,9 +245,13 @@ export function ArtisanRegistrationForm() {
         throw new Error(attachPayload.message || "Application was created, but photos could not attach yet.");
       }
 
-      setSuccess("Application received with work photos. You can open the status dashboard while admin reviews it.");
+      setSuccess("Application received with work photos. Opening your dashboard…");
       setPhotoStatus("Work photos uploaded for review.");
       setForm(initialForm);
+      // Account exists and the artisan is signed in — hand them straight to the
+      // dashboard (pending state) after a brief celebratory beat.
+      setRedirecting(true);
+      window.setTimeout(() => window.location.assign("/artisan/"), 1800);
     } catch (submitError) {
       if (applicationCreated) {
         setPhotoStatus(submitError instanceof Error ? submitError.message : "Application was created, but photo upload needs retry.");
@@ -257,6 +262,21 @@ export function ArtisanRegistrationForm() {
       setSubmitting(false);
       setUploadingPhotos(false);
     }
+  }
+
+  if (redirecting) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-[#b9dfcf] bg-[#e8f6f1] px-6 py-12 text-center">
+        <span className="reg-success-pop flex size-16 items-center justify-center rounded-full bg-[#0d8b66] text-white shadow-lg">
+          <CheckCircle2 className="size-9" aria-hidden="true" />
+        </span>
+        <div>
+          <p className="font-display text-xl text-[#0a5e46]">Application received!</p>
+          <p className="mt-1 text-sm text-[#0d7c5c]">Taking you to your dashboard…</p>
+        </div>
+        <Loader2 className="size-5 animate-spin text-[#0d8b66]" aria-hidden="true" />
+      </div>
+    );
   }
 
   return (

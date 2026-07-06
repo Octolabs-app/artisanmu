@@ -18,7 +18,7 @@ export const allTagsLabel = "All tags";
 
 export const marketplaceCopy = {
   en: {
-    nav: { postJob: "Get help today", login: "Login", artisan: "Are you an artisan?" },
+    nav: { postJob: "Get help today", login: "Login", artisan: "Are you an artisan?", dashboard: "My dashboard" },
     hero: {
       location: "Made in Mauritius",
       eyebrow: "Find a trusted artisan in Mauritius — today",
@@ -135,7 +135,7 @@ export const marketplaceCopy = {
       contact: "Contact",
       builtFor: "Built for local service discovery",
     },
-    bottomNav: { browse: "Browse", request: "Post job", artisan: "Artisan", login: "Login" },
+    bottomNav: { browse: "Browse", request: "Post job", artisan: "Artisan", login: "Login", dashboard: "Dashboard" },
     jobForm: {
       steps: ["Urgency", "Problem", "Location", "Contact"],
       badge: "Smart match",
@@ -211,7 +211,7 @@ export const marketplaceCopy = {
     },
   },
   fr: {
-    nav: { postJob: "Obtenir de l'aide", login: "Connexion", artisan: "Vous etes artisan ?" },
+    nav: { postJob: "Obtenir de l'aide", login: "Connexion", artisan: "Vous etes artisan ?", dashboard: "Mon espace" },
     hero: {
       location: "Fait a Maurice",
       eyebrow: "Trouvez un artisan de confiance a Maurice — aujourd'hui",
@@ -328,7 +328,7 @@ export const marketplaceCopy = {
       contact: "Contact",
       builtFor: "Concu pour la recherche de services locaux",
     },
-    bottomNav: { browse: "Artisans", request: "Poster", artisan: "Artisan", login: "Connexion" },
+    bottomNav: { browse: "Artisans", request: "Poster", artisan: "Artisan", login: "Connexion", dashboard: "Espace" },
     jobForm: {
       steps: ["Urgence", "Probleme", "Lieu", "Contact"],
       badge: "Mise en relation",
@@ -404,7 +404,7 @@ export const marketplaceCopy = {
     },
   },
   mfe: {
-    nav: { postJob: "Gagn led zordi", login: "Konekte", artisan: "Ou enn artizan ?" },
+    nav: { postJob: "Gagn led zordi", login: "Konekte", artisan: "Ou enn artizan ?", dashboard: "Mo tablo" },
     hero: {
       location: "Fer dan Moris",
       eyebrow: "Trouv enn artizan serye dan Moris — zordi mem",
@@ -521,7 +521,7 @@ export const marketplaceCopy = {
       contact: "Kontak",
       builtFor: "Fer pou trouv servis lokal",
     },
-    bottomNav: { browse: "Artizan", request: "Poste", artisan: "Artizan", login: "Konekte" },
+    bottomNav: { browse: "Artizan", request: "Poste", artisan: "Artizan", login: "Konekte", dashboard: "Tablo" },
     jobForm: {
       steps: ["Urzans", "Problem", "Landrwa", "Kontak"],
       badge: "Smart match",

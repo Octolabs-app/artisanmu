@@ -351,6 +351,26 @@ export function matchingDistricts(district: string) {
   return districtAliases[canonical] || [canonical];
 }
 
+// Neighbouring districts, so a new job can also reach nearby same-trade artisans
+// (Mauritius districts are small — an adjacent district is a short drive away).
+const districtNeighbours: Record<string, string[]> = {
+  "Port Louis": ["Pamplemousses", "Moka", "Black River"],
+  Pamplemousses: ["Port Louis", "Riviere du Rempart", "Moka"],
+  "Riviere du Rempart": ["Pamplemousses", "Flacq", "Moka"],
+  Flacq: ["Riviere du Rempart", "Moka", "Grand Port"],
+  "Grand Port": ["Flacq", "Moka", "Savanne", "Plaines Wilhems"],
+  Savanne: ["Grand Port", "Plaines Wilhems", "Black River"],
+  "Plaines Wilhems": ["Moka", "Grand Port", "Savanne", "Black River"],
+  Moka: ["Port Louis", "Pamplemousses", "Riviere du Rempart", "Flacq", "Grand Port", "Plaines Wilhems", "Black River"],
+  "Black River": ["Port Louis", "Plaines Wilhems", "Savanne"],
+  Rodrigues: [],
+};
+
+export function adjacentDistricts(district: string) {
+  const canonical = canonicalDistrict(district);
+  return districtNeighbours[canonical] || [];
+}
+
 export function normalizeServiceTags(value: unknown, requireOne = false) {
   const rawItems = Array.isArray(value)
     ? value

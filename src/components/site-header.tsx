@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, Globe2, Home, LogIn, MessageCircle, UserCheck } from "lucide-react";
+import { Briefcase, Globe2, Home, LayoutDashboard, LogIn, MessageCircle, UserCheck } from "lucide-react";
 import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { useLanguage } from "@/components/language-context";
+import { useArtisanSession } from "@/components/use-artisan-session";
 import { languageOptions, tabLabels, type Language } from "@/lib/copy";
 
 function normalize(path: string) {
@@ -15,6 +16,7 @@ function normalize(path: string) {
 export function SiteHeader() {
   const pathname = normalize(usePathname() || "/");
   const { language, setLanguage, copy } = useLanguage();
+  const { signedIn } = useArtisanSession();
 
   const tabs = [
     { href: "/", label: tabLabels[language].home },
@@ -67,20 +69,32 @@ export function SiteHeader() {
                 ))}
               </select>
             </label>
-            <Link
-              href="/login"
-              className="hidden h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-3 text-sm font-medium text-[#0d1612] shadow-sm transition-colors duration-150 hover:border-[#0d8b66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d8b66] sm:flex"
-            >
-              <LogIn className="size-4" aria-hidden="true" />
-              {copy.nav.login}
-            </Link>
-            <Link
-              href="/artisan"
-              className="hidden h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-3 text-sm font-medium text-[#0d1612] shadow-sm transition-colors duration-150 hover:border-[#0d8b66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d8b66] md:flex"
-            >
-              <UserCheck className="size-4" aria-hidden="true" />
-              {copy.nav.artisan}
-            </Link>
+            {signedIn ? (
+              <Link
+                href="/artisan"
+                className="hidden h-10 items-center gap-2 rounded-xl border border-[#0d8b66]/40 bg-[#e7f5ef] px-3 text-sm font-semibold text-[#0a5e46] shadow-sm transition-colors duration-150 hover:border-[#0d8b66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d8b66] sm:flex"
+              >
+                <LayoutDashboard className="size-4" aria-hidden="true" />
+                {copy.nav.dashboard}
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="hidden h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-3 text-sm font-medium text-[#0d1612] shadow-sm transition-colors duration-150 hover:border-[#0d8b66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d8b66] sm:flex"
+                >
+                  <LogIn className="size-4" aria-hidden="true" />
+                  {copy.nav.login}
+                </Link>
+                <Link
+                  href="/artisan"
+                  className="hidden h-10 items-center gap-2 rounded-xl border border-[#e3ddd1] bg-white px-3 text-sm font-medium text-[#0d1612] shadow-sm transition-colors duration-150 hover:border-[#0d8b66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d8b66] md:flex"
+                >
+                  <UserCheck className="size-4" aria-hidden="true" />
+                  {copy.nav.artisan}
+                </Link>
+              </>
+            )}
             <Link href="/post" className="btn btn-primary h-10 px-4 text-sm">
               <MessageCircle className="size-4" aria-hidden="true" />
               <span className="hidden sm:inline">{copy.nav.postJob}</span>
@@ -96,7 +110,9 @@ export function SiteHeader() {
           { href: "/", icon: Home, label: tabLabels[language].home },
           { href: "/jobs", icon: Briefcase, label: tabLabels[language].jobs },
           { href: "/post", icon: MessageCircle, label: copy.bottomNav.request, primary: true },
-          { href: "/login", icon: LogIn, label: copy.bottomNav.login },
+          signedIn
+            ? { href: "/artisan", icon: LayoutDashboard, label: copy.bottomNav.dashboard }
+            : { href: "/login", icon: LogIn, label: copy.bottomNav.login },
         ].map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
