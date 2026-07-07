@@ -28,7 +28,7 @@ export const marketplaceCopy = {
       support:
         "Describe what's wrong, we find a verified artisan near you, and they contact you on WhatsApp. No more calling five people hoping one picks up.",
       ctaPrimary: "Describe your problem — we'll find someone today",
-      ctaSecondary: "How it works",
+      ctaSecondary: "Browse artisans",
       chips: ["Verified artisans", "Contact on WhatsApp", "EN / FR / Kreol", "Same-day"],
       visualBadge: "Verified",
       visualCaption: "Your neighbour's plumber, one tap away",
@@ -221,7 +221,7 @@ export const marketplaceCopy = {
       support:
         "Dites-nous ce qui ne va pas, nous trouvons un artisan verifie pres de chez vous, et il vous contacte sur WhatsApp. Fini d'appeler cinq personnes en esperant que l'une reponde.",
       ctaPrimary: "Decrivez votre probleme — on trouve quelqu'un aujourd'hui",
-      ctaSecondary: "Comment ca marche",
+      ctaSecondary: "Parcourir les artisans",
       chips: ["Artisans verifies", "Contact sur WhatsApp", "EN / FR / Kreol", "Le jour meme"],
       visualBadge: "Verifie",
       visualCaption: "Le plombier de votre voisin, en un clic",
@@ -414,7 +414,7 @@ export const marketplaceCopy = {
       support:
         "Dir nou ki finn kase, nou trouv enn artizan verifye pre kot ou, ek zot kontak ou lor WhatsApp. Nepli bizin apele sink moune pou espere ki enn repons.",
       ctaPrimary: "Dekrir ou problem — nou pou trouv enn moune zordi",
-      ctaSecondary: "Kouma sa marse",
+      ctaSecondary: "Get bann artizan",
       chips: ["Artizan verifye", "Kontak lor WhatsApp", "EN / FR / Kreol", "Zordi mem"],
       visualBadge: "Verifye",
       visualCaption: "Plonbie ou vwazin, enn tap lwin",
@@ -606,10 +606,10 @@ export const languageOptions: { value: Language; label: string }[] = [
   { value: "mfe", label: "Morisien" },
 ];
 
-export const tabLabels: Record<Language, { home: string; how: string; jobs: string; browse: string }> = {
-  en: { home: "Home", how: "How it works", jobs: "Jobs", browse: "Browse artisans" },
-  fr: { home: "Accueil", how: "Comment ca marche", jobs: "Travaux", browse: "Parcourir" },
-  mfe: { home: "Akey", how: "Kouma sa marse", jobs: "Travay", browse: "Get artizan" },
+export const tabLabels: Record<Language, { home: string; jobs: string; browse: string }> = {
+  en: { home: "Home", jobs: "Jobs", browse: "Browse artisans" },
+  fr: { home: "Accueil", jobs: "Travaux", browse: "Parcourir" },
+  mfe: { home: "Akey", jobs: "Travay", browse: "Get artizan" },
 };
 
 type TradeIcon = ComponentType<SVGProps<SVGSVGElement>>;

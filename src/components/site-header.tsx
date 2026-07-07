@@ -20,7 +20,6 @@ export function SiteHeader() {
 
   const tabs = [
     { href: "/", label: tabLabels[language].home },
-    { href: "/how-it-works", label: tabLabels[language].how },
     { href: "/jobs", label: tabLabels[language].jobs },
     { href: "/browse", label: tabLabels[language].browse },
   ];

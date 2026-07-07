@@ -18,8 +18,6 @@ import { useLanguage } from "@/components/language-context";
 import { useReveal } from "@/components/use-reveal";
 import { heroShowcase, heroStats, popularTrades } from "@/lib/copy";
 
-const howIcons = [Sparkles, BadgeCheck, MessageCircle];
-
 export function HomeLanding() {
   const { language, copy } = useLanguage();
   useReveal([language]);
@@ -71,7 +69,7 @@ export function HomeLanding() {
                 <MessageCircle className="size-5" aria-hidden="true" />
                 {copy.hero.ctaPrimary}
               </Link>
-              <Link href="/how-it-works" className="btn btn-secondary text-base">
+              <Link href="/browse" className="btn btn-secondary text-base">
                 {copy.hero.ctaSecondary}
                 <ChevronRight className="size-4" aria-hidden="true" />
               </Link>
@@ -171,42 +169,6 @@ export function HomeLanding() {
               );
             })}
           </div>
-        </div>
-      </section>
-
-      {/* ── How it works (teaser) ── */}
-      <section className="border-b border-[#e3ddd1]">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:py-16">
-          <div className="reveal flex flex-wrap items-end justify-between gap-4">
-            <div className="max-w-2xl">
-              <h2 className="font-display text-3xl text-[#101410] sm:text-4xl">{copy.how.title}</h2>
-              <p className="mt-3 text-lg text-[#5d6863]">{copy.how.subtitle}</p>
-            </div>
-            <Link href="/how-it-works" className="btn btn-secondary">
-              {copy.hero.ctaSecondary}
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
-          </div>
-          <ol className="mt-8 grid gap-5 md:grid-cols-3">
-            {copy.how.steps.map((step, index) => {
-              const StepIcon = howIcons[index] || Sparkles;
-              return (
-                <li
-                  key={step.title}
-                  className={`reveal reveal-d${index + 1} hover-lift relative rounded-2xl border border-[#e3ddd1] bg-white p-6 shadow-sm hover:border-[#0d8b66]/40 hover:shadow-lg`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex size-12 items-center justify-center rounded-2xl bg-[#e7f5ef] text-[#0a5e46]">
-                      <StepIcon className="size-6" aria-hidden="true" />
-                    </span>
-                    <span className="font-display text-3xl text-[#d6cdb9]">{index + 1}</span>
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold text-[#101410]">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#5d6863]">{step.desc}</p>
-                </li>
-              );
-            })}
-          </ol>
         </div>
       </section>
 
