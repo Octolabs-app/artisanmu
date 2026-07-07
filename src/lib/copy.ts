@@ -85,6 +85,7 @@ export const marketplaceCopy = {
       emptyCopy:
         "We're signing up verified artisans across the island right now. Post your job and we'll connect you the moment someone becomes available in your area.",
       emptyCta: "Post your job",
+      emptyArtisanCta: "Are you an artisan? Join free",
       view: "View",
       selected: "Selected",
       available: "Available",
@@ -278,6 +279,7 @@ export const marketplaceCopy = {
       emptyCopy:
         "Nous inscrivons des artisans verifies partout sur l'ile en ce moment. Postez votre travail et nous vous mettrons en contact des que quelqu'un est disponible dans votre zone.",
       emptyCta: "Poster votre travail",
+      emptyArtisanCta: "Vous etes artisan ? Rejoignez gratuitement",
       view: "Voir",
       selected: "Selectionne",
       available: "Disponible",
@@ -471,6 +473,7 @@ export const marketplaceCopy = {
       emptyCopy:
         "Nou pe anrezistre bann artizan verifye partou dan lil aster. Poste ou travay ek nou pou konekte ou deswit ki enn moune disponib dan ou landrwa.",
       emptyCta: "Poste ou travay",
+      emptyArtisanCta: "Ou enn artizan? Rezwenn gratis",
       view: "Get",
       selected: "Swazir",
       available: "Disponib",

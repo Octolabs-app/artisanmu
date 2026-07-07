@@ -359,9 +359,14 @@ export function JobsBoard() {
           <Briefcase className="size-10 text-[#d6cdb9]" aria-hidden="true" />
           <p className="font-semibold text-[#101410]">{jc.emptyTitle}</p>
           <p className="text-sm text-[#5d6863]">{jc.emptyBody}</p>
-          <Link href="/post" className="btn btn-primary mt-2">
-            {jc.postCta}
-          </Link>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/post" className="btn btn-primary">
+              {jc.postCta}
+            </Link>
+            <Link href="/login#join" className="btn btn-secondary">
+              {jc.joinCta}
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4">

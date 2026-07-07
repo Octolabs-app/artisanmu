@@ -21,6 +21,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Star,
+  UserPlus,
   X,
 } from "lucide-react";
 import { AdBanner } from "@/components/ad-banner";
@@ -576,10 +577,16 @@ export function BrowseArtisans({ artisans }: { artisans: Artisan[] }) {
                       );
                     })}
                   </div>
-                  <Link href="/post" className="btn btn-primary mt-6">
-                    <MessageCircle className="size-4" aria-hidden="true" />
-                    {copy.browse.emptyCta}
-                  </Link>
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                    <Link href="/post" className="btn btn-primary">
+                      <MessageCircle className="size-4" aria-hidden="true" />
+                      {copy.browse.emptyCta}
+                    </Link>
+                    <Link href="/login#join" className="btn btn-secondary">
+                      <UserPlus className="size-4" aria-hidden="true" />
+                      {copy.browse.emptyArtisanCta}
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-[#cfc6b6] bg-white p-8 text-center shadow-sm lg:col-span-2">
