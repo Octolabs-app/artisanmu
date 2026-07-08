@@ -57,7 +57,9 @@ function localWhatsapp(value: string) {
 }
 
 function validateFiles(files: File[]) {
-  if (!files.length) return "Upload at least one portfolio or work photo.";
+  // Work photos are optional at sign-up — artisans are nudged to add them
+  // later from their dashboard so their profile converts better.
+  if (!files.length) return "";
   if (files.length > 6) return "Upload up to 6 work photos.";
 
   const invalid = files.find((file) => !allowedTypes.includes(file.type) || file.size <= 0 || file.size > maxBytes);
@@ -105,6 +107,7 @@ export function ArtisanRegistrationForm() {
   const [success, setSuccess] = useState("");
   const [photoStatus, setPhotoStatus] = useState("");
   const [redirecting, setRedirecting] = useState(false);
+  const [photosSkipped, setPhotosSkipped] = useState(false);
   // When the visitor already signed in (e.g. with Google) but has no artisan
   // profile yet, the application links to that account instead of creating one.
   const [linkedEmail, setLinkedEmail] = useState("");
@@ -132,7 +135,7 @@ export function ArtisanRegistrationForm() {
 
   const localPhone = localWhatsapp(form.whatsapp);
   const fileSummary = useMemo(() => {
-    if (!form.files.length) return "Add work photos";
+    if (!form.files.length) return "Add work photos (optional)";
     if (form.files.length === 1) return form.files[0].name;
     return `${form.files.length} photos selected`;
   }, [form.files]);
@@ -235,23 +238,34 @@ export function ArtisanRegistrationForm() {
         }
       }
 
-      const portfolioPaths = await Promise.all(filesToUpload.map((file) => uploadApplicationPhoto(file)));
-      const attachPayload = await invokeUserFunction<{ success?: boolean; message?: string }>("artisanmu-artisan-profile", {
-        action: "add_application_photos",
-        paths: portfolioPaths,
-      });
+      // Work photos are optional. Only run the upload/attach step when the
+      // artisan actually added some; otherwise skip straight to the dashboard
+      // and nudge them to add photos there.
+      if (filesToUpload.length) {
+        const portfolioPaths = await Promise.all(filesToUpload.map((file) => uploadApplicationPhoto(file)));
+        const attachPayload = await invokeUserFunction<{ success?: boolean; message?: string }>("artisanmu-artisan-profile", {
+          action: "add_application_photos",
+          paths: portfolioPaths,
+        });
 
-      if (!attachPayload.success) {
-        throw new Error(attachPayload.message || "Application was created, but photos could not attach yet.");
+        if (!attachPayload.success) {
+          throw new Error(attachPayload.message || "Application was created, but photos could not attach yet.");
+        }
+        setPhotoStatus("Work photos uploaded for review.");
       }
 
-      setSuccess("Application received with work photos. Opening your dashboard…");
-      setPhotoStatus("Work photos uploaded for review.");
+      setSuccess(
+        filesToUpload.length
+          ? "Application received with work photos. Opening your dashboard…"
+          : "Application received! Opening your dashboard…",
+      );
       setForm(initialForm);
       // Account exists and the artisan is signed in — hand them straight to the
-      // dashboard (pending state) after a brief celebratory beat.
+      // dashboard (pending state) after a brief celebratory beat. Give the
+      // "add photos" reminder a little longer to land.
+      setPhotosSkipped(!filesToUpload.length);
       setRedirecting(true);
-      window.setTimeout(() => window.location.assign("/artisan/"), 1800);
+      window.setTimeout(() => window.location.assign("/artisan/"), filesToUpload.length ? 1800 : 2800);
     } catch (submitError) {
       if (applicationCreated) {
         setPhotoStatus(submitError instanceof Error ? submitError.message : "Application was created, but photo upload needs retry.");
@@ -274,6 +288,12 @@ export function ArtisanRegistrationForm() {
           <p className="font-display text-xl text-[#0a5e46]">Application received!</p>
           <p className="mt-1 text-sm text-[#0d7c5c]">Taking you to your dashboard…</p>
         </div>
+        {photosSkipped ? (
+          <p className="flex items-start gap-2 rounded-xl border border-[#d7c292] bg-[#fff8e8] px-3 py-2 text-left text-sm leading-5 text-[#78511c]">
+            <ImagePlus className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            Don&apos;t forget to add a few work photos from your dashboard — profiles with photos get a lot more jobs.
+          </p>
+        ) : null}
         <Loader2 className="size-5 animate-spin text-[#0d8b66]" aria-hidden="true" />
       </div>
     );
@@ -471,8 +491,15 @@ export function ArtisanRegistrationForm() {
 
         <label className="block cursor-pointer rounded-lg border border-dashed border-[#c9c2b6] bg-[#f8f4ea] p-4 text-center text-sm text-[#4d5651] hover:border-[#0d8b66]">
           <ImagePlus className="mx-auto size-6 text-[#0d8b66]" aria-hidden="true" />
-          <span className="mt-2 block font-semibold text-[#101410]">{fileSummary}</span>
-          <span className="mt-1 block text-xs text-[#6c756f]">JPG, PNG, WebP, or GIF. Max 6 photos.</span>
+          <span className="mt-2 flex items-center justify-center gap-2 font-semibold text-[#101410]">
+            {fileSummary}
+            {!form.files.length ? (
+              <span className="rounded-full bg-[#e7f5ef] px-2 py-0.5 text-[11px] font-semibold text-[#0a5e46]">Optional</span>
+            ) : null}
+          </span>
+          <span className="mt-1 block text-xs text-[#6c756f]">
+            JPG, PNG, WebP or GIF · up to 6. You can skip this now and add photos anytime from your dashboard — but profiles with photos get a lot more jobs.
+          </span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
