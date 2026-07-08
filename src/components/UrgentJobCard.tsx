@@ -50,9 +50,13 @@ export function UrgentJobCard({
   const [error, setError] = useState("");
   const customerName = job.customerDisplayName || "Client A.";
   const isUrgent = job.urgency === "urgent";
-  const accentClass = isUrgent ? "border-[#E24B4A]/35 shadow-lg" : "border-[#0d8b66]/25 shadow-sm";
-  const headerClass = isUrgent ? "bg-[#E24B4A] text-white" : "bg-[#0d1612] text-white";
-  const statusClass = isUrgent ? "bg-[#E24B4A]/10 text-[#b33c3b]" : "bg-[#e8f6f1] text-[#0d7c5c]";
+  const accentClass = isUrgent
+    ? "border border-[var(--urgent)]/35 shadow-lg"
+    : "border border-[var(--green)]/25 shadow-sm";
+  const headerClass = isUrgent ? "bg-[var(--urgent)] text-white" : "bg-[var(--ink)] text-white";
+  const statusClass = isUrgent
+    ? "bg-[var(--urgent-soft)] text-[var(--urgent)]"
+    : "bg-[var(--green-soft)] text-[var(--green-strong)]";
 
   async function claimJob() {
     setClaiming(true);
@@ -94,14 +98,14 @@ export function UrgentJobCard({
 
   if (taken && !contact) {
     return (
-      <div className="rounded-lg border border-[#ddd8cd] bg-[#fffdf8] p-4 text-sm font-semibold text-[#5f6a64] shadow-sm opacity-80">
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 text-sm font-semibold text-[var(--muted)] opacity-80 shadow-sm">
         Taken
       </div>
     );
   }
 
   return (
-    <article className={`overflow-hidden rounded-lg bg-[#fffdf8] ${accentClass}`}>
+    <article className={`card-hover overflow-hidden rounded-2xl bg-[var(--surface)] ${accentClass}`}>
       <div className={`flex items-center justify-between gap-3 px-4 py-3 ${headerClass}`}>
         <div className="flex items-center gap-2 font-semibold">
           <span className="size-2 rounded-full bg-white shadow-[0_0_0_6px_rgba(255,255,255,0.2)]" />
@@ -115,34 +119,34 @@ export function UrgentJobCard({
 
       <div className="p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-md bg-[#f2eee4] px-2.5 py-1.5 text-sm font-semibold text-[#101410]">
+          <span className="rounded-full bg-[var(--surface-soft)] px-2.5 py-1.5 text-sm font-semibold text-[var(--ink)]">
             {job.trade}
           </span>
-          <span className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold ${statusClass}`}>
-            <span className={`size-2 rounded-full ${isUrgent ? "animate-pulse bg-[#E24B4A]" : "bg-[#0d8b66]"}`} />
+          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm font-semibold ${statusClass}`}>
+            <span className={`size-2 rounded-full ${isUrgent ? "animate-pulse bg-[var(--urgent)]" : "bg-[var(--green)]"}`} />
             {isUrgent ? "Urgent" : "Planned"}
           </span>
-          <span className="rounded-md bg-[#eef5f3] px-2.5 py-1.5 text-sm font-semibold text-[#0d7c5c]">
+          <span className="rounded-full bg-[var(--green-soft)] px-2.5 py-1.5 text-sm font-semibold text-[var(--green-strong)]">
             {job.distanceLabel || "Nearby district"}
           </span>
         </div>
 
-        <p className="mt-3 text-sm leading-6 text-[#4d5651]">{excerpt(job.description)}</p>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{excerpt(job.description)}</p>
 
-        <div className="mt-4 flex items-center gap-3 rounded-lg border border-[#ddd8cd] bg-[#f8f4ea] p-3 text-sm">
-          <span className="flex size-9 items-center justify-center rounded-md bg-white text-[#234f7a]">
+        <div className="mt-4 flex items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] p-3 text-sm">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-white text-[var(--blue)]">
             <Lock className="size-4" aria-hidden="true" />
           </span>
           <div>
-            <p className="font-semibold text-[#101410]">{contact?.display_name || customerName}</p>
+            <p className="font-semibold text-[var(--ink)]">{contact?.display_name || customerName}</p>
             {!contact && (
-              <p className="text-[#5f6a64]">Contact revealed after claim</p>
+              <p className="text-[var(--muted)]">Contact revealed after claim</p>
             )}
           </div>
         </div>
 
         {error ? (
-          <div role="alert" className="mt-3 rounded-md border border-[#E24B4A]/30 bg-[#E24B4A]/10 px-3 py-2 text-sm text-[#9f2f2e]">
+          <div role="alert" className="mt-3 rounded-xl border border-[var(--urgent)]/30 bg-[var(--urgent-soft)] px-3 py-2 text-sm text-[var(--urgent)]">
             {error}
           </div>
         ) : null}
@@ -151,12 +155,12 @@ export function UrgentJobCard({
           type="button"
           onClick={claimJob}
           disabled={claiming || Boolean(contact)}
-          className={`mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition-all duration-200 ${
+          className={`mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-all duration-200 ${
             contact
-              ? "bg-[#e8f6f1] text-[#0d7c5c]"
+              ? "bg-[var(--green-soft)] text-[var(--green-strong)]"
               : isUrgent
-                ? "bg-[#E24B4A] text-white hover:bg-[#cf3f3e]"
-                : "bg-[#0d1612] text-white hover:bg-[#17251e]"
+                ? "bg-[var(--urgent)] text-white hover:bg-[#cf3f3e] hover:-translate-y-px"
+                : "bg-[var(--ink)] text-white hover:bg-[#17251e] hover:-translate-y-px"
           } disabled:cursor-not-allowed disabled:opacity-60`}
         >
           {contact ? (
@@ -187,7 +191,7 @@ export function UrgentJobCard({
                   "noopener,noreferrer",
                 )
               }
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#0d8b66] px-4 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#0b7758]"
+              className="btn btn-primary min-h-11 px-4 text-sm"
             >
               {contact.whatsapp_deep_link ? (
                 <MessageCircle className="size-4" aria-hidden="true" />
@@ -200,7 +204,7 @@ export function UrgentJobCard({
               <button
                 type="button"
                 onClick={() => onOpenThread(job.id)}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#ddd8cd] bg-white px-4 text-sm font-semibold text-[#0d1612] transition-colors duration-150 hover:bg-[#f2eee4]"
+                className="btn btn-secondary min-h-11 px-4 text-sm"
               >
                 <MessageSquareText className="size-4" aria-hidden="true" />
                 In-app message
