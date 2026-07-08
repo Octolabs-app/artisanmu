@@ -14,23 +14,29 @@ import {
   AlertTriangle,
   ArrowLeft,
   BadgeCheck,
+  BarChart3,
+  Bot,
   BriefcaseBusiness,
   CheckCircle2,
   Clock,
   ExternalLink,
   Eye,
   EyeOff,
+  History,
   ImageIcon,
   Inbox,
+  LayoutDashboard,
   LogOut,
   Mail,
   MapPin,
   Megaphone,
+  Pencil,
   Plus,
   Power,
   MessageCircle,
   Phone,
   RefreshCw,
+  RotateCcw,
   Search,
   ShieldCheck,
   Sparkles,
@@ -44,6 +50,7 @@ import { ArtisanMuLogo } from "@/components/artisanmu-logo";
 import { invokePublicFunction } from "@/lib/artisanmu-functions";
 
 const adminTabs = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "review", label: "Review", icon: UserCheck },
   { id: "artisans", label: "Artisans", icon: Users },
   { id: "jobs", label: "Jobs", icon: BriefcaseBusiness },
@@ -163,6 +170,75 @@ type AdminJobsPayload = {
 
 const emptyArtisanMetrics = { pending: 0, active: 0, removed: 0, rejected: 0 };
 const emptyJobMetrics = { total: 0, open: 0, claimed: 0, completed: 0, expired: 0, cleanup: 0 };
+
+type MonthlyStat = {
+  month: string;
+  jobs_posted: number;
+  jobs_claimed: number;
+  jobs_completed: number;
+  jobs_expired: number;
+  leads_sent: number;
+  contacts_revealed: number;
+  by_trade: Record<string, number>;
+  by_district: Record<string, number>;
+};
+
+type AuditEntry = {
+  id: string;
+  event: string;
+  job_id: string | null;
+  artisan_id: number | null;
+  metadata: Record<string, unknown> | null;
+  timestamp: string;
+};
+
+type SuperStatsPayload = {
+  success?: boolean;
+  monthly?: MonthlyStat[];
+  live?: {
+    jobs: Record<string, number>;
+    artisans: Record<string, number>;
+  };
+  audit?: AuditEntry[];
+  retention?: { completed: string; claimed: string; expired: string; cadence: string };
+  message?: string;
+};
+
+type SuperMutationPayload = {
+  success?: boolean;
+  message?: string;
+  job?: Partial<LiveAdminJob> & { id: string; status: string };
+};
+
+type JobEditForm = {
+  description: string;
+  district: string;
+  town: string;
+  urgency: string;
+  category: string;
+};
+
+type ArtisanEditForm = {
+  nom: string;
+  tel: string;
+  metier: string;
+  ville: string;
+  district: string;
+  bio: string;
+  application_email: string;
+  is_available_today: boolean;
+  is_verified: boolean;
+};
+
+const districtOptionsAdmin = [
+  "Port Louis", "Pamplemousses", "Riviere du Rempart", "Flacq", "Grand Port",
+  "Savanne", "Plaines Wilhems", "Moka", "Black River", "Rodrigues",
+];
+
+const tradeOptionsAdmin = [
+  "Plumber", "Electrician", "Painter", "Carpenter", "Mason",
+  "AC technician", "Locksmith", "Gardener", "Other",
+];
 
 /* ─────────────────────────── small helpers ─────────────────────────── */
 
@@ -1156,8 +1232,329 @@ function ArtisanDetailModal({
 
 /* ─────────────────────────── main console ─────────────────────────── */
 
+/* ─────────────────────────── superadmin modals ─────────────────────────── */
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{children}</span>;
+}
+
+const adminInputClass =
+  "mt-1.5 h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] px-3 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--green)] focus:ring-2 focus:ring-[var(--green)]/20";
+
+function ModalShell({
+  title,
+  subtitle,
+  onClose,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[65] flex items-end justify-center bg-[var(--ink)]/45 p-4 backdrop-blur-sm sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-display text-xl text-[var(--ink)]">{title}</h3>
+            <p className="mt-0.5 text-sm text-[var(--muted)]">{subtitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--surface-soft)] hover:text-[var(--ink)]"
+          >
+            <X className="size-5" aria-hidden="true" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function JobEditModal({
+  job,
+  saving,
+  onClose,
+  onSave,
+}: {
+  job: LiveAdminJob;
+  saving: boolean;
+  onClose: () => void;
+  onSave: (patch: Partial<JobEditForm>) => void;
+}) {
+  const [form, setForm] = useState<JobEditForm>({
+    description: job.description || "",
+    district: job.district || "Plaines Wilhems",
+    town: job.town || "",
+    urgency: job.urgency || "planned",
+    category: job.trade || "Plumber",
+  });
+
+  return (
+    <ModalShell title={`Edit job #${job.shortId}`} subtitle="Superadmin — changes apply immediately." onClose={onClose}>
+      <div className="mt-4 grid gap-3">
+        <label className="block">
+          <FieldLabel>Description</FieldLabel>
+          <textarea
+            value={form.description}
+            onChange={(event) => setForm((f) => ({ ...f, description: event.target.value }))}
+            rows={4}
+            className={`${adminInputClass} h-auto resize-none py-2 leading-6`}
+          />
+        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <FieldLabel>Trade</FieldLabel>
+            <select
+              value={form.category}
+              onChange={(event) => setForm((f) => ({ ...f, category: event.target.value }))}
+              className={adminInputClass}
+            >
+              {tradeOptionsAdmin.map((trade) => (
+                <option key={trade}>{trade}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <FieldLabel>Urgency</FieldLabel>
+            <select
+              value={form.urgency}
+              onChange={(event) => setForm((f) => ({ ...f, urgency: event.target.value }))}
+              className={adminInputClass}
+            >
+              <option value="urgent">urgent</option>
+              <option value="planned">planned</option>
+            </select>
+          </label>
+          <label className="block">
+            <FieldLabel>District</FieldLabel>
+            <select
+              value={form.district}
+              onChange={(event) => setForm((f) => ({ ...f, district: event.target.value }))}
+              className={adminInputClass}
+            >
+              {districtOptionsAdmin.map((district) => (
+                <option key={district}>{district}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <FieldLabel>Town</FieldLabel>
+            <input
+              value={form.town}
+              onChange={(event) => setForm((f) => ({ ...f, town: event.target.value }))}
+              className={adminInputClass}
+            />
+          </label>
+        </div>
+        <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onClose} className="btn btn-secondary h-11 px-4 text-sm">
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={saving || form.description.trim().length < 10}
+            onClick={() => onSave(form)}
+            className="btn btn-primary h-11 px-4 text-sm disabled:opacity-60"
+          >
+            {saving ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : <Pencil className="size-4" aria-hidden="true" />}
+            Save changes
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+function ArtisanEditModal({
+  artisan,
+  saving,
+  onClose,
+  onSave,
+}: {
+  artisan: LiveAdminArtisan;
+  saving: boolean;
+  onClose: () => void;
+  onSave: (patch: ArtisanEditForm) => void;
+}) {
+  const [form, setForm] = useState<ArtisanEditForm>({
+    nom: artisan.name || "",
+    tel: artisan.phone || "",
+    metier: artisan.trade || "Plumber",
+    ville: artisan.town || "",
+    district: artisan.district || "Plaines Wilhems",
+    bio: artisan.bio || "",
+    application_email: artisan.email || "",
+    is_available_today: artisan.available,
+    is_verified: artisan.verified,
+  });
+
+  return (
+    <ModalShell title={`Edit ${artisan.name}`} subtitle="Superadmin — edits the live profile directly." onClose={onClose}>
+      <div className="mt-4 grid gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <FieldLabel>Name</FieldLabel>
+            <input value={form.nom} onChange={(e) => setForm((f) => ({ ...f, nom: e.target.value }))} className={adminInputClass} />
+          </label>
+          <label className="block">
+            <FieldLabel>Phone (+230)</FieldLabel>
+            <input value={form.tel} onChange={(e) => setForm((f) => ({ ...f, tel: e.target.value }))} className={adminInputClass} />
+          </label>
+          <label className="block">
+            <FieldLabel>Trade</FieldLabel>
+            <select value={form.metier} onChange={(e) => setForm((f) => ({ ...f, metier: e.target.value }))} className={adminInputClass}>
+              {tradeOptionsAdmin.map((trade) => (
+                <option key={trade}>{trade}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <FieldLabel>District</FieldLabel>
+            <select value={form.district} onChange={(e) => setForm((f) => ({ ...f, district: e.target.value }))} className={adminInputClass}>
+              {districtOptionsAdmin.map((district) => (
+                <option key={district}>{district}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <FieldLabel>Town</FieldLabel>
+            <input value={form.ville} onChange={(e) => setForm((f) => ({ ...f, ville: e.target.value }))} className={adminInputClass} />
+          </label>
+          <label className="block">
+            <FieldLabel>Email</FieldLabel>
+            <input value={form.application_email} onChange={(e) => setForm((f) => ({ ...f, application_email: e.target.value }))} className={adminInputClass} />
+          </label>
+        </div>
+        <label className="block">
+          <FieldLabel>Bio (30–700 chars)</FieldLabel>
+          <textarea
+            value={form.bio}
+            onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+            rows={4}
+            className={`${adminInputClass} h-auto resize-none py-2 leading-6`}
+          />
+        </label>
+        <div className="flex flex-wrap gap-4">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--ink)]">
+            <input
+              type="checkbox"
+              checked={form.is_available_today}
+              onChange={(e) => setForm((f) => ({ ...f, is_available_today: e.target.checked }))}
+              className="size-4 accent-[var(--green)]"
+            />
+            Available today
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--ink)]">
+            <input
+              type="checkbox"
+              checked={form.is_verified}
+              onChange={(e) => setForm((f) => ({ ...f, is_verified: e.target.checked }))}
+              className="size-4 accent-[var(--green)]"
+            />
+            Verified badge
+          </label>
+        </div>
+        <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onClose} className="btn btn-secondary h-11 px-4 text-sm">
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => onSave(form)}
+            className="btn btn-primary h-11 px-4 text-sm disabled:opacity-60"
+          >
+            {saving ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : <Pencil className="size-4" aria-hidden="true" />}
+            Save profile
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+/* ─────────────────────────── overview widgets ─────────────────────────── */
+
+const monthShort = (value: string) => {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleDateString("en-GB", { month: "short" })
+    : value.slice(5, 7);
+};
+
+function MonthlyChart({ monthly }: { monthly: MonthlyStat[] }) {
+  const series = [
+    { key: "jobs_posted" as const, label: "Posted", color: "var(--green)" },
+    { key: "jobs_claimed" as const, label: "Claimed", color: "var(--blue)" },
+    { key: "jobs_completed" as const, label: "Completed", color: "var(--gold)" },
+    { key: "jobs_expired" as const, label: "Expired", color: "var(--urgent)" },
+  ];
+  const max = Math.max(1, ...monthly.flatMap((row) => series.map((s) => row[s.key])));
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-3">
+        {series.map((s) => (
+          <span key={s.key} className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--muted)]">
+            <span className="size-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+      <div className="mt-4 flex items-end gap-2 overflow-x-auto pb-1" style={{ height: "10rem" }}>
+        {monthly.map((row) => (
+          <div key={row.month} className="flex min-w-12 flex-1 flex-col items-center gap-1.5">
+            <div className="flex h-full w-full items-end justify-center gap-1">
+              {series.map((s) => (
+                <div
+                  key={s.key}
+                  title={`${s.label}: ${row[s.key]}`}
+                  className="w-2.5 rounded-t-md transition-all sm:w-3"
+                  style={{
+                    backgroundColor: s.color,
+                    height: `${Math.max(3, Math.round((row[s.key] / max) * 100))}%`,
+                    opacity: row[s.key] ? 1 : 0.18,
+                  }}
+                />
+              ))}
+            </div>
+            <span className="text-[11px] font-semibold text-[var(--muted)]">{monthShort(row.month)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function auditLabel(entry: AuditEntry) {
+  const event = entry.event.replace(/^admin_super_/, "").replace(/^admin_/, "").replace(/_/g, " ");
+  return event.charAt(0).toUpperCase() + event.slice(1);
+}
+
 export function AdminConsole({ adminPassword, onLogout }: { adminPassword: string; onLogout?: () => void }) {
-  const [activeTab, setActiveTab] = useState<AdminTab>("review");
+  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [query, setQuery] = useState("");
   const [artisanStatusFilter, setArtisanStatusFilter] = useState<"all" | "approved" | "rejected" | "removed">("all");
   const [jobStatusFilter, setJobStatusFilter] = useState<"all" | "open" | "claimed" | "completed" | "expired">("all");
@@ -1175,6 +1572,14 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [jobsError, setJobsError] = useState("");
   const [mutatingJob, setMutatingJob] = useState(""); // `${action}:${id}`
+
+  // Superadmin: analytics + full CRUD
+  const [stats, setStats] = useState<SuperStatsPayload | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState("");
+  const [editJob, setEditJob] = useState<LiveAdminJob | null>(null);
+  const [editArtisan, setEditArtisan] = useState<LiveAdminArtisan | null>(null);
+  const [superSaving, setSuperSaving] = useState(false);
 
   const [detailArtisan, setDetailArtisan] = useState<LiveAdminArtisan | null>(null);
   const [detailReviews, setDetailReviews] = useState<AdminReview[]>([]);
@@ -1245,6 +1650,86 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
       setLoadingJobs(false);
     }
   }, [adminPassword, applyJobsPayload]);
+
+  const loadStats = useCallback(async () => {
+    setLoadingStats(true);
+    setStatsError("");
+    try {
+      const payload = await invokePublicFunction<SuperStatsPayload>("artisanmu-admin-super", {
+        admin_password: adminPassword,
+        action: "stats",
+      });
+      setStats(payload);
+    } catch (error) {
+      setStatsError(error instanceof Error ? error.message : "Could not load analytics.");
+      setStats(null);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [adminPassword]);
+
+  // Superadmin mutations (artisanmu-admin-super) — refresh lists after success.
+  async function superJobAction(
+    action: "set_job_status" | "delete_job",
+    jobId: string,
+    extra: Record<string, unknown>,
+    successMessage: string,
+  ) {
+    setMutatingJob(`${action}:${jobId}`);
+    try {
+      await invokePublicFunction<SuperMutationPayload>("artisanmu-admin-super", {
+        admin_password: adminPassword,
+        action,
+        job_id: jobId,
+        ...extra,
+      });
+      pushToast("success", successMessage);
+      void loadJobs();
+      void loadStats();
+    } catch (error) {
+      pushToast("error", error instanceof Error ? error.message : "Superadmin action failed.");
+    } finally {
+      setMutatingJob("");
+    }
+  }
+
+  async function superUpdateJob(jobId: string, patch: Partial<JobEditForm>) {
+    setSuperSaving(true);
+    try {
+      await invokePublicFunction<SuperMutationPayload>("artisanmu-admin-super", {
+        admin_password: adminPassword,
+        action: "update_job",
+        job_id: jobId,
+        patch,
+      });
+      pushToast("success", "Job updated.");
+      setEditJob(null);
+      void loadJobs();
+    } catch (error) {
+      pushToast("error", error instanceof Error ? error.message : "Could not update job.");
+    } finally {
+      setSuperSaving(false);
+    }
+  }
+
+  async function superUpdateArtisan(artisanId: string, patch: ArtisanEditForm) {
+    setSuperSaving(true);
+    try {
+      await invokePublicFunction<SuperMutationPayload>("artisanmu-admin-super", {
+        admin_password: adminPassword,
+        action: "update_artisan",
+        artisan_id: artisanId,
+        patch,
+      });
+      pushToast("success", "Artisan profile updated.");
+      setEditArtisan(null);
+      void loadArtisans();
+    } catch (error) {
+      pushToast("error", error instanceof Error ? error.message : "Could not update artisan.");
+    } finally {
+      setSuperSaving(false);
+    }
+  }
 
   async function mutateArtisan(
     action: "approve" | "reject" | "remove" | "set_badges",
@@ -1447,9 +1932,10 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
     const timer = window.setTimeout(() => {
       void loadArtisans();
       void loadJobs();
+      void loadStats();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadArtisans, loadJobs]);
+  }, [loadArtisans, loadJobs, loadStats]);
 
   // Switch tab and clear the search so results never look stale across sections.
   const selectTab = useCallback((tab: AdminTab) => {
@@ -1457,11 +1943,12 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
     setQuery("");
   }, []);
 
-  const refreshing = loadingArtisans || loadingJobs;
+  const refreshing = loadingArtisans || loadingJobs || loadingStats;
   const refreshAll = useCallback(() => {
     void loadArtisans();
     void loadJobs();
-  }, [loadArtisans, loadJobs]);
+    void loadStats();
+  }, [loadArtisans, loadJobs, loadStats]);
 
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -1498,6 +1985,7 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
   }, [liveJobs, jobStatusFilter, normalizedQuery]);
 
   const tabCounts: Record<AdminTab, number | null> = {
+    overview: null,
     review: artisanMetrics.pending,
     artisans: managedArtisans.length,
     jobs: liveJobs.length,
@@ -1520,9 +2008,10 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
   ] as const;
 
   const tabTitles: Record<AdminTab, { title: string; subtitle: string }> = {
+    overview: { title: "Overview", subtitle: "Monthly analytics, live counts and the audit trail." },
     review: { title: "Validate artisans", subtitle: "Approve or reject new artisan applications." },
-    artisans: { title: "Manage artisans", subtitle: "Badges, removals and the live roster." },
-    jobs: { title: "Monitor jobs", subtitle: "Track client requests and clean up photos." },
+    artisans: { title: "Manage artisans", subtitle: "Badges, edits, removals and the live roster." },
+    jobs: { title: "Manage jobs", subtitle: "Full control — edit, reopen, complete, expire or delete any request." },
     ads: { title: "Ads & monetization", subtitle: "Ad placement status across the public site." },
   };
 
@@ -1615,7 +2104,7 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
             <h1 className="text-2xl font-semibold text-[var(--ink)]">{tabTitles[activeTab].title}</h1>
             <p className="mt-1 text-sm text-[var(--muted)]">{tabTitles[activeTab].subtitle}</p>
           </div>
-          {activeTab !== "ads" ? (
+          {activeTab !== "ads" && activeTab !== "overview" ? (
             <label className="flex h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 shadow-sm md:w-80">
               <Search className="size-4 shrink-0 text-[var(--green)]" aria-hidden="true" />
               <input
@@ -1632,6 +2121,121 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
             </label>
           ) : null}
         </div>
+
+        {/* ── OVERVIEW ── */}
+        {activeTab === "overview" ? (
+          <div className="mt-5 grid gap-4">
+            {statsError ? (
+              <ErrorState message={statsError} onRetry={loadStats} />
+            ) : loadingStats && !stats ? (
+              <LoadingList />
+            ) : (
+              <>
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+                  {/* Monthly analytics */}
+                  <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h2 className="font-display flex items-center gap-2 text-lg text-[var(--ink)]">
+                          <BarChart3 className="size-5 text-[var(--green)]" aria-hidden="true" />
+                          Monthly activity
+                        </h2>
+                        <p className="mt-0.5 text-sm text-[var(--muted)]">
+                          Aggregated before resolved requests are purged — this is the long-term record.
+                        </p>
+                      </div>
+                    </div>
+                    {stats?.monthly?.length ? (
+                      <div className="mt-5">
+                        <MonthlyChart monthly={stats.monthly} />
+                        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                          {(() => {
+                            const totals = (stats.monthly || []).reduce(
+                              (acc, row) => ({
+                                posted: acc.posted + row.jobs_posted,
+                                claimed: acc.claimed + row.jobs_claimed,
+                                completed: acc.completed + row.jobs_completed,
+                                leads: acc.leads + row.leads_sent,
+                              }),
+                              { posted: 0, claimed: 0, completed: 0, leads: 0 },
+                            );
+                            return (
+                              <>
+                                <div className="rounded-xl bg-[var(--surface-soft)] px-3 py-2 text-sm"><span className="block text-xs text-[var(--muted)]">Jobs posted</span><strong className="text-[var(--ink)]">{totals.posted}</strong></div>
+                                <div className="rounded-xl bg-[var(--surface-soft)] px-3 py-2 text-sm"><span className="block text-xs text-[var(--muted)]">Claimed</span><strong className="text-[var(--ink)]">{totals.claimed}</strong></div>
+                                <div className="rounded-xl bg-[var(--surface-soft)] px-3 py-2 text-sm"><span className="block text-xs text-[var(--muted)]">Completed</span><strong className="text-[var(--ink)]">{totals.completed}</strong></div>
+                                <div className="rounded-xl bg-[var(--surface-soft)] px-3 py-2 text-sm"><span className="block text-xs text-[var(--muted)]">Leads sent</span><strong className="text-[var(--ink)]">{totals.leads}</strong></div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    ) : (
+                      <EmptyState
+                        icon={BarChart3}
+                        title="No analytics yet"
+                        copy="Monthly numbers appear here automatically as job requests get resolved and rolled up by the maintenance cron."
+                      />
+                    )}
+                  </section>
+
+                  <div className="grid gap-4">
+                    {/* Automation card */}
+                    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-sm">
+                      <h2 className="font-display flex items-center gap-2 text-lg text-[var(--ink)]">
+                        <Bot className="size-5 text-[var(--green)]" aria-hidden="true" />
+                        Self-maintenance
+                      </h2>
+                      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                        Every <strong className="text-[var(--ink)]">{stats?.retention?.cadence || "15 min"}</strong> the database cleans itself:
+                        overdue jobs expire, and resolved requests are rolled into the monthly numbers then deleted.
+                      </p>
+                      <ul className="mt-3 grid gap-1.5 text-sm text-[var(--muted)]">
+                        <li className="flex items-center gap-2"><CheckCircle2 className="size-4 text-[var(--green)]" aria-hidden="true" /> Completed jobs purge after <strong className="text-[var(--ink)]">{stats?.retention?.completed || "48h"}</strong></li>
+                        <li className="flex items-center gap-2"><CheckCircle2 className="size-4 text-[var(--green)]" aria-hidden="true" /> Claimed jobs purge after <strong className="text-[var(--ink)]">{stats?.retention?.claimed || "7d"}</strong></li>
+                        <li className="flex items-center gap-2"><CheckCircle2 className="size-4 text-[var(--green)]" aria-hidden="true" /> Expired jobs purge after <strong className="text-[var(--ink)]">{stats?.retention?.expired || "7d"}</strong></li>
+                      </ul>
+                    </section>
+
+                    {/* Live snapshot */}
+                    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-sm">
+                      <h2 className="font-display flex items-center gap-2 text-lg text-[var(--ink)]">
+                        <Sparkles className="size-5 text-[var(--gold)]" aria-hidden="true" />
+                        Live right now
+                      </h2>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                        <div className="rounded-xl bg-[var(--surface-soft)] px-3 py-2"><span className="block text-xs text-[var(--muted)]">Open jobs</span><strong className="text-[var(--ink)]">{stats?.live?.jobs?.open || 0}</strong></div>
+                        <div className="rounded-xl bg-[var(--surface-soft)] px-3 py-2"><span className="block text-xs text-[var(--muted)]">Claimed</span><strong className="text-[var(--ink)]">{stats?.live?.jobs?.claimed || 0}</strong></div>
+                        <div className="rounded-xl bg-[var(--surface-soft)] px-3 py-2"><span className="block text-xs text-[var(--muted)]">Live artisans</span><strong className="text-[var(--ink)]">{stats?.live?.artisans?.approved_live || 0}</strong></div>
+                        <div className="rounded-xl bg-[var(--surface-soft)] px-3 py-2"><span className="block text-xs text-[var(--muted)]">Pending review</span><strong className="text-[var(--ink)]">{stats?.live?.artisans?.pending || 0}</strong></div>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+
+                {/* Audit trail */}
+                <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-sm">
+                  <h2 className="font-display flex items-center gap-2 text-lg text-[var(--ink)]">
+                    <History className="size-5 text-[var(--blue)]" aria-hidden="true" />
+                    Recent admin activity
+                  </h2>
+                  {stats?.audit?.length ? (
+                    <ul className="mt-3 grid gap-1">
+                      {stats.audit.slice(0, 15).map((entry) => (
+                        <li key={entry.id} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm odd:bg-[var(--surface-soft)]">
+                          <span className="min-w-0 truncate text-[var(--ink)]">{auditLabel(entry)}</span>
+                          <span className="shrink-0 text-xs text-[var(--muted)]">{ageLabel(entry.timestamp)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-sm text-[var(--muted)]">No admin actions recorded yet.</p>
+                  )}
+                </section>
+              </>
+            )}
+          </div>
+        ) : null}
 
         {/* ── REVIEW ── */}
         {activeTab === "review" ? (
@@ -1751,6 +2355,15 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
                           >
                             <Eye className="size-4" aria-hidden="true" />
                             View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditArtisan(artisan)}
+                            className="btn btn-secondary h-11 px-3 text-sm"
+                            aria-label={`Edit ${artisan.name} profile`}
+                          >
+                            <Pencil className="size-4" aria-hidden="true" />
+                            Edit
                           </button>
                           <a
                             href={`https://wa.me/${digitsOnly(artisan.phone)}`}
@@ -1925,8 +2538,41 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
                         </div>
                       </div>
 
-                      {job.status === "claimed" || ["open", "claimed"].includes(job.status) || job.hasPhoto ? (
+                      {(
                         <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--line)] pt-4">
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => setEditJob(job)}
+                            className="btn btn-secondary h-10 px-4 text-sm disabled:opacity-60"
+                          >
+                            <Pencil className="size-4" aria-hidden="true" />
+                            Edit
+                          </button>
+
+                          {["completed", "expired", "claimed"].includes(job.status) ? (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() =>
+                                setConfirmState({
+                                  title: `Reopen job #${job.shortId}?`,
+                                  message:
+                                    job.status === "claimed"
+                                      ? "The current claim will be released and the job returns to the open board for 3 more days."
+                                      : "The job returns to the open board for 3 more days.",
+                                  confirmLabel: "Reopen job",
+                                  danger: false,
+                                  onConfirm: () => void superJobAction("set_job_status", job.id, { status: "open" }, `Job #${job.shortId} reopened.`),
+                                })
+                              }
+                              className="btn btn-secondary h-10 px-4 text-sm disabled:opacity-60"
+                            >
+                              {busyAction === "set_job_status" ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : <RotateCcw className="size-4" aria-hidden="true" />}
+                              Reopen
+                            </button>
+                          ) : null}
+
                           {job.status === "claimed" ? (
                             <button
                               type="button"
@@ -1978,8 +2624,26 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
                               {job.cleanupEligible ? "Delete cleanup photo" : "Delete photo"}
                             </button>
                           ) : null}
+
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() =>
+                              setConfirmState({
+                                title: `Delete job #${job.shortId} permanently?`,
+                                message: "The request, its notifications and its events are removed for good. This cannot be undone.",
+                                confirmLabel: "Delete job",
+                                danger: true,
+                                onConfirm: () => void superJobAction("delete_job", job.id, {}, `Job #${job.shortId} deleted.`),
+                              })
+                            }
+                            className="btn h-10 border border-[#e6c4be] bg-[#fdecec] px-4 text-sm text-[var(--rose)] hover:bg-[#f9dcd8] disabled:opacity-60"
+                          >
+                            {busyAction === "delete_job" ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : <Trash2 className="size-4" aria-hidden="true" />}
+                            Delete
+                          </button>
                         </div>
-                      ) : null}
+                      )}
                     </article>
                   );
                 })}
@@ -2034,6 +2698,24 @@ export function AdminConsole({ adminPassword, onLogout }: { adminPassword: strin
           onDeleteArtisan={() => void adminDeleteArtisan(detailArtisan.id)}
           accountWorking={adminAccountWorking}
           accountMessage={adminAccountMessage}
+        />
+      ) : null}
+
+      {editJob ? (
+        <JobEditModal
+          job={editJob}
+          saving={superSaving}
+          onClose={() => setEditJob(null)}
+          onSave={(patch) => void superUpdateJob(editJob.id, patch)}
+        />
+      ) : null}
+
+      {editArtisan ? (
+        <ArtisanEditModal
+          artisan={editArtisan}
+          saving={superSaving}
+          onClose={() => setEditArtisan(null)}
+          onSave={(patch) => void superUpdateArtisan(editArtisan.id, patch)}
         />
       ) : null}
 
