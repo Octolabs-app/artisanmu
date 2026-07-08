@@ -102,3 +102,9 @@ end;
 $$;
 
 -- Cron schedule is unchanged: 'artizan-job-maintenance' every 15 minutes.
+
+-- Only the cron (postgres role) may run the maintenance function — API roles
+-- must not be able to trigger it via PostgREST RPC (advisor 0028/0029).
+revoke execute on function public.artizan_job_maintenance() from public;
+revoke execute on function public.artizan_job_maintenance() from anon;
+revoke execute on function public.artizan_job_maintenance() from authenticated;
